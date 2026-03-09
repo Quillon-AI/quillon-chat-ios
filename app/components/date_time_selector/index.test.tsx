@@ -35,9 +35,20 @@ describe('DateTimeSelector', () => {
         jest.clearAllMocks();
     });
 
-    it('renders with initialDate and uses it when date is selected', () => {
+    it('renders the date picker container', () => {
+        const {getByTestId} = renderWithEverything(
+            <DateTimeSelector
+                {...baseProps}
+            />,
+            {database},
+        );
+
+        expect(getByTestId('custom_date_time_picker')).toBeTruthy();
+    });
+
+    it('does not call handleChange when pressing Select Date to open picker', () => {
         const initialDate = moment().add(2, 'days').hour(14).minute(30);
-        const {getByTestId, getByText} = renderWithEverything(
+        const {getByText} = renderWithEverything(
             <DateTimeSelector
                 {...baseProps}
                 initialDate={initialDate}
@@ -45,14 +56,9 @@ describe('DateTimeSelector', () => {
             {database},
         );
 
-        const picker = getByTestId('custom_date_time_picker');
-        expect(picker).toBeTruthy();
-
         const selectDateButton = getByText('Select Date');
         fireEvent.press(selectDateButton);
 
-        expect(mockHandleChange).toHaveBeenCalledWith(expect.objectContaining({
-            _d: initialDate.toDate(),
-        }));
+        expect(mockHandleChange).not.toHaveBeenCalled();
     });
 });

@@ -40,11 +40,11 @@ export function resolveRelativeDate(dateStr: string, timezone?: string): string 
     // Handle named date references
     switch (dateStr.toLowerCase()) {
         case DateReference.TODAY:
-            return now.startOf('day').format('YYYY-MM-DD');
+            return now.clone().startOf('day').format('YYYY-MM-DD');
         case DateReference.TOMORROW:
-            return now.add(1, 'day').startOf('day').format('YYYY-MM-DD');
+            return now.clone().add(1, 'day').startOf('day').format('YYYY-MM-DD');
         case DateReference.YESTERDAY:
-            return now.subtract(1, 'day').startOf('day').format('YYYY-MM-DD');
+            return now.clone().subtract(1, 'day').startOf('day').format('YYYY-MM-DD');
     }
 
     // Handle dynamic offset patterns: +5d, -3d, +2w, +1m
@@ -57,7 +57,7 @@ export function resolveRelativeDate(dateStr: string, timezone?: string): string 
             w: 'week',
             m: 'month',
         };
-        return now.add(value, unitMap[unit.toLowerCase()]).startOf('day').format('YYYY-MM-DD');
+        return now.clone().add(value, unitMap[unit.toLowerCase()]).startOf('day').format('YYYY-MM-DD');
     }
 
     // Not a relative date, return as-is

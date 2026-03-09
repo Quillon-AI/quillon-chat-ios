@@ -5,6 +5,7 @@ import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
 import DateTimePicker, {type DateTimePickerEvent} from '@react-native-community/datetimepicker';
 import moment, {type Moment} from 'moment-timezone';
 import React, {useState} from 'react';
+import {useIntl} from 'react-intl';
 import {View, Button, Platform} from 'react-native';
 import {of as of$} from 'rxjs';
 import {switchMap} from 'rxjs/operators';
@@ -47,20 +48,18 @@ function toValidMinuteInterval(interval?: number): ValidMinuteInterval {
     return 30;
 }
 
-const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
-    return {
-        container: {
-            paddingTop: 10,
-            backgroundColor: theme.centerChannelBg,
-        },
-        buttonContainer: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-evenly',
-            marginBottom: 10,
-        },
-    };
-});
+const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
+    container: {
+        paddingTop: 10,
+        backgroundColor: theme.centerChannelBg,
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-evenly',
+        marginBottom: 10,
+    },
+}));
 
 const DateTimeSelector = ({
     timezone,
@@ -76,6 +75,7 @@ const DateTimeSelector = ({
     minDate,
     maxDate,
 }: Props) => {
+    const intl = useIntl();
     const styles = getStyleSheet(theme);
     const currentTime = getCurrentMomentForTimezone(timezone);
 
@@ -120,28 +120,18 @@ const DateTimeSelector = ({
 
     const showDatepicker = () => {
         if (show && mode === 'date') {
-            // Toggle off if already showing date picker
             setShow(false);
         } else {
-            // Show date picker
             showMode('date');
         }
-
-        // Always call handleChange with current date when date picker is accessed
-        handleChange(date);
     };
 
     const showTimepicker = () => {
         if (show && mode === 'time') {
-            // Toggle off if already showing time picker
             setShow(false);
         } else {
-            // Show time picker
             showMode('time');
         }
-
-        // Always call handleChange with current date when date picker is accessed
-        handleChange(date);
     };
 
     return (
@@ -153,14 +143,14 @@ const DateTimeSelector = ({
                 <Button
                     testID={testID ? `${testID}.select.button` : 'custom_status_clear_after.menu_item.date_and_time.button.date'}
                     onPress={showDatepicker}
-                    title='Select Date'
+                    title={intl.formatMessage({id: 'date_time_selector.select_date', defaultMessage: 'Select Date'})}
                     color={theme.buttonBg}
                 />
                 {!dateOnly && (
                     <Button
                         testID={testID ? `${testID}.time.button` : 'custom_status_clear_after.menu_item.date_and_time.button.time'}
                         onPress={showTimepicker}
-                        title='Select Time'
+                        title={intl.formatMessage({id: 'date_time_selector.select_time', defaultMessage: 'Select Time'})}
                         color={theme.buttonBg}
                     />
                 )}

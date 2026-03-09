@@ -4,6 +4,7 @@
 import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
 import moment, {type Moment} from 'moment-timezone';
 import React, {useCallback, useMemo} from 'react';
+import {useIntl} from 'react-intl';
 import {View, Text} from 'react-native';
 import {of as of$} from 'rxjs';
 import {switchMap} from 'rxjs/operators';
@@ -69,7 +70,7 @@ const getDateValue = (value: AppFormValue, timezone?: string, isDateTime = false
         if (isDateTime && parsed && value !== resolvedValue) {
             // This was a relative date that got resolved, use current time
             const currentTime = getCurrentMomentForTimezone(timezone || null);
-            return parsed.hour(currentTime.hour()).minute(currentTime.minute()).second(0);
+            return parsed.clone().hour(currentTime.hour()).minute(currentTime.minute()).second(0);
         }
 
         return parsed || undefined;
@@ -91,6 +92,19 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
     };
 });
 
+const getDateTimeStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
+    container: {marginBottom: 24},
+    labelContainer: {flexDirection: 'row', marginTop: 15, marginBottom: 10, marginLeft: 15, marginRight: 15, alignItems: 'center', justifyContent: 'space-between'},
+    label: {fontSize: 14, color: theme.centerChannelColor, flexShrink: 1, marginRight: 8},
+    asterisk: {color: theme.errorTextColor, fontSize: 14},
+    dateTimeDisplay: {flexShrink: 0},
+    dateTimeText: {color: theme.linkColor, fontSize: 14},
+    helpText: {fontSize: 12, color: theme.centerChannelColor, marginLeft: 15, marginTop: 4, opacity: 0.64},
+    errorText: {fontSize: 12, color: theme.errorTextColor, marginLeft: 15, marginTop: 4},
+    timezoneIndicator: {flexDirection: 'row', alignItems: 'center', marginLeft: 15, marginBottom: 8, marginTop: -4},
+    timezoneText: {fontSize: 12, color: theme.centerChannelColor, opacity: 0.64, marginLeft: 4},
+}));
+
 function selectDataSource(fieldType: string): string {
     switch (fieldType) {
         case AppFieldTypes.USER:
@@ -104,7 +118,7 @@ function selectDataSource(fieldType: string): string {
     }
 }
 
-const AppsFormFieldComponent = ({
+const AppsFormFieldComponent = React.memo(({
     field,
     name,
     errorText,
@@ -115,7 +129,28 @@ const AppsFormFieldComponent = ({
     isMilitaryTime,
 }: Props) => {
     const theme = useTheme();
+    const intl = useIntl();
     const style = getStyleSheet(theme);
+    const dateTimeStyles = getDateTimeStyleSheet(theme);
+
+    const isDateTimeField = field.type === AppFieldTypes.DATETIME;
+    const isDateField = field.type === AppFieldTypes.DATE || isDateTimeField;
+    const locationTimezone = field.datetime_config?.location_timezone;
+    const displayTimezone = locationTimezone || userTimezone;
+    const showTimezoneIndicator = Boolean(locationTimezone);
+    const resolvedMinDate = isDateField && field.min_date ? resolveRelativeDate(field.min_date, displayTimezone) : undefined;
+    const resolvedMaxDate = isDateField && field.max_date ? resolveRelativeDate(field.max_date, displayTimezone) : undefined;
+    const allowPastDates = useMemo(() => {
+        if (!isDateField || !field.min_date || !resolvedMinDate) {
+            return true;
+        }
+        const minMoment = parseDateInTimezone(resolvedMinDate, displayTimezone);
+        return !minMoment || minMoment.isBefore(getCurrentMomentForTimezone(displayTimezone), 'day');
+    }, [isDateField, field.min_date, resolvedMinDate, displayTimezone]);
+    const selectedDate = useMemo(
+        () => (isDateField ? (getDateValue(value, displayTimezone, isDateTimeField) ?? moment()) : null),
+        [isDateField, value, displayTimezone, isDateTimeField],
+    );
 
     const testID = `AppFormElement.${name}`;
     const placeholder = field.hint || '';
@@ -141,15 +176,15 @@ const AppsFormFieldComponent = ({
         onChange(name, dialogOptionToAppSelectOption(newValue));
     }, [onChange, field, name]);
 
-    const handleDateChange = useCallback((selectedDate: Moment) => {
+    const handleDateChange = useCallback((pickedDate: Moment) => {
         if (field.type === AppFieldTypes.DATE) {
             // For date-only fields, use start of day to avoid timezone issues
-            const startOfDay = selectedDate.clone().startOf('day');
+            const startOfDay = pickedDate.clone().startOf('day');
             const dateString = startOfDay.format('YYYY-MM-DD');
             onChange(name, dateString);
         } else if (field.type === AppFieldTypes.DATETIME) {
             // For datetime fields, return full ISO string
-            onChange(name, selectedDate.toISOString());
+            onChange(name, pickedDate.toISOString());
         }
     }, [name, onChange, field.type]);
 
@@ -300,92 +335,8 @@ const AppsFormFieldComponent = ({
         }
         case AppFieldTypes.DATE:
         case AppFieldTypes.DATETIME: {
-            // Determine timezone: location_timezone takes precedence over user timezone
-            const locationTimezone = field.datetime_config?.location_timezone;
-            const displayTimezone = locationTimezone || userTimezone;
-            const showTimezoneIndicator = Boolean(locationTimezone);
-
-            // Parse date with proper timezone handling
-            const isDateTimeField = field.type === AppFieldTypes.DATETIME;
-            const selectedDate = getDateValue(value, displayTimezone, isDateTimeField) || moment();
             const hasValue = Boolean(value);
-
-            // Get timezone abbreviation for display
             const timezoneAbbr = showTimezoneIndicator ? moment.tz(displayTimezone).format('z') : '';
-
-            // Resolve relative dates in min_date and max_date using display timezone
-            const resolvedMinDate = field.min_date ? resolveRelativeDate(field.min_date, displayTimezone) : undefined;
-            const resolvedMaxDate = field.max_date ? resolveRelativeDate(field.max_date, displayTimezone) : undefined;
-
-            // Calculate allowPastDates based on min_date (matching webapp logic)
-            const allowPastDates = useMemo(() => {
-                if (field.min_date && resolvedMinDate) {
-                    const minMoment = parseDateInTimezone(resolvedMinDate, displayTimezone);
-                    const currentMoment = getCurrentMomentForTimezone(displayTimezone);
-
-                    return !minMoment || minMoment.isBefore(currentMoment, 'day');
-                }
-
-                return true;
-            }, [field.min_date, resolvedMinDate, displayTimezone]);
-
-            const dateTimeStyles = {
-                container: {
-                    marginBottom: 24,
-                },
-                labelContainer: {
-                    flexDirection: 'row' as const,
-                    marginTop: 15,
-                    marginBottom: 10,
-                    marginLeft: 15,
-                    marginRight: 15,
-                    alignItems: 'center' as const,
-                    justifyContent: 'space-between' as const,
-                },
-                label: {
-                    fontSize: 14,
-                    color: theme.centerChannelColor,
-                    flexShrink: 1,
-                    marginRight: 8,
-                },
-                asterisk: {
-                    color: theme.errorTextColor,
-                    fontSize: 14,
-                },
-                dateTimeDisplay: {
-                    flexShrink: 0,
-                },
-                dateTimeText: {
-                    color: theme.linkColor,
-                    fontSize: 14,
-                },
-                helpText: {
-                    fontSize: 12,
-                    color: theme.centerChannelColor,
-                    marginLeft: 15,
-                    marginTop: 4,
-                    opacity: 0.64,
-                },
-                errorText: {
-                    fontSize: 12,
-                    color: theme.errorTextColor,
-                    marginLeft: 15,
-                    marginTop: 4,
-                },
-                timezoneIndicator: {
-                    flexDirection: 'row' as const,
-                    alignItems: 'center' as const,
-                    marginLeft: 15,
-                    marginBottom: 8,
-                    marginTop: -4,
-                },
-                timezoneText: {
-                    fontSize: 12,
-                    color: theme.centerChannelColor,
-                    opacity: 0.64,
-                    marginLeft: 4,
-                },
-            };
 
             return (
                 <View style={dateTimeStyles.container}>
@@ -399,7 +350,7 @@ const AppsFormFieldComponent = ({
                             {field.is_required && <Text style={dateTimeStyles.asterisk}>{' *'}</Text>}
                         </Text>
 
-                        {hasValue && (
+                        {hasValue && selectedDate && (
                             <View style={dateTimeStyles.dateTimeDisplay}>
                                 {field.type === AppFieldTypes.DATE ? (
                                     <FormattedDate
@@ -428,7 +379,8 @@ const AppsFormFieldComponent = ({
                     {showTimezoneIndicator && (
                         <View style={dateTimeStyles.timezoneIndicator}>
                             <Text style={dateTimeStyles.timezoneText}>
-                                {'🌍 Times in '}
+                                {intl.formatMessage({id: 'date_time_selector.times_in', defaultMessage: 'Times in'})}
+                                {' '}
                                 {timezoneAbbr}
                             </Text>
                         </View>
@@ -438,7 +390,7 @@ const AppsFormFieldComponent = ({
                         timezone={displayTimezone}
                         theme={theme}
                         handleChange={handleDateChange}
-                        initialDate={hasValue ? selectedDate : undefined}
+                        initialDate={hasValue && selectedDate ? selectedDate : undefined}
                         dateOnly={field.type === AppFieldTypes.DATE}
                         allowPastDates={allowPastDates}
                         minDate={resolvedMinDate}
@@ -463,7 +415,7 @@ const AppsFormFieldComponent = ({
     }
 
     return null;
-};
+});
 
 AppsFormFieldComponent.displayName = 'AppsFormField';
 
