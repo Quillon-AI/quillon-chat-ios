@@ -15,7 +15,6 @@ import {handleCallsSlashCommand} from '@calls/actions';
 import {Events, Screens} from '@constants';
 import {NOTIFY_ALL_MEMBERS} from '@constants/post_draft';
 import {MESSAGE_TYPE, SNACK_BAR_TYPE} from '@constants/snack_bar';
-import {useKeyboardAnimationContext} from '@context/keyboard_animation';
 import {useServerUrl} from '@context/server';
 import DraftUploadManager from '@managers/draft_upload_manager';
 import * as DraftUtils from '@utils/draft';
@@ -81,7 +80,6 @@ export const useHandleSendMessage = ({
 }: Props) => {
     const intl = useIntl();
     const serverUrl = useServerUrl();
-    const {blurAndDismissKeyboard} = useKeyboardAnimationContext();
     const [sendingMessage, setSendingMessage] = useState(false);
     const [channelTimezoneCount, setChannelTimezoneCount] = useState(0);
 
@@ -172,9 +170,8 @@ export const useHandleSendMessage = ({
         }
 
         setSendingMessage(false);
-        blurAndDismissKeyboard();
         DeviceEventEmitter.emit(Events.POST_LIST_SCROLL_TO_BOTTOM, rootId ? Screens.THREAD : Screens.CHANNEL);
-    }, [files, currentUserId, channelId, rootId, value, postPriority, postBoRConfig?.enabled, isFromDraftView, serverUrl, clearDraft, intl, canPost, channelIsArchived, channelIsReadOnly, deactivatedChannel, blurAndDismissKeyboard]);
+    }, [files, currentUserId, channelId, rootId, value, postPriority, postBoRConfig?.enabled, isFromDraftView, serverUrl, clearDraft, intl, canPost, channelIsArchived, channelIsReadOnly, deactivatedChannel]);
 
     const showSendToAllOrChannelOrHereAlert = useCallback((calculatedMembersCount: number, atHere: boolean, schedulingInfo?: SchedulingInfo) => {
         const notifyAllMessage = DraftUtils.buildChannelWideMentionMessage(intl, calculatedMembersCount, channelTimezoneCount, atHere);
