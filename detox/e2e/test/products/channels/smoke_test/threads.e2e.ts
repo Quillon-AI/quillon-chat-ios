@@ -26,7 +26,7 @@ import {
     ThreadOptionsScreen,
     ThreadScreen,
 } from '@support/ui/screen';
-import {getRandomId, timeouts, wait} from '@support/utils';
+import {getRandomId, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect} from 'detox';
 
 describe('Smoke Test - Threads', () => {
@@ -68,7 +68,9 @@ describe('Smoke Test - Threads', () => {
         await ThreadScreen.postMessage(`${parentMessage} reply`);
 
         // * Verify thread is followed by user by default via thread navigation
-        await waitFor(ThreadScreen.followingButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        // Use polling helper: waitFor() waits for bridge idle which can be blocked
+        // by scroll/keyboard animations; this polls directly against the UI hierarchy
+        await waitForElementToBeVisible(ThreadScreen.followingButton, timeouts.TEN_SEC);
 
         // # Unfollow thread via thread navigation
         await ThreadScreen.followingButton.tap();

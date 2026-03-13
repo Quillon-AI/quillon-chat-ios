@@ -174,7 +174,7 @@ export const useHandleSendMessage = ({
         setSendingMessage(false);
         blurAndDismissKeyboard();
         DeviceEventEmitter.emit(Events.POST_LIST_SCROLL_TO_BOTTOM, rootId ? Screens.THREAD : Screens.CHANNEL);
-    }, [files, currentUserId, channelId, rootId, value, postPriority, postBoRConfig?.enabled, isFromDraftView, serverUrl, clearDraft, intl, canPost, channelIsArchived, channelIsReadOnly, deactivatedChannel]);
+    }, [files, currentUserId, channelId, rootId, value, postPriority, postBoRConfig?.enabled, isFromDraftView, serverUrl, clearDraft, intl, canPost, channelIsArchived, channelIsReadOnly, deactivatedChannel, blurAndDismissKeyboard]);
 
     const showSendToAllOrChannelOrHereAlert = useCallback((calculatedMembersCount: number, atHere: boolean, schedulingInfo?: SchedulingInfo) => {
         const notifyAllMessage = DraftUtils.buildChannelWideMentionMessage(intl, calculatedMembersCount, channelTimezoneCount, atHere);
