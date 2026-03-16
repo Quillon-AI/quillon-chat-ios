@@ -25,6 +25,7 @@ import {
 import {
     AddMembersScreen,
     ChannelInfoScreen,
+    ChannelListScreen,
     ChannelScreen,
     CreateDirectMessageScreen,
     HomeScreen,
@@ -32,7 +33,7 @@ import {
     ManageChannelMembersScreen,
     ServerScreen,
 } from '@support/ui/screen';
-import {isAndroid, timeouts, wait} from '@support/utils';
+import {isAndroid, isIos, timeouts, wait} from '@support/utils';
 import {expect} from 'detox';
 
 describe('Channels', () => {
@@ -210,6 +211,10 @@ describe('Channels', () => {
         await ManageChannelMembersScreen.searchAndRemoveUser(removedUser.username, removedUser.id);
 
         // * Verify user removed system message appears
+        // On iOS, device.pressBack() in searchAndRemoveUser is a no-op — close ManageMembers manually
+        if (isIos()) {
+            await ManageChannelMembersScreen.close();
+        }
         await ChannelInfoScreen.close();
         await ChannelScreen.toBeVisible();
         await wait(timeouts.TWO_SEC);
@@ -224,6 +229,10 @@ describe('Channels', () => {
         // # Use pre-created private channel and user
         const privateChannel = privateChannel1;
         const newUser = privUser;
+
+        // # Wait for private channel to appear in channel list before opening
+        await waitFor(ChannelListScreen.getChannelItemDisplayName(channelsCategory, privateChannel.name)).
+            toExist().withTimeout(timeouts.TEN_SEC);
 
         // # Open private channel
         await ChannelScreen.open(channelsCategory, privateChannel.name);
@@ -257,6 +266,10 @@ describe('Channels', () => {
         const privateChannel = privateChannel2;
         const removedUser = removeMeUser;
 
+        // # Wait for private channel to appear in channel list before opening
+        await waitFor(ChannelListScreen.getChannelItemDisplayName(channelsCategory, privateChannel.name)).
+            toExist().withTimeout(timeouts.TEN_SEC);
+
         // # Open private channel
         await ChannelScreen.open(channelsCategory, privateChannel.name);
 
@@ -275,6 +288,10 @@ describe('Channels', () => {
         await ManageChannelMembersScreen.searchAndRemoveUser(removedUser.username, removedUser.id);
 
         // * Verify user removed system message appears
+        // On iOS, device.pressBack() in searchAndRemoveUser is a no-op — close ManageMembers manually
+        if (isIos()) {
+            await ManageChannelMembersScreen.close();
+        }
         await ChannelInfoScreen.close();
         await ChannelScreen.toBeVisible();
         await wait(timeouts.TWO_SEC);

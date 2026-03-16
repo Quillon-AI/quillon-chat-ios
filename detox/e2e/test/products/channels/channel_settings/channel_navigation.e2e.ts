@@ -16,6 +16,7 @@ import {
     ChannelInfoScreen,
     ChannelListScreen,
     ChannelScreen,
+    ChannelSettingsScreen,
     FindChannelsScreen,
     LoginScreen,
     ServerScreen,
@@ -132,12 +133,12 @@ describe('Channels', () => {
         await ChannelInfoScreen.open();
         await wait(timeouts.ONE_SEC);
 
-        // # Scroll to bottom to reveal archive option
-        await ChannelInfoScreen.scrollView.scrollTo('bottom');
-        await wait(timeouts.ONE_SEC);
+        // # Open channel settings to access archive option
+        await ChannelInfoScreen.openChannelSettings();
+        await ChannelSettingsScreen.toBeVisible();
 
         // # Archive the channel
-        await ChannelInfoScreen.archivePublicChannel({confirm: true});
+        await ChannelSettingsScreen.archivePublicChannel({confirm: true});
 
         // * Verify channel info screen is closed
         await wait(timeouts.TWO_SEC);

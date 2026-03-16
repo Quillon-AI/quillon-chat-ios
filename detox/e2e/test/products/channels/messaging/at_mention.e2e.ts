@@ -18,7 +18,7 @@ import {
     serverOneUrl,
     siteOneUrl,
 } from '@support/test_config';
-import {Alert} from '@support/ui/component';
+import {Alert, Autocomplete} from '@support/ui/component';
 import {
     ChannelListScreen,
     ChannelScreen,
@@ -28,7 +28,7 @@ import {
     UserProfileScreen,
 } from '@support/ui/screen';
 import {timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 describe('Messaging - At-Mention', () => {
     const serverOneDisplayName = 'Server 1';
@@ -155,6 +155,36 @@ describe('Messaging - At-Mention', () => {
 
         // # Go back to channel list screen
         await UserProfileScreen.close();
+        await ChannelScreen.back();
+    });
+
+    it('MM-T171 - should be able to autocomplete at-mention for out-of-channel member', async () => {
+        // # Create a user who is on the team but not in the channel
+        const {user: outOfChannelUser} = await User.apiCreateUser(siteOneUrl);
+        await Team.apiAddUserToTeam(siteOneUrl, outOfChannelUser.id, testTeam.id);
+
+        // # Open a channel screen and type "@" to activate at-mention autocomplete
+        await ChannelScreen.open(channelsCategory, testChannel.name);
+        await ChannelScreen.postInput.tap();
+        await ChannelScreen.postInput.typeText('@');
+        await waitFor(element(by.id('autocomplete'))).toExist().withTimeout(timeouts.TEN_SEC);
+        await Autocomplete.toBeVisible();
+
+        // * Verify at-mention list is displayed
+        await expect(Autocomplete.sectionAtMentionList).toExist();
+
+        // # Type the out-of-channel user's username
+        await ChannelScreen.postInput.typeText(outOfChannelUser.username);
+
+        // * Verify at-mention autocomplete contains the out-of-channel user suggestion
+        const {atMentionItem} = Autocomplete.getAtMentionItem(outOfChannelUser.id);
+        await expect(atMentionItem).toExist();
+
+        // # Clear input and type "@" again to test DM post input scenario
+        await ChannelScreen.postInput.clearText();
+        await Autocomplete.toBeVisible(false);
+
+        // # Go back to channel list screen
         await ChannelScreen.back();
     });
 });

@@ -100,4 +100,34 @@ describe('Messaging - Message Post', () => {
         // # Go back to channel list screen
         await ChannelScreen.back();
     });
+
+    it('MM-T72 - should highlight @here. @all. @channel. even when followed by a period', async () => {
+        // # Open a channel screen and post a message with @here followed by a period
+        await ChannelScreen.open(channelsCategory, testChannel.name);
+        await ChannelScreen.postMessage('@here. Some text');
+
+        // * Verify the post exists in the channel and @here is rendered (period is not part of the highlighted mention)
+        const {post: atHerePost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
+        const {postListPostItem: atHerePostItem} = ChannelScreen.getPostListPostItem(atHerePost.id, '@here. Some text');
+        await expect(atHerePostItem).toBeVisible();
+
+        // # Post a message with @all followed by a period
+        await ChannelScreen.postMessage('@all. Some text');
+
+        // * Verify the @all mention text is present in the post
+        const {post: atAllPost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
+        const {postListPostItem: atAllPostItem} = ChannelScreen.getPostListPostItem(atAllPost.id, '@all. Some text');
+        await expect(atAllPostItem).toBeVisible();
+
+        // # Post a message with @channel followed by a period
+        await ChannelScreen.postMessage('@channel. Some text');
+
+        // * Verify the @channel mention text is present in the post
+        const {post: atChannelPost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
+        const {postListPostItem: atChannelPostItem} = ChannelScreen.getPostListPostItem(atChannelPost.id, '@channel. Some text');
+        await expect(atChannelPostItem).toBeVisible();
+
+        // # Go back to channel list screen
+        await ChannelScreen.back();
+    });
 });

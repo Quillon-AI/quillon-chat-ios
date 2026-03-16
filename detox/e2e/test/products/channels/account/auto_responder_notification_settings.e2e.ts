@@ -7,7 +7,7 @@
 // - Use element testID when selecting an element. Create one if none.
 // *******************************************************************
 
-import {Setup} from '@support/server_api';
+import {Setup, System} from '@support/server_api';
 import {
     serverOneUrl,
     siteOneUrl,
@@ -31,6 +31,9 @@ describe('Account - Settings - Auto-Responder Notification Settings', () => {
     beforeAll(async () => {
         const {user} = await Setup.apiInit(siteOneUrl);
         testUser = user;
+
+        // # Enable ExperimentalEnableAutomaticReplies so the auto-responder option appears
+        await System.apiUpdateConfig(siteOneUrl, {TeamSettings: {ExperimentalEnableAutomaticReplies: true}});
 
         // # Log in to server, open account screen, open settings screen, open notification settings screen, and go to auto-responder notification settings screen
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);

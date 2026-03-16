@@ -7,7 +7,7 @@
 // - Use element testID when selecting an element. Create one if none.
 // *******************************************************************
 
-import {Setup} from '@support/server_api';
+import {Setup, System} from '@support/server_api';
 import {
     serverOneUrl,
     siteOneUrl,
@@ -33,6 +33,9 @@ describe('Account - Settings - Notification Settings', () => {
     beforeAll(async () => {
         const {user} = await Setup.apiInit(siteOneUrl);
         testUser = user;
+
+        // # Enable ExperimentalEnableAutomaticReplies so the auto-responder option appears
+        await System.apiUpdateConfig(siteOneUrl, {TeamSettings: {ExperimentalEnableAutomaticReplies: true}});
 
         // # Log in to server, open account screen, open settings screen, and go to notification settings screen
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
@@ -60,6 +63,7 @@ describe('Account - Settings - Notification Settings', () => {
         await expect(NotificationSettingsScreen.mentionsOption).toBeVisible();
         await expect(NotificationSettingsScreen.pushNotificationsOption).toBeVisible();
         await expect(NotificationSettingsScreen.emailNotificationsOption).toBeVisible();
+
         await expect(NotificationSettingsScreen.automaticRepliesOption).toBeVisible();
     });
 

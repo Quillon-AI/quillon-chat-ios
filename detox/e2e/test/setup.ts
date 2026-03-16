@@ -59,9 +59,19 @@ async function ensureOnServerScreen(maxWaitMs = 30000): Promise<void> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < maxWaitMs) {
-        // 1. Server screen — clean state, proceed
+        // 1. Server screen — clean state, proceed.
+        //    Also verify the URL input is visible before returning: the server.screen
+        //    container can appear mid-transition (e.g. while a logout dialog is still
+        //    animating out), so we need to confirm the form is fully ready.
         try {
-            await waitFor(element(by.id('server.screen'))).toBeVisible().withTimeout(2000);
+            // Use toExist() (not toBeVisible()) for both elements — Detox's 75% visibility
+            // threshold fails on FloatingInputContainer even when fully rendered on Android.
+            // Use atIndex(0): FloatingInputContainer assigns the same testID to both the
+            // outer View wrapper and the inner TextInput; without atIndex Android throws
+            // "Multiple elements found", causing this check to fail on every iteration.
+            // ServerScreen.connectToServer() re-checks before typing.
+            await waitFor(element(by.id('server.screen'))).toExist().withTimeout(2000);
+            await waitFor(element(by.id('server_form.server_url.input')).atIndex(0)).toExist().withTimeout(timeouts.TEN_SEC);
             console.info('✅ App is on server screen');
             return;
         } catch { /* not on server screen yet */ }
@@ -92,6 +102,51 @@ async function ensureOnServerScreen(maxWaitMs = 30000): Promise<void> {
             console.info('✅ Add-server screen is open');
             return;
         } catch { /* not on server list */ }
+
+        // 4. "Select team" screen — app has a valid session but the user has no accessible team
+        //    (common after app reinstall when the iOS Keychain retains the previous session token).
+        //    Tap the Log Out button to clear the session and return to server.screen.
+        try {
+            await waitFor(element(by.id('select_team.logout.button'))).toBeVisible().withTimeout(2000);
+            console.info('ℹ️ "No teams available" screen — logging out to clear stale session');
+            await element(by.id('select_team.logout.button')).tap();
+            continue;
+        } catch { /* not on select_team screen */ }
+
+        // 5. Channel screen — app is viewing a specific channel from a previous test.
+        //    RNN pushes the channel on a navigation stack and hides the bottom tab bar,
+        //    so tapping tab_bar.home.tab won't work. Navigate back using the header back
+        //    button, then the next iteration's channel_list case will trigger the logout.
+        try {
+            await waitFor(element(by.id('channel.screen'))).toBeVisible().withTimeout(2000);
+            console.info('ℹ️ App is on channel screen — tapping back button to reach channel list');
+            await element(by.id('navigation.header.back')).tap();
+            continue;
+        } catch { /* not on channel screen */ }
+
+        // 6. Android: OS-level notification permission dialog (Android 13+, POST_NOTIFICATIONS).
+        //    Appears on first launch and blocks all known screens behind it.
+        if (device.getPlatform() === 'android') {
+            try {
+                await waitFor(element(by.text('Allow'))).toBeVisible().withTimeout(2000);
+                const permText = element(by.text('send you notifications'));
+                await waitFor(permText).toExist().withTimeout(1000);
+                console.info('ℹ️ Dismissing OS notification permission dialog');
+                await element(by.text('Allow')).tap();
+                continue;
+            } catch { /* OS permission dialog not visible */ }
+        }
+
+        // 7. Android: "Notifications cannot be received from this server" dialog may appear
+        //    after connecting to a new server, blocking all known screens.
+        if (device.getPlatform() === 'android') {
+            try {
+                await waitFor(element(by.text('Notifications cannot be received from this server'))).toExist().withTimeout(2000);
+                console.info('ℹ️ Dismissing notification-config dialog to restore known state');
+                await element(by.text('OKAY')).tap();
+                continue;
+            } catch { /* dialog not visible */ }
+        }
 
         // App not yet in a known state — wait and retry
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -132,10 +187,14 @@ export async function launchAppWithRetry(): Promise<void> {
     for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
         try {
             if (isFirstLaunch) {
-                // For first launch, clean install
+                // In CI, do a full clean install (delete: true) to guarantee a fresh app state.
+                // Locally, skip delete: the app binary is often a symlink into the simulator's
+                // bundle container — deleting the app destroys the symlink target, so the next
+                // launch can't find the binary. newInstance: true alone clears in-memory state.
+                const isCI = Boolean(process.env.CI);
                 await device.launchApp({
                     newInstance: true,
-                    delete: true,
+                    ...(isCI && {delete: true}),
                     permissions: {
                         notifications: 'YES',
                         camera: 'NO',
@@ -224,11 +283,35 @@ beforeAll(async () => {
     await ensureOnServerScreen();
     await initializeClaudePromptHandler();
 
-    // Login as sysadmin and reset server configuration
+    // Login as sysadmin and verify the session is usable before proceeding.
+    // Retries up to 3× with a short delay — guards against a brief race where
+    // the cookie jar hasn't fully propagated the new MMAUTHTOKEN before the
+    // first authenticated API call fires, which shows up as a 401 session_expired.
     await System.apiCheckSystemHealth(siteOneUrl);
-    const {error: loginError} = await User.apiAdminLogin(siteOneUrl);
-    if (loginError) {
-        throw new Error(`Admin login failed: ${JSON.stringify(loginError)}`);
+    const MAX_LOGIN_ATTEMPTS = 3;
+    for (let loginAttempt = 1; loginAttempt <= MAX_LOGIN_ATTEMPTS; loginAttempt++) {
+        const {error: loginError} = await User.apiAdminLogin(siteOneUrl);
+        if (loginError) {
+            if (loginAttempt === MAX_LOGIN_ATTEMPTS) {
+                throw new Error(`Admin login failed after ${MAX_LOGIN_ATTEMPTS} attempts: ${JSON.stringify(loginError)}`);
+            }
+            console.warn(`⚠️ Admin login attempt ${loginAttempt} failed, retrying...`);
+            await new Promise((resolve) => setTimeout(resolve, 2000 * loginAttempt));
+            continue;
+        }
+
+        // Verify the session cookie is working by making an authenticated call.
+        // If this returns a 401 (e.g. cookie not yet propagated), retry login.
+        const {error: meError} = await User.apiGetMe(siteOneUrl);
+        if (!meError) {
+            console.info(`✅ Admin session verified on attempt ${loginAttempt}`);
+            break;
+        }
+        if (loginAttempt === MAX_LOGIN_ATTEMPTS) {
+            throw new Error(`Admin session not usable after ${MAX_LOGIN_ATTEMPTS} login attempts`);
+        }
+        console.warn(`⚠️ Admin session check failed on attempt ${loginAttempt}, retrying login...`);
+        await new Promise((resolve) => setTimeout(resolve, 2000 * loginAttempt));
     }
     await Plugin.apiDisableNonPrepackagedPlugins(siteOneUrl);
 });

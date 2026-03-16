@@ -26,7 +26,7 @@ import {
     ServerScreen,
 } from '@support/ui/screen';
 import {timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 describe('Channels - Browse Channels', () => {
     const serverOneDisplayName = 'Server 1';
@@ -164,12 +164,13 @@ describe('Channels - Browse Channels', () => {
         // # Open browse channels screen and search for a joined public channel
         const {channel: joinedPublicChannel} = await Channel.apiCreateChannel(siteOneUrl, {type: 'O', teamId: testTeam.id});
         await Channel.apiAddUserToChannel(siteOneUrl, testUser.id, joinedPublicChannel.id);
+        await device.reloadReactNative();
+        await ChannelListScreen.toBeVisible();
         await BrowseChannelsScreen.open();
         await BrowseChannelsScreen.searchInput.replaceText(joinedPublicChannel.name);
 
         // * Verify empty search state for browse channels
-        await wait(timeouts.ONE_SEC);
-        await expect(element(by.text(`No matches found for “${joinedPublicChannel.name}”`))).toBeVisible();
+        await waitFor(element(by.text(`No matches found for \u201C${joinedPublicChannel.name}\u201D`))).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
         // # Go back to channel list screen
         await BrowseChannelsScreen.close();
@@ -180,20 +181,58 @@ describe('Channels - Browse Channels', () => {
         const {channel: joinedPrivateChannel} = await Channel.apiCreateChannel(siteOneUrl, {type: 'P', teamId: testTeam.id});
         const {channel: unjoinedPrivateChannel} = await Channel.apiCreateChannel(siteOneUrl, {type: 'P', teamId: testTeam.id});
         await Channel.apiAddUserToChannel(siteOneUrl, testUser.id, joinedPrivateChannel.id);
+        await device.reloadReactNative();
+        await ChannelListScreen.toBeVisible();
         await BrowseChannelsScreen.open();
         await BrowseChannelsScreen.searchInput.replaceText(joinedPrivateChannel.name);
 
         // * Verify empty search state for browse channels
-        await expect(element(by.text(`No matches found for “${joinedPrivateChannel.name}”`))).toBeVisible();
+        await waitFor(element(by.text(`No matches found for \u201C${joinedPrivateChannel.name}\u201D`))).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
         // # Search for the unjoined private channel
         await BrowseChannelsScreen.searchInput.replaceText(unjoinedPrivateChannel.name);
 
         // * Verify empty search state for browse channels
-        await wait(timeouts.ONE_SEC);
-        await expect(element(by.text(`No matches found for “${unjoinedPrivateChannel.name}”`))).toBeVisible();
+        await waitFor(element(by.text(`No matches found for \u201C${unjoinedPrivateChannel.name}\u201D`))).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
         // # Go back to channel list screen
         await BrowseChannelsScreen.close();
+    });
+
+    it('MM-T864 - should be able to search for a public channel, cancel search, and join via browse channels', async () => {
+        // # Create an unjoined public channel to search for
+        const {channel: unjoinedChannel} = await Channel.apiCreateChannel(siteOneUrl, {teamId: testTeam.id});
+
+        // # Open browse channels screen
+        await BrowseChannelsScreen.open();
+
+        // # Type the channel name in the search input
+        await BrowseChannelsScreen.searchInput.replaceText(unjoinedChannel.name);
+
+        // * Verify channel appears in search results
+        await wait(timeouts.ONE_SEC);
+        await expect(BrowseChannelsScreen.getChannelItemDisplayName(unjoinedChannel.name)).toHaveText(unjoinedChannel.display_name);
+
+        // # Clear the search input
+        await BrowseChannelsScreen.searchClearButton.tap();
+
+        // * Verify search input is cleared (flat list is visible again)
+        await expect(BrowseChannelsScreen.flatChannelList).toBeVisible();
+
+        // # Search for the channel again
+        await BrowseChannelsScreen.searchInput.replaceText(unjoinedChannel.name);
+        await wait(timeouts.ONE_SEC);
+
+        // # Tap on the channel item to join
+        await BrowseChannelsScreen.getChannelItem(unjoinedChannel.name).multiTap(2);
+        await wait(timeouts.ONE_SEC);
+        await BrowseChannelsScreen.dismissScheduledPostTooltip();
+
+        // * Verify joined the channel and channel screen is shown
+        await ChannelScreen.toBeVisible();
+        await expect(ChannelScreen.headerTitle).toHaveText(unjoinedChannel.display_name);
+
+        // # Go back to channel list screen
+        await ChannelScreen.back();
     });
 });

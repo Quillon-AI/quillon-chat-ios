@@ -76,8 +76,10 @@ describe('Channels', () => {
         await ChannelInfoScreen.leaveChannelOption.tap();
 
         await wait(timeouts.ONE_SEC);
-        const leaveAlertTitle = 'Leave channel';
-        await expect(element(by.text(leaveAlertTitle))).toBeVisible();
+
+        // Use Alert.leaveChannelTitle (atIndex(0) on iOS) to avoid "multiple elements" error
+        // when both the channel menu item and alert dialog share "Leave channel" text.
+        await expect(Alert.leaveChannelTitle).toBeVisible();
         await expect(element(by.text(`Are you sure you want to leave the public channel ${testChannel.display_name}? You can always rejoin.`))).toBeVisible();
 
         await Alert.leaveButton.tap();
@@ -95,7 +97,7 @@ describe('Channels', () => {
         await ChannelInfoScreen.leaveChannelOption.tap();
 
         await wait(timeouts.ONE_SEC);
-        await expect(element(by.text('Leave channel'))).toBeVisible();
+        await expect(Alert.leaveChannelTitle).toBeVisible();
         await expect(element(by.text(`Are you sure you want to leave the private channel ${privateChannel.display_name}? You cannot rejoin the channel unless you're invited again.`))).toBeVisible();
         await Alert.leaveButton.tap();
 
