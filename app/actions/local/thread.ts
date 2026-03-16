@@ -306,24 +306,28 @@ export async function markThreadAsViewed(serverUrl: string, threadId: string, pr
 
 export async function updateThread(serverUrl: string, threadId: string, updatedThread: Partial<ThreadWithViewedAt>, prepareRecordsOnly = false) {
     try {
-        const {database, operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+        const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
         const thread = await getThreadById(database, threadId);
         if (!thread) {
             throw new Error('Thread not found');
         }
 
-        const model = thread.prepareUpdate((record) => {
+        const updateCallback = (record: typeof thread) => {
             record.isFollowing = updatedThread.is_following ?? record.isFollowing;
             record.replyCount = updatedThread.reply_count ?? record.replyCount;
             record.lastViewedAt = updatedThread.last_viewed_at ?? record.lastViewedAt;
             record.viewedAt = updatedThread.viewed_at ?? record.viewedAt;
             record.unreadMentions = updatedThread.unread_mentions ?? record.unreadMentions;
             record.unreadReplies = updatedThread.unread_replies ?? record.unreadReplies;
-        });
-        if (!prepareRecordsOnly) {
-            await operator.batchRecords([model], 'updateThread');
+        };
+
+        if (prepareRecordsOnly) {
+            const model = thread.prepareUpdate(updateCallback);
+            return {model};
         }
-        return {model};
+
+        await database.write(async () => thread.update(updateCallback));
+        return {model: thread};
     } catch (error) {
         logError('Failed updateThread', error);
         return {error};

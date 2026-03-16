@@ -334,6 +334,26 @@ describe('updateThread', () => {
         expect(error).toBeUndefined();
         expect(model).toBeDefined();
     });
+
+    it('should succeed without error when called concurrently for the same thread id', async () => {
+        const threadWithUnreads = {
+            ...threads[0],
+            unread_replies: 5,
+            unread_mentions: 2,
+        };
+        await operator.handleThreads({threads: [threadWithUnreads], prepareRecordsOnly: false, teamId: team.id});
+
+        // Simulate two concurrent THREAD_READ_CHANGED events for the same thread.
+        // Both calls must succeed without errors (e.g. WatermelonDB "wasn't sent to batch() synchronously").
+        const now = Date.now();
+        const [result1, result2] = await Promise.all([
+            updateThread(serverUrl, rootPost.id, {unread_replies: 0, unread_mentions: 0, last_viewed_at: now}, false),
+            updateThread(serverUrl, rootPost.id, {unread_replies: 0, unread_mentions: 0, last_viewed_at: now}, false),
+        ]);
+
+        expect(result1.error).toBeUndefined();
+        expect(result2.error).toBeUndefined();
+    });
 });
 
 describe('updateTeamThreadsSync', () => {
