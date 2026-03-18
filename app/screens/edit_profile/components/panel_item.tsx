@@ -10,6 +10,23 @@ import {dismissBottomSheet} from '@screens/navigation';
 
 import type PickerUtil from '@utils/file/file_picker';
 import type {ImageSource} from 'expo-image';
+import type {CameraOptions, ImageLibraryOptions} from 'react-native-image-picker';
+
+const PROFILE_IMAGE_MAX_DIMENSION = 1024;
+
+const profileCameraOptions: CameraOptions = {
+    quality: 0.8,
+    mediaType: 'photo',
+    saveToPhotos: true,
+    maxWidth: PROFILE_IMAGE_MAX_DIMENSION,
+    maxHeight: PROFILE_IMAGE_MAX_DIMENSION,
+};
+
+const profileGalleryOptions: Partial<ImageLibraryOptions> = {
+    mediaType: 'photo',
+    maxWidth: PROFILE_IMAGE_MAX_DIMENSION,
+    maxHeight: PROFILE_IMAGE_MAX_DIMENSION,
+};
 
 type PanelType = {
     icon: string | ImageSource;
@@ -33,7 +50,7 @@ const PanelItem = ({pickerAction, pictureUtils, onRemoveProfileImage}: PanelItem
             icon: 'camera-outline',
             onPress: async () => {
                 await dismissBottomSheet();
-                pictureUtils?.attachFileFromCamera();
+                pictureUtils?.attachFileFromCamera(profileCameraOptions);
             },
             testID: 'attachment.takePhoto',
             text: {id: 'mobile.file_upload.camera_photo', defaultMessage: 'Take Photo'},
@@ -42,7 +59,7 @@ const PanelItem = ({pickerAction, pictureUtils, onRemoveProfileImage}: PanelItem
             icon: 'file-generic-outline',
             onPress: async () => {
                 await dismissBottomSheet();
-                pictureUtils?.attachFileFromPhotoGallery();
+                pictureUtils?.attachFileFromPhotoGallery(1, profileGalleryOptions);
             },
             testID: 'attachment.browsePhotoLibrary',
             text: {id: 'mobile.file_upload.library', defaultMessage: 'Photo Library'},

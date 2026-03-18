@@ -334,12 +334,13 @@ export default class FilePickerUtil {
         return {error: 'no permission'};
     };
 
-    attachFileFromPhotoGallery = async (selectionLimit = 1) => {
+    attachFileFromPhotoGallery = async (selectionLimit = 1, customOptions?: Partial<ImageLibraryOptions>) => {
         const options: ImageLibraryOptions = {
             quality: 1,
             mediaType: 'mixed',
             includeBase64: false,
             selectionLimit,
+            ...customOptions,
         };
 
         const hasPermission = await this.hasPhotoPermission('photo');
