@@ -26,6 +26,8 @@ type Props = {
     value: string;
 };
 
+const filterHeadingContext = (context: string[]) => context.filter((c) => !c.startsWith('heading'));
+
 const RemoveMarkdown = ({enableEmoji, enableChannelLink, enableHardBreak, enableSoftBreak, enableCodeSpan, baseStyle, value}: Props) => {
     const theme = useTheme();
     const textStyle = getMarkdownTextStyles(theme);
@@ -56,7 +58,7 @@ const RemoveMarkdown = ({enableEmoji, enableChannelLink, enableHardBreak, enable
     const renderAtMention = useCallback(({context, mentionName}: {context: string[]; mentionName: string}) => {
         return (
             <AtMention
-                textStyle={computeTextStyle(textStyle, baseStyle, context)}
+                textStyle={computeTextStyle(textStyle, baseStyle, filterHeadingContext(context))}
                 mentionName={mentionName}
             />
         );
@@ -67,7 +69,7 @@ const RemoveMarkdown = ({enableEmoji, enableChannelLink, enableHardBreak, enable
             return (
                 <ChannelMention
                     linkStyle={textStyle.link}
-                    textStyle={computeTextStyle(textStyle, baseStyle, context)}
+                    textStyle={computeTextStyle(textStyle, baseStyle, filterHeadingContext(context))}
                     channelName={channelName}
                 />
             );

@@ -1,0 +1,183 @@
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
+
+import React from 'react';
+import {type TextStyle, StyleSheet} from 'react-native';
+
+import {Preferences} from '@constants';
+import {getMarkdownTextStyles} from '@utils/markdown';
+
+import RemoveMarkdown from '.';
+
+import {renderWithIntl, screen} from '@test/intl-test-helper';
+
+jest.mock('@context/theme', () => {
+    const {Preferences: Prefs} = require('@constants');
+    return {
+        useTheme: () => Prefs.THEMES.denim,
+    };
+});
+
+jest.mock('@context/server', () => ({
+    useServerUrl: () => 'http://localhost:8065',
+}));
+
+jest.mock('./at_mention', () => {
+    const {Text} = require('react-native');
+    return ({mentionName, textStyle}: {mentionName: string; textStyle: any}) => (
+        <Text
+            testID={`at_mention.${mentionName}`}
+            style={textStyle}
+        >
+            {`@${mentionName}`}
+        </Text>
+    );
+});
+
+jest.mock('../markdown/channel_mention', () => {
+    const {Text} = require('react-native');
+    return ({channelName, textStyle}: {channelName: string; textStyle: any}) => (
+        <Text
+            testID={`channel_mention.${channelName}`}
+            style={textStyle}
+        >
+            {`~${channelName}`}
+        </Text>
+    );
+});
+
+jest.mock('@components/emoji', () => {
+    const {Text} = require('react-native');
+    return ({emojiName, textStyle}: {emojiName: string; textStyle: any}) => (
+        <Text
+            testID={`emoji.${emojiName}`}
+            style={textStyle}
+        >
+            {`:${emojiName}:`}
+        </Text>
+    );
+});
+
+const theme = Preferences.THEMES.denim;
+const headingTextStyles = getMarkdownTextStyles(theme);
+
+function getFlatStyle(element: ReturnType<typeof screen.getByTestId>): TextStyle {
+    return StyleSheet.flatten(element.props.style) as TextStyle;
+}
+
+describe('RemoveMarkdown', () => {
+    const baseStyle: TextStyle = {fontSize: 16, color: '#000'};
+
+    describe('heading context stripping for mentions', () => {
+        it('should render @mention inside a heading without heading font size', () => {
+            renderWithIntl(
+                <RemoveMarkdown
+                    baseStyle={baseStyle}
+                    value='### Hello @channel'
+                />,
+            );
+
+            const style = getFlatStyle(screen.getByTestId('at_mention.channel'));
+            const heading3FontSize = StyleSheet.flatten(headingTextStyles.heading3 as TextStyle).fontSize;
+            expect(style.fontSize).not.toBe(heading3FontSize);
+            expect(style.fontSize).toBe(baseStyle.fontSize);
+        });
+
+        it('should render channel link inside a heading without heading font size', () => {
+            renderWithIntl(
+                <RemoveMarkdown
+                    enableChannelLink={true}
+                    baseStyle={baseStyle}
+                    value='### Check ~town-square'
+                />,
+            );
+
+            const style = getFlatStyle(screen.getByTestId('channel_mention.town-square'));
+            const heading3FontSize = StyleSheet.flatten(headingTextStyles.heading3 as TextStyle).fontSize;
+            expect(style.fontSize).not.toBe(heading3FontSize);
+            expect(style.fontSize).toBe(baseStyle.fontSize);
+        });
+
+        it('should strip heading styles for all heading levels', () => {
+            for (const level of [1, 2, 3, 4, 5, 6]) {
+                const hashes = '#'.repeat(level);
+
+                const {unmount} = renderWithIntl(
+                    <RemoveMarkdown
+                        baseStyle={baseStyle}
+                        value={`${hashes} Mention @testuser`}
+                    />,
+                );
+
+                const style = getFlatStyle(screen.getByTestId('at_mention.testuser'));
+                expect(style.fontFamily).not.toBe('Metropolis-SemiBold');
+                expect(style.fontSize).toBe(baseStyle.fontSize);
+
+                unmount();
+            }
+        });
+    });
+
+    describe('non-heading context should be preserved for mentions', () => {
+        it('should preserve bold style on @mention inside bold', () => {
+            renderWithIntl(
+                <RemoveMarkdown
+                    baseStyle={baseStyle}
+                    value='**bold @user text**'
+                />,
+            );
+
+            const style = getFlatStyle(screen.getByTestId('at_mention.user'));
+            expect(style.fontWeight).toBe('600');
+        });
+
+        it('should preserve bold style on channel link inside bold', () => {
+            renderWithIntl(
+                <RemoveMarkdown
+                    enableChannelLink={true}
+                    baseStyle={baseStyle}
+                    value='**bold ~town-square text**'
+                />,
+            );
+
+            const style = getFlatStyle(screen.getByTestId('channel_mention.town-square'));
+            expect(style.fontWeight).toBe('600');
+        });
+    });
+
+    describe('basic rendering', () => {
+        it('should render plain text', () => {
+            renderWithIntl(
+                <RemoveMarkdown
+                    baseStyle={baseStyle}
+                    value='Hello world'
+                />,
+            );
+
+            expect(screen.getByText('Hello world')).toBeTruthy();
+        });
+
+        it('should render @mention', () => {
+            renderWithIntl(
+                <RemoveMarkdown
+                    baseStyle={baseStyle}
+                    value='Hello @admin'
+                />,
+            );
+
+            expect(screen.getByTestId('at_mention.admin')).toBeTruthy();
+        });
+
+        it('should render code span when enabled', () => {
+            renderWithIntl(
+                <RemoveMarkdown
+                    enableCodeSpan={true}
+                    baseStyle={baseStyle}
+                    value='Use `code` here'
+                />,
+            );
+
+            expect(screen.getByTestId('markdown_code_span')).toBeTruthy();
+        });
+    });
+});
