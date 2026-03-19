@@ -3,7 +3,7 @@
 
 import {Parser} from 'commonmark';
 import Renderer from 'commonmark-react-renderer';
-import React, {type ReactElement, useCallback, useMemo, useRef} from 'react';
+import React, {type ReactElement, type ReactNode, useCallback, useMemo, useRef} from 'react';
 import {type StyleProp, Text, type TextStyle} from 'react-native';
 
 import Emoji from '@components/emoji';
@@ -94,6 +94,10 @@ const RemoveMarkdown = ({enableEmoji, enableChannelLink, enableHardBreak, enable
         );
     }, [enableCodeSpan, textStyle, baseStyle, renderText]);
 
+    const renderHeading = useCallback(({children}: {children: ReactNode}) => {
+        return <Text>{children}{'\n'}</Text>;
+    }, []);
+
     const renderNull = () => {
         return null;
     };
@@ -116,7 +120,7 @@ const RemoveMarkdown = ({enableEmoji, enableChannelLink, enableHardBreak, enable
                 latexinline: Renderer.forwardChildren,
 
                 paragraph: Renderer.forwardChildren,
-                heading: Renderer.forwardChildren,
+                heading: renderHeading,
                 codeBlock: renderNull,
                 blockQuote: renderNull,
 
@@ -153,6 +157,7 @@ const RemoveMarkdown = ({enableEmoji, enableChannelLink, enableHardBreak, enable
         renderAtMention,
         renderChannelLink,
         renderEmoji,
+        renderHeading,
         enableHardBreak,
         renderBreak,
         enableSoftBreak,

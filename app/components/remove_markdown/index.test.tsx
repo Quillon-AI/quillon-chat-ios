@@ -145,6 +145,25 @@ describe('RemoveMarkdown', () => {
         });
     });
 
+    describe('heading block separation', () => {
+        it('should add a newline after heading content', () => {
+            const {toJSON} = renderWithIntl(
+                <RemoveMarkdown
+                    baseStyle={baseStyle}
+                    value={'### Heading\nBody text'}
+                />,
+            );
+
+            const json = JSON.stringify(toJSON());
+            const headingIdx = json.indexOf('Heading');
+            const newlineIdx = json.indexOf('\\n', headingIdx);
+            const bodyIdx = json.indexOf('Body');
+            expect(headingIdx).toBeGreaterThan(-1);
+            expect(newlineIdx).toBeGreaterThan(headingIdx);
+            expect(bodyIdx).toBeGreaterThan(newlineIdx);
+        });
+    });
+
     describe('basic rendering', () => {
         it('should render plain text', () => {
             renderWithIntl(
