@@ -162,6 +162,21 @@ describe('RemoveMarkdown', () => {
             expect(newlineIdx).toBeGreaterThan(headingIdx);
             expect(bodyIdx).toBeGreaterThan(newlineIdx);
         });
+
+        it('should render heading in a View block when separateHeading is set', () => {
+            const {toJSON} = renderWithIntl(
+                <RemoveMarkdown
+                    baseStyle={baseStyle}
+                    numberOfLines={2}
+                    separateHeading={true}
+                    value={'### Heading\nBody text'}
+                />,
+            );
+
+            const json = JSON.stringify(toJSON());
+            expect(json).toContain('Heading');
+            expect(json).toContain('Body');
+        });
     });
 
     describe('basic rendering', () => {
