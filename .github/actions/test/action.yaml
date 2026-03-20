@@ -20,10 +20,21 @@ runs:
       shell: bash
       run: |
         echo "::group::run-tests"
+        failures=0
         for i in 1 2 3; do
           echo "=== Test run $i of 3 ==="
-          npm run test:ci && echo "Run $i: PASSED" || echo "Run $i: FAILED (exit $?)"
+          if npm run test:ci; then
+            echo "Run $i: PASSED"
+          else
+            echo "Run $i: FAILED"
+            failures=$((failures + 1))
+          fi
         done
+        echo "=== Results: $((3 - failures))/3 passed, $failures failed ==="
+        if [ $failures -gt 0 ]; then
+          echo "::warning::$failures of 3 test runs failed — flaky tests detected"
+          exit 1
+        fi
         echo "::endgroup::"
 
     - name: ci/check-i18n
