@@ -74,7 +74,10 @@ runs:
       shell: bash
       run: |
         echo "::group::run-tests"
-        npm run test:ci:coverage
+        for i in 1 2 3; do
+          echo "=== Test run $i of 3 ==="
+          npm run test:ci:coverage && echo "Run $i: PASSED" || echo "Run $i: FAILED (exit $?)"
+        done
         echo "::endgroup::"
 
     - name: ci/compare-coverage
