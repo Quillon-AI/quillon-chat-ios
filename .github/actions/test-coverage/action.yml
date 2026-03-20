@@ -17,9 +17,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: ci/prepare-node-deps
-      uses: ./.github/actions/prepare-node-deps
-
     - name: ci/get-last-run-id
       if: github.event_name == 'pull_request'
       id: get-last-run-id
