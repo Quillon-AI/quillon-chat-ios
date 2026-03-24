@@ -578,11 +578,18 @@ const PostHandler = <TBase extends Constructor<ServerDataOperatorBase>>(supercla
         }
 
         if (!targetChunk) {
-            // Create a new chunk and merge them if needed
-            const models = [];
-            models.push(...await this._createPostsInChannelRecord(channelId, earliest, latest, prepareRecordsOnly));
-            models.push(...await this._mergePostInChannelChunks(models[0], chunks, prepareRecordsOnly));
-            return models;
+            if (posts.length === 1) {
+                // A single post should never create a separate chunk; extend the
+                // most recent one instead to avoid orphaned intervals that hide
+                // messages in the UI.
+                targetChunk = chunks[0];
+            } else {
+                // Create a new chunk and merge them if needed
+                const models = [];
+                models.push(...await this._createPostsInChannelRecord(channelId, earliest, latest, prepareRecordsOnly));
+                models.push(...await this._mergePostInChannelChunks(models[0], chunks, prepareRecordsOnly));
+                return models;
+            }
         }
 
         // Check if the new chunk is contained by the existing chunk
