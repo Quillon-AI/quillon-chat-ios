@@ -65,8 +65,8 @@ on:
       parallelism:
         description: "Number of parallel test shards"
         required: false
-        type: number
-        default: 10
+        type: string
+        default: "10"
       detox_config:
         description: "Detox configuration name to use (e.g. ios.sim.debug, ios.ipad.debug)"
         required: false

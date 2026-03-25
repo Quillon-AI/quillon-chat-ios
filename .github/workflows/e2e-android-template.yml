@@ -59,8 +59,8 @@ on:
       parallelism:
         description: "Number of parallel test shards"
         required: false
-        type: number
-        default: 10
+        type: string
+        default: "10"
       android_avd_name:
         description: "Android Emulator name"
         required: false
