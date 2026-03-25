@@ -1,8 +1,28 @@
 name: Detox E2E Tests (Scheduled)
+# NOTE: The cron trigger has been removed. Scheduled E2E runs are now owned by
+# Matterwick via e2e-nightly-trigger.yml, which provisions dedicated cloud servers
+# instead of the hardcoded permanent servers used here. This file can be triggered
+# manually for ad-hoc runs against the permanent servers if needed.
 
 on:
-  schedule:
-    - cron: "0 0 * * 4,5" # Wednesday and Thursday midnight
+  workflow_dispatch:
+    inputs:
+      MOBILE_VERSION:
+        description: "The mobile ref to test (branch, tag, or SHA); defaults to the workflow's ref if left empty"
+        required: false
+        type: string
+      MM_TEST_SERVER_URL:
+        description: "The test server URL (SITE_1)"
+        required: false
+        type: string
+      MM_TEST_SERVER_URL_2:
+        description: "The second test server URL (SITE_2); optional, no automatic fallback"
+        required: false
+        type: string
+      MM_TEST_SERVER_URL_3:
+        description: "The third test server URL (SITE_3); optional, no automatic fallback"
+        required: false
+        type: string
 
 env:
   INTUNE_ENABLED: 'true'
@@ -41,39 +61,16 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Compute iOS build cache key
-        id: ios-cache-key
-        run: echo "hash=${{ hashFiles('ios/**', 'libraries/**', 'package-lock.json', 'patches/**') }}" >> "$GITHUB_OUTPUT"
-
-      - name: Restore iOS simulator build cache
-        id: ios-build-cache
-        uses: actions/cache/restore@v4
         with:
-          path: Mattermost-simulator-x86_64.app.zip
-          key: ios-sim-${{ runner.os }}-${{ runner.arch }}-${{ steps.ios-cache-key.outputs.hash }}
-
-      - name: Restore Xcode build intermediates
-        id: xcode-intermediates-cache
-        if: steps.ios-build-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ios/Build/Products
-            !ios/Build/Products/Release-iphonesimulator/Mattermost.app
-          key: ios-intermediates-${{ runner.os }}-${{ runner.arch }}-${{ steps.ios-cache-key.outputs.hash }}
-          restore-keys: |
-            ios-intermediates-${{ runner.os }}-${{ runner.arch }}-
+          ref: ${{ inputs.MOBILE_VERSION || github.ref }}
 
       - name: Prepare iOS Build
-        if: steps.ios-build-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/prepare-ios-build
         with:
           intune-enabled: ${{ env.INTUNE_ENABLED }}
           intune-ssh-private-key: ${{ secrets.MM_MOBILE_INTUNE_DEPLOY_KEY }}
 
       - name: Build iOS Simulator
-        if: steps.ios-build-cache.outputs.cache-hit != 'true'
         env:
           TAG: "${{ github.ref }}"
           AWS_ACCESS_KEY_ID: "${{ secrets.MM_MOBILE_BETA_AWS_ACCESS_KEY_ID }}"
@@ -81,22 +78,6 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.MM_MOBILE_GITHUB_TOKEN }}"
         run: bundle exec fastlane ios simulator --env ios.simulator
         working-directory: ./fastlane
-
-      - name: Save iOS simulator build cache
-        if: steps.ios-build-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: Mattermost-simulator-x86_64.app.zip
-          key: ios-sim-${{ runner.os }}-${{ runner.arch }}-${{ steps.ios-cache-key.outputs.hash }}
-
-      - name: Save Xcode build intermediates
-        if: steps.ios-build-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ios/Build/Products
-            !ios/Build/Products/Release-iphonesimulator/Mattermost.app
-          key: ios-intermediates-${{ runner.os }}-${{ runner.arch }}-${{ steps.ios-cache-key.outputs.hash }}
 
       - name: Upload iOS Simulator Build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -111,31 +92,19 @@ jobs:
     env:
       ORG_GRADLE_PROJECT_jvmargs: -Xmx8g
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Compute Android build cache key
-        id: android-cache-key
-        run: echo "hash=${{ hashFiles('android/**', 'libraries/**', 'package-lock.json', 'patches/**') }}" >> "$GITHUB_OUTPUT"
-
-      - name: Restore Android APK build cache
-        id: android-build-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: android/app/build/outputs/apk
-          key: android-apk-${{ runner.os }}-x86_64-${{ steps.android-cache-key.outputs.hash }}
-
       - name: Prune Docker to free up space
-        if: steps.android-build-cache.outputs.cache-hit != 'true'
         run: docker system prune -af
 
       - name: Remove npm Temporary Files
-        if: steps.android-build-cache.outputs.cache-hit != 'true'
         run: |
           rm -rf ~/.npm/_cacache
 
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.MOBILE_VERSION || github.ref }}
+
       - name: Prepare Android Build
-        if: steps.android-build-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/prepare-android-build
         env:
           STORE_FILE: "${{ secrets.MM_MOBILE_STORE_FILE }}"
@@ -144,70 +113,27 @@ jobs:
           MATTERMOST_BUILD_GH_TOKEN: "${{ secrets.MATTERMOST_BUILD_GH_TOKEN }}"
 
       - name: Install Dependencies
-        if: steps.android-build-cache.outputs.cache-hit != 'true'
         run: sudo apt-get clean && sudo apt-get update && sudo apt-get install -y default-jdk
 
       - name: Cache Gradle dependencies
-        if: steps.android-build-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.gradle/caches/modules-2/
-            ~/.gradle/caches/jars-*/
-            ~/.gradle/caches/transforms-*/
-            ~/.gradle/wrapper/dists/
-          key: ${{ runner.os }}-gradle-v2-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-v2-
-
-      - name: Restore Gradle build cache
-        if: steps.android-build-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.gradle/build-cache
-          key: android-gradle-build-cache-${{ runner.os }}-${{ steps.android-cache-key.outputs.hash }}
-          restore-keys: |
-            android-gradle-build-cache-${{ runner.os }}-
-
-      - name: Cache Detox node_modules
-        if: steps.android-build-cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
-        with:
-          path: detox/node_modules
-          key: ${{ runner.os }}-detox-deps-${{ hashFiles('detox/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-detox-deps-
+          path: ~/.gradle/caches/modules-2/
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
 
       - name: Detox build
-        if: steps.android-build-cache.outputs.cache-hit != 'true'
-        env:
-          ORG_GRADLE_PROJECT_reactNativeArchitectures: x86_64
         run: |
           cd detox
           npm install
           npm install -g detox-cli
-          npm run e2e:android-inject-settings
           npm run e2e:android-build
-
-      - name: Save Android APK build cache
-        if: steps.android-build-cache.outputs.cache-hit != 'true' && success()
-        uses: actions/cache/save@v4
-        with:
-          path: android/app/build/outputs/apk
-          key: android-apk-${{ runner.os }}-x86_64-${{ steps.android-cache-key.outputs.hash }}
-
-      - name: Save Gradle build cache
-        if: steps.android-build-cache.outputs.cache-hit != 'true' && success()
-        uses: actions/cache/save@v4
-        with:
-          path: ~/.gradle/build-cache
-          key: android-gradle-build-cache-${{ runner.os }}-${{ steps.android-cache-key.outputs.hash }}
 
       - name: Upload Android Build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: android-build-files-${{ github.run_id }}
-          path: android/app/build/outputs/apk
+          path: "android/app/build/**/*"
 
   run-ios-tests-on-main-scheduled:
     name: iOS Mobile Tests on Main (Scheduled)
@@ -217,7 +143,10 @@ jobs:
     with:
       run-type: "MAIN"
       record_tests_in_zephyr: 'true'
-      MOBILE_VERSION: ${{ github.ref }}
+      MOBILE_VERSION: ${{ inputs.MOBILE_VERSION || github.ref }}
+      MM_TEST_SERVER_URL: ${{ inputs.MM_TEST_SERVER_URL }}
+      MM_TEST_SERVER_URL_2: ${{ inputs.MM_TEST_SERVER_URL_2 }}
+      MM_TEST_SERVER_URL_3: ${{ inputs.MM_TEST_SERVER_URL_3 }}
     secrets: inherit
 
   run-android-tests-on-main-scheduled:
@@ -229,7 +158,10 @@ jobs:
       run-android-tests: true
       run-type: "MAIN"
       record_tests_in_zephyr: 'true'
-      MOBILE_VERSION: ${{ github.ref }}
+      MOBILE_VERSION: ${{ inputs.MOBILE_VERSION || github.ref }}
+      MM_TEST_SERVER_URL: ${{ inputs.MM_TEST_SERVER_URL }}
+      MM_TEST_SERVER_URL_2: ${{ inputs.MM_TEST_SERVER_URL_2 }}
+      MM_TEST_SERVER_URL_3: ${{ inputs.MM_TEST_SERVER_URL_3 }}
     secrets: inherit
 
   update-final-status-ios:
@@ -263,36 +195,6 @@ jobs:
           description: Completed with ${{ needs.run-android-tests-on-main-scheduled.outputs.FAILURES }} failures
           status: ${{ needs.run-android-tests-on-main-scheduled.outputs.STATUS }}
           target_url: ${{ needs.run-android-tests-on-main-scheduled.outputs.TARGET_URL }}
-
-  run-ios-ipad-tests-scheduled:
-    name: iOS iPad Tests on Main (Scheduled)
-    uses: ./.github/workflows/e2e-ios-template.yml
-    needs:
-      - build-ios-simulator
-    with:
-      run-type: "MAIN"
-      record_tests_in_zephyr: 'true'
-      MOBILE_VERSION: ${{ github.ref }}
-      ios_device_name: "iPad Pro 13-inch (M5)"
-      ios_device_os_name: "iOS 26.3.1"
-      search_path: "detox/e2e/test/products/channels/ipad"
-    secrets: inherit
-
-  update-final-status-ipad:
-    runs-on: ubuntu-22.04
-    needs:
-      - run-ios-ipad-tests-scheduled
-    steps:
-      - uses: mattermost/actions/delivery/update-commit-status@main
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          repository_full_name: ${{ github.repository }}
-          commit_sha: ${{ github.sha }}
-          context: e2e/detox-ios-ipad-tests
-          description: Completed with ${{ needs.run-ios-ipad-tests-scheduled.outputs.FAILURES }} failures
-          status: ${{ needs.run-ios-ipad-tests-scheduled.outputs.STATUS }}
-          target_url: ${{ needs.run-ios-ipad-tests-scheduled.outputs.TARGET_URL }}
 
   run-maestro-ios:
     name: Maestro iOS Tests (Scheduled)
