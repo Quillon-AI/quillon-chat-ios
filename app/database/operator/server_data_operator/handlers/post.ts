@@ -62,6 +62,8 @@ export interface PostHandlerMix {
     handleReceivedPostForChannel: (post: Post, prepareRecordsOnly?: boolean) => Promise<PostsInChannelModel[]>;
 
     handleReceivedPostsInThread: (postsMap: Record<string, Post[]>, prepareRecordsOnly?: boolean) => Promise<PostsInThreadModel[]>;
+
+    mergePostsInChannelChunks: (channelId: string) => Promise<PostsInChannelModel[]>;
 }
 
 const mergePostInChannelChunks = async (newChunk: PostsInChannelModel, existingChunks: PostsInChannelModel[]) => {
@@ -538,6 +540,37 @@ const PostHandler = <TBase extends Constructor<ServerDataOperatorBase>>(supercla
         }
 
         return result;
+    };
+
+    mergePostsInChannelChunks = async (channelId: string): Promise<PostsInChannelModel[]> => {
+        const chunks = (await this.database.get(POSTS_IN_CHANNEL).query(
+            Q.where('channel_id', channelId),
+            Q.sortBy('latest', Q.desc),
+        ).fetch()) as PostsInChannelModel[];
+
+        if (chunks.length <= 1) {
+            return [];
+        }
+
+        let globalEarliest = chunks[0].earliest;
+        let globalLatest = chunks[0].latest;
+        for (let i = 1; i < chunks.length; i++) {
+            globalEarliest = Math.min(globalEarliest, chunks[i].earliest);
+            globalLatest = Math.max(globalLatest, chunks[i].latest);
+        }
+
+        const targetChunk = chunks[0];
+        const models: PostsInChannelModel[] = [targetChunk.prepareUpdate((record) => {
+            record.earliest = globalEarliest;
+            record.latest = globalLatest;
+        })];
+
+        for (let i = 1; i < chunks.length; i++) {
+            models.push(chunks[i].prepareDestroyPermanently() as unknown as PostsInChannelModel);
+        }
+
+        await this.batchRecords(models, 'mergePostsInChannelChunks');
+        return models;
     };
 
     handleReceivedPostsInChannel = async (posts?: Post[], prepareRecordsOnly = false): Promise<PostsInChannelModel[]> => {

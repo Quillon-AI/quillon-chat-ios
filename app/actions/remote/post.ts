@@ -292,7 +292,7 @@ export async function fetchPostsForChannel(serverUrl: string, channelId: string,
         if (!fetchOnly) {
             EphemeralStore.addLoadingMessagesForChannel(serverUrl, channelId);
         }
-        const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+        const {database, operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
         let postAction: Promise<PostsRequest>|undefined;
         let actionType: string|undefined;
         const myChannel = await getMyChannel(database, channelId);
@@ -324,6 +324,10 @@ export async function fetchPostsForChannel(serverUrl: string, channelId: string,
                     actionType, authors,
                 );
             }
+        }
+
+        if (!fetchOnly) {
+            await operator.mergePostsInChannelChunks(channelId);
         }
 
         return {posts: data.posts, order: data.order, authors, actionType, previousPostId: data.previousPostId, channelId};
