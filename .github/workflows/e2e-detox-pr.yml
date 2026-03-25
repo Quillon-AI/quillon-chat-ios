@@ -41,14 +41,6 @@ on:
         required: false
         default: "PR"
         type: string
-      MM_TEST_USER_NAME:
-        description: "Admin username for Matterwick-provisioned instances"
-        required: false
-        type: string
-      MM_TEST_PASSWORD:
-        description: "Admin password for Matterwick-provisioned instances"
-        required: false
-        type: string
 
 concurrency:
   # Key on pr_number (or run_id for non-PR runs like nightly/push) so
@@ -294,8 +286,6 @@ jobs:
       run-type: ${{ inputs.run_type || 'PR' }}
       MOBILE_VERSION: ${{ inputs.MOBILE_VERSION }}
       MM_TEST_SERVER_URL: ${{ inputs.SITE_2_URL }}
-      MM_TEST_USER_NAME: ${{ inputs.MM_TEST_USER_NAME }}
-      MM_TEST_PASSWORD: ${{ inputs.MM_TEST_PASSWORD }}
     secrets: inherit
 
   run-maestro-android-on-pr:
@@ -310,8 +300,6 @@ jobs:
       run-type: ${{ inputs.run_type || 'PR' }}
       MOBILE_VERSION: ${{ inputs.MOBILE_VERSION }}
       MM_TEST_SERVER_URL: ${{ inputs.SITE_3_URL }}
-      MM_TEST_USER_NAME: ${{ inputs.MM_TEST_USER_NAME }}
-      MM_TEST_PASSWORD: ${{ inputs.MM_TEST_PASSWORD }}
     secrets: inherit
 
   update-final-status-ipad:

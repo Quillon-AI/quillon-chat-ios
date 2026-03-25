@@ -27,19 +27,13 @@ on:
         required: false
         type: string
         default: "PR"
-      MM_TEST_USER_NAME:
-        description: "Admin username for Matterwick-provisioned instances"
-        required: false
-        type: string
-      MM_TEST_PASSWORD:
-        description: "Admin password for Matterwick-provisioned instances"
-        required: false
-        type: string
-
 env:
-  ADMIN_EMAIL: ${{ inputs.MM_TEST_USER_NAME && format('{0}@example.mattermost.com', inputs.MM_TEST_USER_NAME) || secrets.MM_MOBILE_E2E_ADMIN_EMAIL }}
-  ADMIN_USERNAME: ${{ inputs.MM_TEST_USER_NAME || secrets.MM_MOBILE_E2E_ADMIN_USERNAME }}
-  ADMIN_PASSWORD: ${{ inputs.MM_TEST_PASSWORD || secrets.MM_MOBILE_E2E_ADMIN_PASSWORD }}
+  # Matterwick provisions instances with username "admin" and email
+  # "admin@example.mattermost.com". The password is shared via the org
+  # secret MM_MOBILE_E2E_ADMIN_PASSWORD (same value as Matterwick's E2EPassword).
+  ADMIN_EMAIL: admin@example.mattermost.com
+  ADMIN_USERNAME: admin
+  ADMIN_PASSWORD: ${{ secrets.MM_MOBILE_E2E_ADMIN_PASSWORD }}
   SITE_1_URL: ${{ inputs.MM_TEST_SERVER_URL || 'https://mobile-e2e-site-1.test.mattermost.cloud' }}
   TYPE: ${{ inputs.run-type }}
 
