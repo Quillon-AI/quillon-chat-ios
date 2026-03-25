@@ -220,38 +220,6 @@ export default class FilePickerUtil {
     };
 
     private hasWriteStoragePermission = async () => {
-        if (Platform.OS === 'android' && Platform.Version <= 28) {
-            const storagePermission = Permissions.PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE;
-            let permissionRequest;
-            const hasPermissionToStorage = await Permissions.check(storagePermission);
-            switch (hasPermissionToStorage) {
-                case Permissions.RESULTS.DENIED:
-                    permissionRequest = await Permissions.request(storagePermission);
-                    return permissionRequest === Permissions.RESULTS.GRANTED;
-                case Permissions.RESULTS.BLOCKED: {
-                    const {title, text} = this.getPermissionDeniedMessage('storage');
-
-                    Alert.alert(title, text, [
-                        {
-                            text: this.intl.formatMessage({
-                                id: 'mobile.permission_denied_dismiss',
-                                defaultMessage: "Don't Allow",
-                            }),
-                        },
-                        {
-                            text: this.intl.formatMessage({
-                                id: 'mobile.permission_denied_retry',
-                                defaultMessage: 'Settings',
-                            }),
-                            onPress: () => Linking.openSettings(),
-                        },
-                    ]);
-                    return false;
-                }
-                default: return true;
-            }
-        }
-
         return true;
     };
 
