@@ -219,10 +219,6 @@ export default class FilePickerUtil {
         return true;
     };
 
-    private hasWriteStoragePermission = async () => {
-        return true;
-    };
-
     private buildUri = async (doc: DocumentPickerResponse) => {
         let uri: string = doc.fileCopyUri || doc.uri;
 
@@ -257,12 +253,7 @@ export default class FilePickerUtil {
 
         const hasCameraPermission = await this.hasPhotoPermission('camera');
 
-        let hasWriteToStoragePermission = true;
-        if (Platform.OS === 'android' && Platform.Version <= 28) {
-            hasWriteToStoragePermission = await this.hasWriteStoragePermission();
-        }
-
-        if (hasCameraPermission && hasWriteToStoragePermission) {
+        if (hasCameraPermission) {
             launchCamera(options, async (response: ImagePickerResponse) => {
                 StatusBar.setHidden(false);
 
