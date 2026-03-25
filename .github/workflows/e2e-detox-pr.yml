@@ -80,6 +80,48 @@ jobs:
           description: Detox Android tests for mattermost mobile app have started ...
           status: pending
 
+  update-initial-status-ipad:
+    if: inputs.PLATFORM == 'ios' || inputs.PLATFORM == 'both'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: mattermost/actions/delivery/update-commit-status@main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          repository_full_name: ${{ github.repository }}
+          commit_sha: ${{ inputs.MOBILE_VERSION }}
+          context: e2e/detox-ipad-tests
+          description: Detox iPad tests for mattermost mobile app have started ...
+          status: pending
+
+  update-initial-status-maestro-ios:
+    if: inputs.PLATFORM == 'ios' || inputs.PLATFORM == 'both'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: mattermost/actions/delivery/update-commit-status@main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          repository_full_name: ${{ github.repository }}
+          commit_sha: ${{ inputs.MOBILE_VERSION }}
+          context: e2e/maestro-ios-tests
+          description: Maestro iOS tests for mattermost mobile app have started ...
+          status: pending
+
+  update-initial-status-maestro-android:
+    if: inputs.PLATFORM == 'android' || inputs.PLATFORM == 'both'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: mattermost/actions/delivery/update-commit-status@main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          repository_full_name: ${{ github.repository }}
+          commit_sha: ${{ inputs.MOBILE_VERSION }}
+          context: e2e/maestro-android-tests
+          description: Maestro Android tests for mattermost mobile app have started ...
+          status: pending
+
   build-ios-simulator:
     if: inputs.PLATFORM == 'ios' || inputs.PLATFORM == 'both'
     runs-on: macos-26
@@ -219,6 +261,7 @@ jobs:
     name: iOS iPad
     needs:
       - build-ios-simulator
+      - update-initial-status-ipad
     uses: ./.github/workflows/e2e-ios-template.yml
     with:
       run-type: ${{ inputs.run_type || 'PR' }}
@@ -237,6 +280,7 @@ jobs:
     uses: ./.github/workflows/e2e-maestro-template.yml
     needs:
       - build-ios-simulator
+      - update-initial-status-maestro-ios
     with:
       platform: ios
       run-type: ${{ inputs.run_type || 'PR' }}
@@ -250,6 +294,7 @@ jobs:
     uses: ./.github/workflows/e2e-maestro-template.yml
     needs:
       - build-android-apk
+      - update-initial-status-maestro-android
     with:
       platform: android
       run-type: ${{ inputs.run_type || 'PR' }}
@@ -257,12 +302,64 @@ jobs:
       MM_TEST_SERVER_URL: ${{ inputs.SITE_3_URL }}
     secrets: inherit
 
+  update-final-status-ipad:
+    runs-on: ubuntu-22.04
+    if: always() && (inputs.PLATFORM == 'ios' || inputs.PLATFORM == 'both')
+    needs:
+      - run-ios-ipad-tests
+    steps:
+      - uses: mattermost/actions/delivery/update-commit-status@main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          repository_full_name: ${{ github.repository }}
+          commit_sha: ${{ inputs.MOBILE_VERSION }}
+          context: e2e/detox-ipad-tests
+          description: Completed with ${{ needs.run-ios-ipad-tests.outputs.FAILURES }} failures
+          status: ${{ needs.run-ios-ipad-tests.outputs.STATUS }}
+          target_url: ${{ needs.run-ios-ipad-tests.outputs.TARGET_URL }}
+
+  update-final-status-maestro-ios:
+    runs-on: ubuntu-22.04
+    if: always() && (inputs.PLATFORM == 'ios' || inputs.PLATFORM == 'both')
+    needs:
+      - run-maestro-ios-on-pr
+    steps:
+      - uses: mattermost/actions/delivery/update-commit-status@main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          repository_full_name: ${{ github.repository }}
+          commit_sha: ${{ inputs.MOBILE_VERSION }}
+          context: e2e/maestro-ios-tests
+          description: Maestro iOS tests completed
+          status: ${{ needs.run-maestro-ios-on-pr.result == 'success' && 'success' || 'failure' }}
+
+  update-final-status-maestro-android:
+    runs-on: ubuntu-22.04
+    if: always() && (inputs.PLATFORM == 'android' || inputs.PLATFORM == 'both')
+    needs:
+      - run-maestro-android-on-pr
+    steps:
+      - uses: mattermost/actions/delivery/update-commit-status@main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          repository_full_name: ${{ github.repository }}
+          commit_sha: ${{ inputs.MOBILE_VERSION }}
+          context: e2e/maestro-android-tests
+          description: Maestro Android tests completed
+          status: ${{ needs.run-maestro-android-on-pr.result == 'success' && 'success' || 'failure' }}
+
   e2e-remove-matterwick-label:
     name: Remove Matterwick E2E label from PR
     runs-on: ubuntu-22.04
     needs:
       - run-ios-tests
       - run-android-tests
+      - run-ios-ipad-tests
+      - run-maestro-ios-on-pr
+      - run-maestro-android-on-pr
     if: always() && inputs.pr_number != ''
     steps:
       - name: e2e/remove-label-from-pr
