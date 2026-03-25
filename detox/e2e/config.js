@@ -37,7 +37,7 @@ module.exports = {
             resultHtml: `${platform}-main${shard}.html`,
         }],
     ],
-    globalSetup: './e2e/global_setup.js',
+    globalSetup: './global_setup.js',
     globalTeardown: 'detox/runners/jest/globalTeardown',
     testEnvironment: 'detox/runners/jest/testEnvironment',
     verbose: true,
