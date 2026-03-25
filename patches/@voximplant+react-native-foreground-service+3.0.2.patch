@@ -26,11 +26,7 @@ index 7f9022f..b3e920a 100644
          IntentFilter filter = new IntentFilter();
          filter.addAction(FOREGROUND_SERVICE_BUTTON_PRESSED);
 -        getReactApplicationContext().registerReceiver(foregroundReceiver, filter);
-+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-+            getReactApplicationContext().registerReceiver(foregroundReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-+        } else {
-+            getReactApplicationContext().registerReceiver(foregroundReceiver, filter);
-+        }
++        getReactApplicationContext().registerReceiver(foregroundReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
  
          if (componentName != null) {
              promise.resolve(null);
