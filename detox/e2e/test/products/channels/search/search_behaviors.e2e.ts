@@ -321,6 +321,7 @@ describe('Search - Search Behaviors', () => {
         // # Clear search, remove recent search item, and go back to channel list screen
         await SearchMessagesScreen.searchClearButton.tap();
         await wait(timeouts.ONE_SEC);
+
         // Cleanup is best-effort — scrolling results can leave the screen in a state
         // where the recent item remove button is not accessible on some platforms
         try {
@@ -409,6 +410,7 @@ describe('Search - Search Behaviors', () => {
         // # Post a message so there are results
         await ChannelScreen.open(channelsCategory, testChannel.name);
         await ChannelScreen.postMessage(message);
+
         // Fetch post ID immediately after posting before any other posts can be created
         const {post: searchedPost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
         await ChannelScreen.back();

@@ -53,6 +53,7 @@ describe('iPad - Post Message', () => {
             await wait(timeouts.ONE_SEC);
             await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(timeouts.TEN_SEC);
         }
+
         // # Log out
         await HomeScreen.logout();
     });

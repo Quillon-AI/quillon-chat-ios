@@ -6,47 +6,49 @@ appId: com.mattermost.rnbeta
 - runFlow: ../../utils/login.yml
 - runFlow: ../../utils/navigate_to_channel.yml
 
-# --- iOS: use Safari ---
+# --- iOS: use Notes app (avoids Safari "Open In Mattermost" conflict for text/URLs) ---
 - runFlow:
     when:
       platform: iOS
     commands:
-      # Open Safari and navigate to the link to be shared
+      # Notes app shares text/URL content; Mattermost share extension appears without "Open In" conflict
+      - stopApp:
+          appId: "com.apple.mobilenotes"
       - launchApp:
-          appId: "com.apple.mobilesafari"
-      # iOS 26 Safari uses a tab bar; the URL field has resource-id "TabBarItemTitle"
+          appId: "com.apple.mobilenotes"
       - extendedWaitUntil:
           visible:
-            id: "TabBarItemTitle"
+            text: "Notes"
+          timeout: 15000
+      # Create a new note with a URL to share
+      - tapOn:
+          text: "New Note"
+      - inputText: "https://example.com"
+      # Open the note's overflow menu to access Share Note
+      - tapOn:
+          text: "···"
+          optional: true
+      - tapOn:
+          id: "more"
+          optional: true
+      # Tap Share Note option (visible once overflow menu opens)
+      - extendedWaitUntil:
+          visible:
+            text: "Share Note..."
+          timeout: 5000
+      - tapOn:
+          text: "Share Note..."
+      # Share sheet appears with Mattermost Beta as the share extension only (no "Open In" conflict)
+      - extendedWaitUntil:
+          visible:
+            text: "Mattermost Beta"
           timeout: 15000
       - tapOn:
-          id: "TabBarItemTitle"
-      - inputText: "https://example.com"
-      - pressKey: Enter
-      - extendedWaitUntil:
-          visible:
-            text: "Example Domain"
-          timeout: 30000
-      # Dismiss first-run "Continue" dialog if present
-      - tapOn:
-          text: "Continue"
-          optional: true
-      # iOS 26 Safari: share is under the "..." (More) overflow button in the bottom toolbar
-      - tapOn:
-          text: "More"
-      - tapOn:
-          text: "Share"
-      # NOTE: In iOS 26 the "Mattermost Beta" shareCell in the app icons row is
-      # "Open In Mattermost" (not the share extension). The extension appears only
-      # after the user enables it via "View More" → Mattermost Beta toggle in the
-      # Safari share sheet settings. This one-time setup must be done manually on
-      # a fresh simulator. Once enabled, the extension appears as an actionGroupCell.
-      # TODO: Find a way to programmatically enable the share extension on the simulator,
-      # or detect and tap it via actionGroupCell once enabled.
+          text: "Mattermost Beta"
       - extendedWaitUntil:
           visible:
             id: "share_extension.channel.option"
-          timeout: 20000
+          timeout: 40000
 
 # --- Android: use Chrome ---
 - runFlow:

@@ -24,6 +24,7 @@ export const useKeyboardScrollAdjustment = (
     const scrollToOffset = useCallback(
         (offsetValue: number, scrollValue: number) => {
             const offset = -offsetValue + scrollValue;
+
             // Guard against NaN/Infinity from keyboard animation to prevent native crash
             if (isFinite(offset)) {
                 scrollViewRef.current?.scrollToOffset({offset, animated: false});

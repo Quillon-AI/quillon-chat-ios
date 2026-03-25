@@ -28,18 +28,35 @@ appId: com.mattermost.rnbeta
       - tapOn:
           text: "Continue"
           optional: true
-      # iOS 26 Safari: share is under the "..." (More) overflow button
+      # iOS 26: long-press a word on the page to select it, then tap "Share..." from the
+      # text-selection context menu. This shares selected text (not the page URL).
+      - extendedWaitUntil:
+          visible:
+            text: "Wikipedia"
+          timeout: 15000
+      - longPressOn:
+          text: "Wikipedia"
+      - takeScreenshot: after-longpress-text
+      # Wait for the text-selection context menu and tap "Share..."
+      - extendedWaitUntil:
+          visible:
+            text: "Share..."
+          timeout: 10000
       - tapOn:
-          text: "More"
+          text: "Share..."
+      - takeScreenshot: after-tap-share
+      # Tap "Mattermost Beta" in the share sheet to open the share extension
+      - extendedWaitUntil:
+          visible:
+            text: "Mattermost Beta"
+          timeout: 15000
       - tapOn:
-          text: "Share"
-      # NOTE: In iOS 26 the "Mattermost Beta" shareCell in the app icons row is
-      # "Open In Mattermost" (not the share extension). The extension must be
-      # enabled via "View More" in the Safari share sheet settings (one-time setup).
+          text: "Mattermost Beta"
+      - takeScreenshot: after-tap-mattermost-beta
       - extendedWaitUntil:
           visible:
             id: "share_extension.channel.option"
-          timeout: 20000
+          timeout: 40000
 
 # --- Android: use Chrome ---
 - runFlow:

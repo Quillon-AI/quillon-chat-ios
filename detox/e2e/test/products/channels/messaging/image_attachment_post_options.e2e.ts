@@ -70,7 +70,7 @@ describe('Messaging - Image Attachment Post Options', () => {
             channelId: testChannel.id,
             message: '',
             fileIds: [uploadedFileId],
-            createAt: Date.now() - 6 * 60 * 1000,
+            createAt: Date.now() - (6 * 60 * 1000),
         });
 
         // # Open channel screen

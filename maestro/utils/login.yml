@@ -3,41 +3,109 @@
 # Requires: SITE_1_URL, TEST_USER_EMAIL, TEST_USER_PASSWORD env vars
 # Optional: MAESTRO_APP_ID (defaults to com.mattermost.rnbeta)
 #
-# NOTE: Do NOT use clearState:true here. On iOS, clearState simulates a fresh
-# install which triggers the native "Allow Notifications?" system dialog. That
-# dialog appears after the server form loads and interferes with the connection
-# flow, leaving the app stuck on the server connect screen. Without clearState
-# the app keeps its DB (persisted server registration) and the flow is reliable.
+# NOTE: Do NOT use clearState:true on iOS. clearState simulates a fresh install
+# which triggers the native "Allow Notifications?" system dialog. That dialog
+# appears after the server form loads and interferes with the connection flow,
+# leaving the app stuck on the server connect screen.
+# Android: clearState:true is safe — it clears persisted sessions so a stale
+# login from a previous seed run cannot cause the login flow to skip steps.
 appId: ${MAESTRO_APP_ID}
 ---
-# Stop then relaunch so the app always starts from its root entry point.
-# On iOS, stopApp + launchApp restores the app to its last active screen
-# (e.g., inside a channel), NOT necessarily the channel list where the tab
-# bar is visible. The optional back taps below navigate out of any channel
-# or thread view back to the channel list so tab_bar.home.tab becomes visible.
-- stopApp
-- launchApp
+# iOS: stopApp:true force-kills the app before relaunch. This clears any stuck
+# state from a previous test run (e.g. a blank WebRTC call screen with no
+# accessible elements). Safe on iOS — does NOT set Android's force-stopped flag.
+# Android: stopApp:false is required. Maestro 2.x with stopApp:true sets Android's
+# force-stopped flag and then immediately fails its own launch intent.
+# Android: clearState:true wipes app data so no stale session from a previous
+# seed run can interfere (equivalent to adb pm clear — does not set force-stop).
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - launchApp:
+          stopApp: true
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - launchApp:
+          stopApp: false
+          clearState: true
+      # After clearState the app has no server registered and always shows the server
+      # connect form. Wait up to 15s for it to appear. Without this explicit wait the
+      # shared waitForAnimationToEnd below (6s) is not enough for a fresh JS-bundle boot
+      # and the back-press block fires before the server form is visible, exiting the app.
+      - extendedWaitUntil:
+          visible:
+            id: "server_form.server_url.input"
+          timeout: 15000
+# Give the app time to render its initial screen before any conditional checks.
+# On a fresh emulator/simulator start the JS bundle takes a few seconds to
+# initialize; without this wait the tab-bar / login-form checks below fire
+# before any screen is visible and the back presses exit to the launcher.
+- waitForAnimationToEnd:
+    timeout: 6000
 # iOS notification permission dialog may appear on first launch after a device
 # wipe or new test session. Dismiss with Allow so push can work; optional so it
 # is silently skipped when the dialog is absent.
 - tapOn:
     text: "Allow"
     optional: true
-# Navigate back to channel list from whatever screen the app restored to.
-# Handles: channel_info (close button), thread/channel (back button × 2),
-# or any other modal with a close button. Each tap is optional so unknown
-# states are silently skipped without failing the flow.
-- tapOn:
-    id: "close.channel_info.button"
-    optional: true
-- tapOn:
-    id: "navigation.header.back"
-    optional: true
-- tapOn:
-    id: "navigation.header.back"
-    optional: true
-# If the previous flow left the app logged in, log out first so we reach a
-# clean login form.  Skipped when not on the home screen (already logged out).
+# If on the full call screen, leave the call first so back presses work cleanly.
+# Each back press on the call screen triggers a leave-confirmation dialog, which
+# means 3 back presses can never escape the call screen. Tap Leave + confirm instead.
+- runFlow:
+    when:
+      visible:
+        id: "mute-unmute"
+    commands:
+      - tapOn:
+          id: "leave"
+      - tapOn:
+          text: "Leave call"
+          optional: true
+      - extendedWaitUntil:
+          notVisible:
+            id: "mute-unmute"
+          timeout: 10000
+# If on a channel screen (tab bar hidden inside channel nav stack), tap the
+# navigation back button to return to the channel list where the tab bar
+# becomes visible. Using the header back button because iOS swipe-back
+# gesture ('back') may be disabled on this screen by react-native-navigation.
+- runFlow:
+    when:
+      visible:
+        id: "channel.post_draft.post.input"
+    commands:
+      - tapOn:
+          id: "navigation.header.back"
+# If the app is already on the home screen (tab bar visible), log out before
+# pressing back. This handles the case where a previous flow left the app on
+# the channel list — pressing back from the home screen on Android navigates
+# away from the app entirely, making the tab bar check below unreliable.
+- runFlow:
+    when:
+      visible:
+        id: "tab_bar.home.tab"
+    file: logout.yml
+# Only press back if we are NOT already on the login form AND NOT on the server
+# connect form. If the app starts on the server connect screen (fresh install /
+# DB wipe with no server registered), back presses exit the app entirely rather
+# than navigating within it, which prevents connect_server.yml from running.
+- runFlow:
+    when:
+      notVisible:
+        id: "login_form.username.input"
+    commands:
+      - runFlow:
+          when:
+            notVisible:
+              id: "server_form.server_url.input"
+          commands:
+            - back
+            - back
+            - back
+# If back presses returned us to the home screen, logout to reach login form.
 - runFlow:
     when:
       visible:
@@ -58,6 +126,13 @@ appId: ${MAESTRO_APP_ID}
       visible:
         id: "server_form.server_url.input"
     file: connect_server.yml
+# If connect_server navigated to an already-logged-in home screen (server was
+# previously registered with an active session), logout to reach the login form.
+- runFlow:
+    when:
+      visible:
+        id: "tab_bar.home.tab"
+    file: logout.yml
 # Login screen
 - extendedWaitUntil:
     visible:

@@ -159,13 +159,16 @@ describe('Channels - Channel Bookmarks', () => {
         if (isAndroid()) {
             for (let i = 0; i < 4; i++) {
                 try {
+                    // eslint-disable-next-line no-await-in-loop
                     await waitFor(element(by.id('channel_list.screen'))).
                         toExist().
                         withTimeout(timeouts.ONE_SEC);
                     break; // Channel list is already showing — stop pressing back
                 } catch {
                     // Not at channel list yet — dismiss the top-most layer
+                    // eslint-disable-next-line no-await-in-loop
                     await device.pressBack();
+                    // eslint-disable-next-line no-await-in-loop
                     await wait(timeouts.ONE_SEC);
                 }
             }

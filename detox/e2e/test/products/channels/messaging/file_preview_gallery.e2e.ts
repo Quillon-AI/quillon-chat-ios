@@ -36,6 +36,7 @@ const dismissGallery = async () => {
     } else {
         await element(by.id('gallery.header.close.button')).tap();
     }
+
     // Wait for the close button to disappear — confirms gallery is fully unmounted.
     // We use the close button testID rather than by.text('1 of 1') because FormattedText
     // inside AnimatedSafeAreaView is not reliably found by by.text() on Android.
