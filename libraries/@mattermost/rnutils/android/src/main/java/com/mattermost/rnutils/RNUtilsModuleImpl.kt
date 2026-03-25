@@ -216,13 +216,6 @@ class RNUtilsModuleImpl(private val reactContext: ReactApplicationContext): Life
         }
     }
 
-    fun setSoftKeyboardToAdjustResize() {
-        val currentActivity: Activity = reactContext.currentActivity ?: return
-        currentActivity.runOnUiThread {
-            currentActivity.window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        }
-    }
-
     fun setNavigationBarColor(colorHex: String, lightIcons: Boolean) {
         val currentActivity: Activity = reactContext.currentActivity ?: return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
