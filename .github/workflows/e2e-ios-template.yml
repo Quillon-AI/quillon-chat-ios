@@ -67,6 +67,11 @@ on:
         required: false
         type: number
         default: 10
+      detox_config:
+        description: "Detox configuration name to use (e.g. ios.sim.debug, ios.ipad.debug)"
+        required: false
+        type: string
+        default: "ios.sim.debug"
     outputs:
       STATUS:
         value: ${{ jobs.generate-report.outputs.STATUS }}
@@ -378,7 +383,12 @@ jobs:
 
           cd detox
           npm run detox:config-gen
-          npm run e2e:ios-test -- ${{ matrix.specs }}
+          DETOX_CONFIG="${{ inputs.detox_config }}"
+          if [ "$DETOX_CONFIG" = "ios.ipad.debug" ]; then
+            npm run e2e:ios-ipad-test -- ${{ matrix.specs }}
+          else
+            npm run e2e:ios-test -- ${{ matrix.specs }}
+          fi
         env:
           DETOX_DISABLE_HIERARCHY_DUMP: "YES"
           DETOX_DISABLE_SCREENSHOT_TRACKING: "YES"
