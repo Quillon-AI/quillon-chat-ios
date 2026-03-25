@@ -232,7 +232,7 @@ const Thread = ({author, channel, location, post, teammateNameDisplay, testID, t
                     baseStyle={styles.message}
                     numberOfLines={2}
                     separateHeading={true}
-                    value={message.substring(0, 150)}  // This substring helps to avoid ANR's
+                    value={message.substring(0, 150)} // This substring helps to avoid ANR's
                 />
             );
         }

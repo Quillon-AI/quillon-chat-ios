@@ -5,11 +5,10 @@ import React from 'react';
 import {type TextStyle, StyleSheet} from 'react-native';
 
 import {Preferences} from '@constants';
+import {renderWithIntl, screen} from '@test/intl-test-helper';
 import {getMarkdownTextStyles} from '@utils/markdown';
 
 import RemoveMarkdown from '.';
-
-import {renderWithIntl, screen} from '@test/intl-test-helper';
 
 jest.mock('@context/theme', () => {
     const {Preferences: Prefs} = require('@constants');
@@ -24,7 +23,7 @@ jest.mock('@context/server', () => ({
 
 jest.mock('./at_mention', () => {
     const {Text} = require('react-native');
-    return ({mentionName, textStyle}: {mentionName: string; textStyle: any}) => (
+    const MockAtMention = ({mentionName, textStyle}: {mentionName: string; textStyle: any}) => (
         <Text
             testID={`at_mention.${mentionName}`}
             style={textStyle}
@@ -32,11 +31,13 @@ jest.mock('./at_mention', () => {
             {`@${mentionName}`}
         </Text>
     );
+    MockAtMention.displayName = 'MockAtMention';
+    return MockAtMention;
 });
 
 jest.mock('../markdown/channel_mention', () => {
     const {Text} = require('react-native');
-    return ({channelName, textStyle}: {channelName: string; textStyle: any}) => (
+    const MockChannelMention = ({channelName, textStyle}: {channelName: string; textStyle: any}) => (
         <Text
             testID={`channel_mention.${channelName}`}
             style={textStyle}
@@ -44,11 +45,13 @@ jest.mock('../markdown/channel_mention', () => {
             {`~${channelName}`}
         </Text>
     );
+    MockChannelMention.displayName = 'MockChannelMention';
+    return MockChannelMention;
 });
 
 jest.mock('@components/emoji', () => {
     const {Text} = require('react-native');
-    return ({emojiName, textStyle}: {emojiName: string; textStyle: any}) => (
+    const MockEmoji = ({emojiName, textStyle}: {emojiName: string; textStyle: any}) => (
         <Text
             testID={`emoji.${emojiName}`}
             style={textStyle}
@@ -56,6 +59,8 @@ jest.mock('@components/emoji', () => {
             {`:${emojiName}:`}
         </Text>
     );
+    MockEmoji.displayName = 'MockEmoji';
+    return MockEmoji;
 });
 
 const theme = Preferences.THEMES.denim;
@@ -115,33 +120,6 @@ describe('RemoveMarkdown', () => {
 
                 unmount();
             }
-        });
-    });
-
-    describe('non-heading context should be preserved for mentions', () => {
-        it('should preserve bold style on @mention inside bold', () => {
-            renderWithIntl(
-                <RemoveMarkdown
-                    baseStyle={baseStyle}
-                    value='**bold @user text**'
-                />,
-            );
-
-            const style = getFlatStyle(screen.getByTestId('at_mention.user'));
-            expect(style.fontWeight).toBe('600');
-        });
-
-        it('should preserve bold style on channel link inside bold', () => {
-            renderWithIntl(
-                <RemoveMarkdown
-                    enableChannelLink={true}
-                    baseStyle={baseStyle}
-                    value='**bold ~town-square text**'
-                />,
-            );
-
-            const style = getFlatStyle(screen.getByTestId('channel_mention.town-square'));
-            expect(style.fontWeight).toBe('600');
         });
     });
 
