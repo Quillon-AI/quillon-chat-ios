@@ -61,9 +61,13 @@ class SavedMessagesScreen {
         // Poll for the post to become visible without waiting for idle bridge
         await waitForElementToBeVisible(postListPostItem, timeouts.TEN_SEC);
 
-        // Dismiss keyboard by tapping on the post list (needed after posting a message)
+        // Dismiss keyboard by scrolling the post list (best-effort — list may not be scrollable)
         const flatList = this.postList.getFlatList();
-        await flatList.scroll(100, 'down');
+        try {
+            await flatList.scroll(100, 'down');
+        } catch {
+            // List too short to scroll; keyboard already dismissed
+        }
         await wait(timeouts.ONE_SEC);
 
         // # Open post options

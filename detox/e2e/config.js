@@ -3,10 +3,12 @@
 
 const platform = process.env.IOS === 'true' ? 'ios' : 'android';
 const shard = process.env.CI_NODE_INDEX ? process.env.CI_NODE_INDEX : '';
+const parsedMaxWorkers = Number.parseInt(process.env.DETOX_MAX_WORKERS || '', 10);
+const maxWorkers = Number.isNaN(parsedMaxWorkers) ? 1 : parsedMaxWorkers;
 
 module.exports = {
     setupFilesAfterEnv: ['./test/setup.ts'],
-    maxWorkers: process.env.CI ? 1 : 2,
+    maxWorkers: process.env.CI ? 1 : maxWorkers,
     testSequencer: './custom_sequencer.js',
     testTimeout: process.env.LOW_BANDWIDTH_MODE === 'true' ? 300000 : 240000,
     rootDir: '.',
@@ -35,7 +37,7 @@ module.exports = {
             resultHtml: `${platform}-main${shard}.html`,
         }],
     ],
-    globalSetup: 'detox/runners/jest/globalSetup',
+    globalSetup: './e2e/global_setup.js',
     globalTeardown: 'detox/runners/jest/globalTeardown',
     testEnvironment: 'detox/runners/jest/testEnvironment',
     verbose: true,

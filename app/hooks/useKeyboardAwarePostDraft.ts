@@ -49,8 +49,10 @@ export const useKeyboardAwarePostDraft = (isThreadView = false, enabled = true) 
 
     const inputContainerAnimatedStyle = useAnimatedStyle(
         () => {
+            // IEEE 754: NaN !== NaN — guard against NaN/Infinity from keyboard animation to prevent CALayer crash
+            const ty = keyboardTranslateY.value;
             return {
-                transform: [{translateY: isIOS ? -keyboardTranslateY.value : 0}],
+                transform: [{translateY: isIOS ? -(Number.isFinite(ty) ? ty : 0) : 0}],
             };
         },
         [],

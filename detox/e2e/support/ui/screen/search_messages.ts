@@ -88,13 +88,18 @@ class SearchMessagesScreen {
     openPostOptionsFor = async (postId: string, text: string) => {
         const {postListPostItem} = this.getPostListPostItem(postId, text);
 
+        // Dismiss keyboard first so the 75%-visibility check in waitForElementToBeVisible
+        // doesn't fail on Android when the keyboard is still covering the bottom of the list.
+        const flatList = this.postList.getFlatList();
+        try {
+            await flatList.scroll(100, 'down');
+        } catch {
+            // List too short to scroll — keyboard already dismissed or not open
+        }
+        await wait(timeouts.ONE_SEC);
+
         // Poll for the post to become visible without waiting for idle bridge
         await waitForElementToBeVisible(postListPostItem, timeouts.TEN_SEC);
-
-        // Dismiss keyboard by tapping on the post list (needed after posting a message)
-        const flatList = this.postList.getFlatList();
-        await flatList.scroll(100, 'down');
-        await wait(timeouts.ONE_SEC);
 
         // # Open post options
         await postListPostItem.longPress(timeouts.TWO_SEC);

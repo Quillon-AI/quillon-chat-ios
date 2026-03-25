@@ -53,6 +53,12 @@ export const apiGetLatestPluginVersion = async (repo: string): Promise<string> =
     }
 };
 
+// Calls Plugin Constants
+export const CallsPlugin = {
+    id: 'com.mattermost.calls',
+    url: 'https://github.com/mattermost/mattermost-plugin-calls/releases/download/v1.5.0/com.mattermost.calls-1.5.0.tar.gz',
+} as const;
+
 // Demo Plugin Constants
 export const DemoPlugin = {
     id: 'com.mattermost.demo-plugin',

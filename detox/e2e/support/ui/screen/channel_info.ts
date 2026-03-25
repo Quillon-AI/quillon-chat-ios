@@ -110,7 +110,11 @@ class ChannelInfoScreen {
 
     leaveChannel = async ({confirm = true} = {}) => {
         await this.scrollView.tap({x: 1, y: 1});
-        await this.scrollView.scroll(200, 'down');
+        try {
+            await this.scrollView.scroll(200, 'down');
+        } catch {
+            // Content may not require scrolling; proceed
+        }
         await waitFor(this.leaveChannelOption).toExist().withTimeout(timeouts.TWO_SEC);
         if (isAndroid()) {
             await this.scrollView.scrollTo('bottom');

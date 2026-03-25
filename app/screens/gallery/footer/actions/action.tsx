@@ -23,6 +23,7 @@ type Props = {
     iconName: string;
     onPress: () => void;
     style?: StyleProp<ViewStyle>;
+    testID?: string;
 }
 
 const pressedStyle = ({pressed}: PressableStateCallbackType) => {
@@ -45,7 +46,7 @@ const baseStyle = StyleSheet.create({
 
 const androidRippleConfig: PressableAndroidRippleConfig = {borderless: true, radius: 24, color: '#FFF'};
 
-const Action = ({disabled, iconName, onPress, style}: Props) => {
+const Action = ({disabled, iconName, onPress, style, testID}: Props) => {
     const pressableStyle = useCallback((pressed: PressableStateCallbackType) => ([
         pressedStyle(pressed),
         baseStyle.container,
@@ -59,6 +60,7 @@ const Action = ({disabled, iconName, onPress, style}: Props) => {
             hitSlop={4}
             onPress={onPress}
             style={pressableStyle}
+            testID={testID}
         >
             <CompassIcon
                 color={changeOpacity('#fff', disabled ? 0.4 : 1)}

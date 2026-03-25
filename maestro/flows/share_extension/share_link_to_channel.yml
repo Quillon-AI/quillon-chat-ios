@@ -1,0 +1,131 @@
+# MM-T2874: Share a link to a Mattermost channel via the share extension
+tags:
+  - MM-T2874
+appId: com.mattermost.rnbeta
+---
+- runFlow: ../../utils/login.yml
+- runFlow: ../../utils/navigate_to_channel.yml
+
+# --- iOS: use Safari ---
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      # Open Safari and navigate to the link to be shared
+      - launchApp:
+          appId: "com.apple.mobilesafari"
+      # iOS 26 Safari uses a tab bar; the URL field has resource-id "TabBarItemTitle"
+      - extendedWaitUntil:
+          visible:
+            id: "TabBarItemTitle"
+          timeout: 15000
+      - tapOn:
+          id: "TabBarItemTitle"
+      - inputText: "https://example.com"
+      - pressKey: Enter
+      - extendedWaitUntil:
+          visible:
+            text: "Example Domain"
+          timeout: 30000
+      # Dismiss first-run "Continue" dialog if present
+      - tapOn:
+          text: "Continue"
+          optional: true
+      # iOS 26 Safari: share is under the "..." (More) overflow button in the bottom toolbar
+      - tapOn:
+          text: "More"
+      - tapOn:
+          text: "Share"
+      # NOTE: In iOS 26 the "Mattermost Beta" shareCell in the app icons row is
+      # "Open In Mattermost" (not the share extension). The extension appears only
+      # after the user enables it via "View More" → Mattermost Beta toggle in the
+      # Safari share sheet settings. This one-time setup must be done manually on
+      # a fresh simulator. Once enabled, the extension appears as an actionGroupCell.
+      # TODO: Find a way to programmatically enable the share extension on the simulator,
+      # or detect and tap it via actionGroupCell once enabled.
+      - extendedWaitUntil:
+          visible:
+            id: "share_extension.channel.option"
+          timeout: 20000
+
+# --- Android: use Chrome ---
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - stopApp:
+          appId: "com.android.chrome"
+      - launchApp:
+          appId: "com.android.chrome"
+      - tapOn:
+          text: "Use without an account"
+          optional: true
+      - tapOn:
+          text: "No thanks"
+          optional: true
+      # Handle new tab page (search_box_text) vs. returning to last page (url_bar)
+      - tapOn:
+          id: "com.android.chrome:id/search_box_text"
+          optional: true
+      - tapOn:
+          id: "com.android.chrome:id/url_bar"
+          optional: true
+      - inputText: "https://example.com"
+      - pressKey: Enter
+      - extendedWaitUntil:
+          visible:
+            text: "Example Domain"
+          timeout: 30000
+      # Open Chrome overflow menu and tap Share
+      - tapOn:
+          id: "com.android.chrome:id/menu_button"
+      - extendedWaitUntil:
+          visible:
+            id: "com.android.chrome:id/share_menu_id"
+          timeout: 5000
+      - tapOn:
+          id: "com.android.chrome:id/share_menu_id"
+      # Android share sheet: tap More to see all apps
+      - extendedWaitUntil:
+          visible:
+            text: "More"
+          timeout: 10000
+      - tapOn:
+          text: "More"
+      # Tap Mattermost Beta to open the share extension
+      - extendedWaitUntil:
+          visible:
+            text: "Mattermost Beta"
+          timeout: 10000
+      - tapOn:
+          text: "Mattermost Beta"
+
+# Share extension opens: tap Channel option to open channel picker
+- extendedWaitUntil:
+    visible:
+      id: "share_extension.channel.option"
+    timeout: 15000
+- tapOn:
+    id: "share_extension.channel.option"
+
+# Select the test channel from the channel list
+- extendedWaitUntil:
+    visible:
+      id: "channel_item.${TEST_CHANNEL_NAME}"
+    timeout: 10000
+- tapOn:
+    id: "channel_item.${TEST_CHANNEL_NAME}"
+
+# Post the shared content
+- tapOn:
+    id: "share_extension.post.button"
+
+# Return to Mattermost and verify the link post appeared in the channel
+- launchApp:
+    appId: "com.mattermost.rnbeta"
+- extendedWaitUntil:
+    visible:
+      id: "channel.post_list.post"
+    timeout: 15000
+- assertVisible:
+    id: "channel.post_list.post"

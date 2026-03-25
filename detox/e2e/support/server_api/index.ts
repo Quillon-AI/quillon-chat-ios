@@ -3,10 +3,12 @@
 
 import Bot from './bot';
 import Channel from './channel';
+import ChannelBookmark from './channel_bookmark';
+import CustomProfileAttributes from './custom_profile_attributes';
 import Ldap from './ldap';
 import Playbooks from './playbooks';
 import PlaybooksHelpers from './playbooks_helpers';
-import Plugin, {DemoPlugin} from './plugin';
+import Plugin, {CallsPlugin, DemoPlugin} from './plugin';
 import Post from './post';
 import Preference from './preference';
 import Setup from './setup';
@@ -17,7 +19,10 @@ import User from './user';
 
 export {
     Bot,
+    CallsPlugin,
     Channel,
+    ChannelBookmark,
+    CustomProfileAttributes,
     DemoPlugin,
     Ldap,
     Playbooks,

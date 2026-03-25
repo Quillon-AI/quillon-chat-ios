@@ -8,6 +8,7 @@ SDK_VERSION=${1:-35}           # First argument is SDK version
 AVD_BASE_NAME=${2:-"detox_pixel_8"}  # Second argument is AVD base name (no api suffix — added below)
 AVD_NAME="${AVD_BASE_NAME}_api_${SDK_VERSION}"
 TEST_FILES=("${@:3}")          # Capture all remaining arguments as Detox test files
+EMULATOR_RAM_MB=${MM_ANDROID_EMULATOR_RAM_MB:-3072}
 
 setup_avd_home() {
     if [[ "$CI" == "true" ]]; then
@@ -36,8 +37,16 @@ create_avd() {
     sed -i -e "s|abi.type = change_type|abi.type = ${cpu_arch_family}|g" "$AVD_NAME/config.ini"
     sed -i -e "s|hw.cpu.arch = change_cpu_arch|hw.cpu.arch = ${cpu_arch}|g" "$AVD_NAME/config.ini"
     sed -i -e "s|image.sysdir.1 = change_to_image_sysdir/|image.sysdir.1 = system-images/android-${SDK_VERSION}/google_apis/${cpu_arch_family}/|g" "$AVD_NAME/config.ini"
+    sed -i -e "s|hw.ramSize = .*|hw.ramSize = ${EMULATOR_RAM_MB}|g" "$AVD_NAME/config.ini"
 
     echo "Android virtual device successfully created: ${AVD_NAME}"
+}
+
+update_existing_avd_memory() {
+    local config_path="${AVD_NAME}/config.ini"
+    if [[ -f "$config_path" ]]; then
+        sed -i -e "s|hw.ramSize = .*|hw.ramSize = ${EMULATOR_RAM_MB}|g" "$config_path"
+    fi
 }
 
 start_adb_server() {
@@ -124,6 +133,7 @@ main() {
         create_avd
     else
         echo "'${AVD_NAME}' Android virtual device already exists."
+        update_existing_avd_memory
     fi
 
     start_adb_server

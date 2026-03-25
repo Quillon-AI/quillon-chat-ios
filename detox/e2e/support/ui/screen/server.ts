@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {Alert} from '@support/ui/component';
-import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible, waitForVisibilityWithRetry} from '@support/utils';
+import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect} from 'detox';
 
 class ServerScreen {
@@ -33,21 +33,28 @@ class ServerScreen {
     headerTitleConnectToServer = element(by.id(this.testID.headerTitleConnectToServer));
     headerWelcome = element(by.id(this.testID.headerWelcome));
     headerDescription = element(by.id(this.testID.headerDescription));
-    serverUrlInput = element(by.id(this.testID.serverUrlInput));
+
+    // FloatingTextInput renders the same testID on both the outer container View (index 0)
+    // and the actual TextInput (index 1). atIndex(1) targets the TextInput for interactions.
+    serverUrlInput = element(by.id(this.testID.serverUrlInput)).atIndex(1);
     serverUrlInputError = element(by.id(this.testID.serverUrlInputError));
-    serverDisplayNameInput = element(by.id(this.testID.serverDisplayNameInput));
+    serverDisplayNameInput = element(by.id(this.testID.serverDisplayNameInput)).atIndex(1);
     serverDisplayNameInputError = element(by.id(this.testID.serverDisplayNameInputError));
     displayHelp = element(by.id(this.testID.displayHelp));
     connectButton = element(by.id(this.testID.connectButton));
     connectButtonDisabled = element(by.id(this.testID.connectButtonDisabled));
     advancedOptionsToggle = element(by.id(this.testID.advancedOptionsToggle));
-    preauthSecretInput = element(by.id(this.testID.preauthSecretInput));
+    preauthSecretInput = element(by.id(this.testID.preauthSecretInput)).atIndex(1);
     preauthSecretHelp = element(by.id(this.testID.preauthSecretHelp));
-    usernameInput = element(by.id(this.testID.usernameInput));
+    usernameInput = element(by.id(this.testID.usernameInput)).atIndex(1);
 
     toBeVisible = async () => {
         await waitFor(this.serverScreen).toExist().withTimeout(timeouts.TEN_SEC);
-        await waitForVisibilityWithRetry(this.serverUrlInput, timeouts.TEN_SEC);
+
+        // FloatingInputContainer places testID on an outer View wrapper (index 0) whose
+        // bounds fail Detox's 75% visibility threshold; use toExist() to confirm the form
+        // is loaded without triggering the visibility calculation issue.
+        await waitFor(this.serverUrlInput).toExist().withTimeout(timeouts.TEN_SEC);
 
         return this.serverScreen;
     };
@@ -58,11 +65,22 @@ class ServerScreen {
         await this.serverDisplayNameInput.replaceText(serverDisplayName);
         if (isAndroid()) {
             await this.tapConnectButton();
+
+            // Dismiss "Notifications cannot be received from this server" dialog if it appears.
+            // This Android-only dialog blocks the login form and must be dismissed before proceeding.
+            try {
+                await waitFor(Alert.notificationsCannotBeReceivedTitle).toExist().withTimeout(timeouts.TEN_SEC);
+                await element(by.text('OKAY')).tap();
+            } catch {
+                // Dialog did not appear — proceed normally
+            }
         }
+
         if (isIos()) {
             await this.tapConnectButton();
             if (serverUrl.includes('127.0.0.1') || !process.env.CI) {
                 try {
+
                     // # Tap alert okay button
                     await waitFor(Alert.okayButton).toExist().withTimeout(timeouts.TEN_SEC);
                     await Alert.okayButton.tap();
@@ -94,8 +112,8 @@ class ServerScreen {
     };
 
     enterPreauthSecret = async (secret: string) => {
-        await waitFor(this.preauthSecretInput.atIndex(0)).toBeVisible().withTimeout(timeouts.TEN_SEC);
-        await this.preauthSecretInput.atIndex(0).replaceText(secret);
+        await waitFor(this.preauthSecretInput).toExist().withTimeout(timeouts.TEN_SEC);
+        await this.preauthSecretInput.replaceText(secret);
     };
 
     connectToServerWithPreauthSecret = async (serverUrl: string, serverDisplayName: string, preauthSecret: string) => {
@@ -112,6 +130,14 @@ class ServerScreen {
         // Connect
         if (isAndroid()) {
             await this.tapConnectButton();
+
+            // Dismiss "Notifications cannot be received from this server" dialog if it appears.
+            try {
+                await waitFor(Alert.notificationsCannotBeReceivedTitle).toExist().withTimeout(timeouts.TEN_SEC);
+                await element(by.text('OKAY')).tap();
+            } catch {
+                // Dialog did not appear — proceed normally
+            }
         }
         if (isIos()) {
             await this.tapConnectButton();

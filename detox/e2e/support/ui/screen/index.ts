@@ -8,6 +8,7 @@ import AdvancedSettingsScreen from './advanced_settings';
 import AutoResponderNotificationSettingsScreen from './auto_responder_notification_settings';
 import BrowseChannelsScreen from './browse_channels';
 import ChannelScreen from './channel';
+import ChannelBookmarkScreen from './channel_bookmark';
 import ChannelDropdownMenuScreen from './channel_dropdown_menu';
 import ChannelInfoScreen from './channel_info';
 import ChannelListScreen from './channel_list';
@@ -57,6 +58,7 @@ import UserProfileScreen from './user_profile';
 export {
     AboutScreen,
     AccountScreen,
+    ChannelBookmarkScreen,
     AddMembersScreen,
     AdvancedSettingsScreen,
     AutoResponderNotificationSettingsScreen,

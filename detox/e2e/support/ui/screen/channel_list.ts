@@ -6,7 +6,8 @@ import {
     TeamSidebar,
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
-import {timeouts} from '@support/utils';
+import {timeouts, wait} from '@support/utils';
+import {expect, waitFor} from 'detox';
 
 class ChannelListScreen {
     testID = {
@@ -61,6 +62,55 @@ class ChannelListScreen {
 
     getChannelItemDisplayName = (categoryKey: string, channelName: string) => {
         return element(by.id(`${this.testID.categoryPrefix}${categoryKey}.channel_item.${channelName}.display_name`));
+    };
+
+    /**
+     * Public channel rows can appear under Unreads (when grouped unreads is on), Channels, or
+     * Favorites. Wait until any matching row is visible, then tap the one that is on screen.
+     */
+    waitForSidebarPublicChannelDisplayNameVisible = async (channelName: string, timeout = timeouts.TEN_SEC) => {
+        const unreads = this.getChannelItemDisplayName('unreads', channelName);
+        const channels = this.getChannelItemDisplayName('channels', channelName);
+        const favorites = this.getChannelItemDisplayName('favorites', channelName);
+        const candidates = [unreads, channels, favorites];
+        const deadline = Date.now() + timeout;
+        let lastError: unknown;
+        /* eslint-disable no-await-in-loop -- poll sidebar rows until one is visible */
+        while (Date.now() < deadline) {
+            for (const el of candidates) {
+                try {
+                    await waitFor(el).toBeVisible().withTimeout(500);
+                    return;
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            await wait(200);
+        }
+        /* eslint-enable no-await-in-loop */
+        throw lastError instanceof Error ? lastError : new Error('Sidebar channel display name not visible');
+    };
+
+    tapSidebarPublicChannelDisplayName = async (channelName: string, timeout = timeouts.TEN_SEC) => {
+        await this.waitForSidebarPublicChannelDisplayNameVisible(channelName, timeout);
+        const unreads = this.getChannelItemDisplayName('unreads', channelName);
+        const channels = this.getChannelItemDisplayName('channels', channelName);
+        const favorites = this.getChannelItemDisplayName('favorites', channelName);
+        try {
+            await expect(unreads).toBeVisible();
+            await unreads.tap();
+            return;
+        } catch {
+            // try next
+        }
+        try {
+            await expect(channels).toBeVisible();
+            await channels.tap();
+            return;
+        } catch {
+            // try next
+        }
+        await favorites.tap();
     };
 
     getTeamItemSelected = (teamId: string) => {

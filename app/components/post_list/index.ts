@@ -6,6 +6,7 @@ import React from 'react';
 import {of as of$} from 'rxjs';
 import {switchMap} from 'rxjs/operators';
 
+import {useServerUrl} from '@context/server';
 import {observeIsChannelAutotranslated} from '@queries/servers/channel';
 import {queryAllCustomEmojis} from '@queries/servers/custom_emoji';
 import {observeSavedPostsByIds, observeIsPostAcknowledgementsEnabled} from '@queries/servers/post';
@@ -21,6 +22,7 @@ import type PostModel from '@typings/database/models/servers/post';
 
 type OwnProps = {
     channelId: string;
+    serverUrl?: string;
 } & WithDatabaseArgs;
 
 const enhancedWithoutPosts = withObservables(['channelId'], ({database, channelId}: OwnProps) => {
@@ -39,11 +41,23 @@ const enhancedWithoutPosts = withObservables(['channelId'], ({database, channelI
     };
 });
 
-const enhanced = withObservables(['posts'], ({database, posts}: {posts: PostModel[]} & WithDatabaseArgs) => {
+const enhanced = withObservables(['posts'], ({database, posts, serverUrl}: {posts: PostModel[]; serverUrl?: string} & WithDatabaseArgs) => {
     const postIds = posts.map((p) => p.id);
     return {
-        savedPostIds: observeSavedPostsByIds(database, postIds),
+        savedPostIds: observeSavedPostsByIds(database, postIds, serverUrl),
     };
 });
 
-export default React.memo(withDatabase(enhancedWithoutPosts(enhanced(PostList))));
+const EnhancedPostList = withDatabase(enhancedWithoutPosts(enhanced(PostList)));
+
+type EnhancedPostListProps = React.ComponentProps<typeof EnhancedPostList>;
+
+function PostListWithServerUrl(props: Omit<EnhancedPostListProps, 'serverUrl'>) {
+    const serverUrl = useServerUrl();
+    return React.createElement(EnhancedPostList, {
+        ...props,
+        serverUrl,
+    });
+}
+
+export default React.memo(PostListWithServerUrl);

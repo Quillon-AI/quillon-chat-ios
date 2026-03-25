@@ -207,6 +207,7 @@ const BottomSheet = ({
         <View
             style={[styles.content, isTablet && styles.contentTablet, contentStyle]}
             testID={`${testID}.screen`}
+            accessibilityViewIsModal={true}
         >
             {renderContent()}
         </View>
@@ -275,6 +276,7 @@ const BottomSheet = ({
             onClose={close}
             bottomInset={insets.bottom}
             enableDynamicSizing={enableDynamicSizing}
+            accessible={false}
         >
             {content}
         </BottomSheetM>

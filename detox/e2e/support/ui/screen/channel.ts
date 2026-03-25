@@ -17,7 +17,7 @@ import {
     PostOptionsScreen,
     ThreadScreen,
 } from '@support/ui/screen';
-import {isIos, longPressWithScrollRetry, timeouts, wait} from '@support/utils';
+import {isAndroid, isIos, longPressWithScrollRetry, timeouts, wait} from '@support/utils';
 import {expect} from 'detox';
 
 class ChannelScreen {
@@ -171,7 +171,12 @@ class ChannelScreen {
     open = async (category: string, channelName: any) => {
         // # Open channel screen
         await wait(timeouts.FOUR_SEC);
-        await ChannelListScreen.getChannelItemDisplayName(category, channelName).tap();
+        const name = typeof channelName === 'string' ? channelName : String(channelName);
+        if (category === 'channels') {
+            await ChannelListScreen.tapSidebarPublicChannelDisplayName(name);
+        } else {
+            await ChannelListScreen.getChannelItemDisplayName(category, name).tap();
+        }
         await this.dismissScheduledPostTooltip();
         return this.toBeVisible();
     };
@@ -208,10 +213,22 @@ class ChannelScreen {
         const {postListPostItem} = this.getPostListPostItem(postId, text);
         await waitFor(postListPostItem).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
+        // On Android, channel navigation animations can leave the gesture responder
+        // temporarily unresponsive even after the post is visible. Wait for UI to settle.
+        if (isAndroid()) {
+            await wait(timeouts.TWO_SEC);
+        }
+
+        // On Android, long-press on the inner text element — more reliable than the
+        // compound-matched post container, which can silently swallow the gesture.
+        const longPressTarget = isAndroid()
+            ? element(by.text(text).withAncestor(by.id(`${this.testID.channelScreenPrefix}post_list.post.${postId}`)))
+            : postListPostItem;
+
         // Retry longPress with scroll: keyboard dismiss animation can leave the gesture
         // responder temporarily unresponsive after posting a message.
         await longPressWithScrollRetry(
-            postListPostItem,
+            longPressTarget,
             this.postList.getFlatList(),
             PostOptionsScreen.postOptionsScreen,
         );

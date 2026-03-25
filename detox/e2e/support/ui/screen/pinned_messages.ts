@@ -63,7 +63,11 @@ class PinnedMessagesScreen {
 
         // Dismiss keyboard by tapping on the post list (needed after posting a message)
         const flatList = this.postList.getFlatList();
-        await flatList.scroll(100, 'down');
+        try {
+            await flatList.scroll(100, 'down');
+        } catch {
+            // Ignore scroll failures when the list is already at the boundary.
+        }
         await wait(timeouts.ONE_SEC);
 
         // # Open post options

@@ -263,3 +263,57 @@ jobs:
           description: Completed with ${{ needs.run-android-tests-on-main-scheduled.outputs.FAILURES }} failures
           status: ${{ needs.run-android-tests-on-main-scheduled.outputs.STATUS }}
           target_url: ${{ needs.run-android-tests-on-main-scheduled.outputs.TARGET_URL }}
+
+  run-ios-ipad-tests-scheduled:
+    name: iOS iPad Tests on Main (Scheduled)
+    uses: ./.github/workflows/e2e-ios-template.yml
+    needs:
+      - build-ios-simulator
+    with:
+      run-type: "MAIN"
+      record_tests_in_zephyr: 'true'
+      MOBILE_VERSION: ${{ github.ref }}
+      ios_device_name: "iPad Pro 13-inch (M5)"
+      ios_device_os_name: "iOS 26.3.1"
+      search_path: "detox/e2e/test/products/channels/ipad"
+    secrets: inherit
+
+  update-final-status-ipad:
+    runs-on: ubuntu-22.04
+    needs:
+      - run-ios-ipad-tests-scheduled
+    steps:
+      - uses: mattermost/actions/delivery/update-commit-status@main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          repository_full_name: ${{ github.repository }}
+          commit_sha: ${{ github.sha }}
+          context: e2e/detox-ios-ipad-tests
+          description: Completed with ${{ needs.run-ios-ipad-tests-scheduled.outputs.FAILURES }} failures
+          status: ${{ needs.run-ios-ipad-tests-scheduled.outputs.STATUS }}
+          target_url: ${{ needs.run-ios-ipad-tests-scheduled.outputs.TARGET_URL }}
+
+  run-maestro-ios:
+    name: Maestro iOS Tests (Scheduled)
+    uses: ./.github/workflows/e2e-maestro-template.yml
+    needs:
+      - build-ios-simulator
+    with:
+      platform: ios
+      run-type: "MAIN"
+      MOBILE_VERSION: ${{ github.ref }}
+      MM_TEST_SERVER_URL: "https://mobile-e2e-site-3.test.mattermost.cloud"
+    secrets: inherit
+
+  run-maestro-android:
+    name: Maestro Android Tests (Scheduled)
+    uses: ./.github/workflows/e2e-maestro-template.yml
+    needs:
+      - build-android-apk
+    with:
+      platform: android
+      run-type: "MAIN"
+      MOBILE_VERSION: ${{ github.ref }}
+      MM_TEST_SERVER_URL: "https://mobile-e2e-site-3.test.mattermost.cloud"
+    secrets: inherit

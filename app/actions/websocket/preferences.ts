@@ -10,6 +10,16 @@ import {getPostById} from '@queries/servers/post';
 import {deletePreferences, differsFromLocalNameFormat, getHasCRTChanged} from '@queries/servers/preference';
 import EphemeralStore from '@store/ephemeral_store';
 
+function filterStaleSavedPostPreferences(serverUrl: string, preferences: PreferenceType[]) {
+    return preferences.filter((preference) => {
+        if (preference.category !== Preferences.CATEGORIES.SAVED_POST || preference.value !== 'true') {
+            return true;
+        }
+
+        return !EphemeralStore.isRecentlyUnsavedSavedPost(serverUrl, preference.name);
+    });
+}
+
 export async function handlePreferenceChangedEvent(serverUrl: string, msg: WebSocketMessage): Promise<void> {
     if (EphemeralStore.isEnablingCRT()) {
         return;
@@ -18,14 +28,19 @@ export async function handlePreferenceChangedEvent(serverUrl: string, msg: WebSo
     try {
         const {database, operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
         const preference: PreferenceType = JSON.parse(msg.data.preference);
-        handleSavePostAdded(serverUrl, [preference]);
+        const preferences = filterStaleSavedPostPreferences(serverUrl, [preference]);
+        if (!preferences.length) {
+            return;
+        }
 
-        const hasDiffNameFormatPref = await differsFromLocalNameFormat(database, [preference]);
-        const crtToggled = await getHasCRTChanged(database, [preference]);
+        handleSavePostAdded(serverUrl, preferences);
+
+        const hasDiffNameFormatPref = await differsFromLocalNameFormat(database, preferences);
+        const crtToggled = await getHasCRTChanged(database, preferences);
 
         await operator.handlePreferences({
             prepareRecordsOnly: false,
-            preferences: [preference],
+            preferences,
         });
 
         if (hasDiffNameFormatPref) {
@@ -47,7 +62,11 @@ export async function handlePreferencesChangedEvent(serverUrl: string, msg: WebS
 
     try {
         const {database, operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
-        const preferences: PreferenceType[] = JSON.parse(msg.data.preferences);
+        const preferences: PreferenceType[] = filterStaleSavedPostPreferences(serverUrl, JSON.parse(msg.data.preferences));
+        if (!preferences.length) {
+            return;
+        }
+
         handleSavePostAdded(serverUrl, preferences);
 
         const hasDiffNameFormatPref = await differsFromLocalNameFormat(database, preferences);

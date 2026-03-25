@@ -65,7 +65,7 @@ export const searchPosts = async (serverUrl: string, teamId: string, params: Pos
         let postsArray: Post[] = [];
         const data = await client.searchPostsWithParams(teamId, {
             ...params,
-            include_deleted_channels: Boolean(viewArchivedChannels),
+            include_deleted_channels: viewArchivedChannels === undefined ? true : Boolean(viewArchivedChannels === 'true'),
             time_zone_offset: timezoneOffset,
         });
 

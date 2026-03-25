@@ -1,0 +1,407 @@
+name: Maestro E2E Tests Template
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        description: "Platform to test on: ios or android"
+        required: false
+        type: string
+        default: "ios"
+      flow-path:
+        description: "Path to the Maestro flow(s) to run (defaults differ by platform)"
+        required: false
+        type: string
+        default: ""
+      MM_TEST_SERVER_URL:
+        description: "The test server URL"
+        required: false
+        type: string
+      MOBILE_VERSION:
+        description: "The mobile version to test"
+        required: false
+        default: ${{ github.head_ref || github.ref }}
+        type: string
+      run-type:
+        description: "Type of run (PR, MAIN, etc.)"
+        required: false
+        type: string
+        default: "PR"
+
+env:
+  ADMIN_EMAIL: ${{ secrets.MM_MOBILE_E2E_ADMIN_EMAIL }}
+  ADMIN_USERNAME: ${{ secrets.MM_MOBILE_E2E_ADMIN_USERNAME }}
+  ADMIN_PASSWORD: ${{ secrets.MM_MOBILE_E2E_ADMIN_PASSWORD }}
+  SITE_1_URL: ${{ inputs.MM_TEST_SERVER_URL || 'https://mobile-e2e-site-1.test.mattermost.cloud' }}
+  TYPE: ${{ inputs.run-type }}
+
+jobs:
+  e2e-maestro-ios:
+    name: Maestro E2E Tests (iOS)
+    if: ${{ inputs.platform == 'ios' || inputs.platform == '' }}
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.MOBILE_VERSION }}
+
+      - name: ci/prepare-node-deps
+        uses: ./.github/actions/prepare-node-deps
+
+      - name: Cache Maestro
+        id: maestro-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.maestro
+          key: maestro-2.3.0
+
+      - name: Install Maestro CLI
+        if: steps.maestro-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash -s -- --version 2.3.0
+          MAESTRO_BIN="$HOME/.maestro/bin/maestro"
+          if [ ! -f "$MAESTRO_BIN" ]; then
+            echo "Error: Maestro binary not found at $MAESTRO_BIN"
+            exit 1
+          fi
+          echo "Maestro installed successfully at $MAESTRO_BIN"
+          "$MAESTRO_BIN" --version
+
+      - name: Verify Maestro installation
+        run: ~/.maestro/bin/maestro --version
+
+      - name: Download iOS Simulator Build
+        uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
+        with:
+          name: ios-build-simulator-${{ github.run_id }}
+          path: mobile-artifacts
+
+      - name: Unzip iOS Simulator Build
+        run: |
+          unzip -o mobile-artifacts/*.zip -d mobile-artifacts/
+          rm -f mobile-artifacts/*.zip
+
+      - name: Pre-boot iOS Simulator
+        run: |
+          set -e
+          DEVICE_NAME="iPhone 17 Pro"
+          DEVICE_OS_VERSION="iOS 26.3.1"
+
+          echo "Looking for simulator: $DEVICE_NAME with $DEVICE_OS_VERSION"
+
+          SIMULATOR_ID=$(xcrun simctl list devices | grep "$DEVICE_NAME" | grep "$DEVICE_OS_VERSION" | head -1 | grep -oE '([0-9A-F-]{36})' || true)
+
+          if [ -z "$SIMULATOR_ID" ]; then
+            echo "Simulator not found. Creating simulator $DEVICE_NAME with $DEVICE_OS_VERSION"
+
+            DEVICE_TYPE=$(xcrun simctl list devicetypes | grep "$DEVICE_NAME (" | head -1 | awk -F'[()]' '{print $(NF-1)}')
+            if [ -z "$DEVICE_TYPE" ]; then
+              echo "Error: Could not find device type for $DEVICE_NAME"
+              exit 1
+            fi
+            echo "Found device type: $DEVICE_TYPE"
+
+            RUNTIME=$(xcrun simctl list runtimes | grep "$DEVICE_OS_VERSION" | head -1 | sed 's/.* - \(.*\)/\1/')
+            if [ -z "$RUNTIME" ]; then
+              echo "Error: Could not find runtime for $DEVICE_OS_VERSION"
+              exit 1
+            fi
+            echo "Found runtime: $RUNTIME"
+
+            SIMULATOR_ID=$(xcrun simctl create "CI-$DEVICE_NAME" "$DEVICE_TYPE" "$RUNTIME")
+            echo "Created simulator with ID: $SIMULATOR_ID"
+          else
+            echo "Found existing simulator: $SIMULATOR_ID"
+          fi
+
+          xcrun simctl boot "$SIMULATOR_ID"
+          xcrun simctl bootstatus "$SIMULATOR_ID"
+
+          # Disable password autofill to prevent "Save Password?" dialogs blocking tests
+          echo "Shutting down to apply password autofill restrictions..."
+          xcrun simctl shutdown "$SIMULATOR_ID"
+          sleep 3
+
+          SETTINGS_DIR="$HOME/Library/Developer/CoreSimulator/Devices/$SIMULATOR_ID/data/Containers/Shared/SystemGroup/systemgroup.com.apple.configurationprofiles/Library/ConfigurationProfiles"
+          mkdir -p "$SETTINGS_DIR"
+          node detox/utils/disable_ios_autofill.js --simulator-id "$SIMULATOR_ID"
+          if [ $? -ne 0 ]; then
+            echo "⚠️ Failed to disable password autofill"
+            exit 1
+          fi
+
+          echo "Booting simulator with password autofill disabled..."
+          xcrun simctl boot "$SIMULATOR_ID"
+          xcrun simctl bootstatus "$SIMULATOR_ID"
+
+          open -a Simulator --args -CurrentDeviceUDID "$SIMULATOR_ID"
+          sleep 5
+
+          echo "SIMULATOR_ID=$SIMULATOR_ID" >> $GITHUB_ENV
+
+      - name: Install app on iOS Simulator
+        run: |
+          APP_PATH=$(find mobile-artifacts -name "*.app" -maxdepth 2 | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: Could not find .app bundle in mobile-artifacts/"
+            ls -la mobile-artifacts/
+            exit 1
+          fi
+          echo "Installing app from: $APP_PATH"
+
+          # Patch UIFileSharingEnabled BEFORE install so iOS registers file sharing
+          # at install time. Patching post-install is cached by iOS and ignored until
+          # the next simulator reboot, making the Documents folder invisible in Files app.
+          plutil -replace UIFileSharingEnabled -bool true "$APP_PATH/Info.plist" 2>/dev/null || \
+            plutil -insert UIFileSharingEnabled -bool true "$APP_PATH/Info.plist" 2>/dev/null || true
+          plutil -replace LSSupportsOpeningDocumentsInPlace -bool true "$APP_PATH/Info.plist" 2>/dev/null || \
+            plutil -insert LSSupportsOpeningDocumentsInPlace -bool true "$APP_PATH/Info.plist" 2>/dev/null || true
+          echo "UIFileSharingEnabled patched in Info.plist"
+
+          xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
+
+          # Grant all privacy permissions (camera, photos, microphone, notifications, etc.)
+          xcrun simctl privacy "$SIMULATOR_ID" grant all com.mattermost.rnbeta
+          echo "All privacy permissions granted"
+
+      - name: Place test fixture file in app Documents (channel_bookmark_file flow)
+        run: |
+          FIXTURE="detox/e2e/support/fixtures/image.png"
+          if [ ! -f "$FIXTURE" ]; then
+            echo "Fixture file not found at $FIXTURE — skipping document setup"
+            exit 0
+          fi
+          APP_DATA=$(xcrun simctl get_app_container "$SIMULATOR_ID" com.mattermost.rnbeta data 2>/dev/null || true)
+          if [ -z "$APP_DATA" ]; then
+            echo "App data container not found — app may not be installed yet; skipping"
+            exit 0
+          fi
+          DOCS_DIR="$APP_DATA/Documents"
+          mkdir -p "$DOCS_DIR"
+          cp "$FIXTURE" "$DOCS_DIR/test_bookmark.png"
+          echo "Copied test fixture to $DOCS_DIR/test_bookmark.png"
+
+      - name: Set simulator timezone for timezone flow
+        run: |
+          # MM-T1325: set timezone before any flow runs; launchApp:stopApp:true in the flow
+          # will restart the app so it picks up the new timezone.
+          # 'xcrun simctl timezone' was removed in Xcode 26; 'defaults write' doesn't affect
+          # [NSTimeZone localTimeZone] either. 'launchctl setenv TZ' sets it in launchd so
+          # all new child processes (including the restarted app) inherit the correct timezone.
+          xcrun simctl spawn "$SIMULATOR_ID" launchctl setenv TZ "America/New_York"
+          echo "Simulator timezone set to America/New_York"
+
+      - name: Seed test data
+        run: |
+          cd maestro
+          npm install
+          npx tsx fixtures/seed.ts
+        env:
+          SITE_1_URL: ${{ env.SITE_1_URL }}
+          ADMIN_EMAIL: ${{ env.ADMIN_EMAIL }}
+          ADMIN_USERNAME: ${{ env.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ env.ADMIN_PASSWORD }}
+
+      - name: Resolve flow path
+        id: resolve-flow-path
+        run: |
+          if [ -n "${{ inputs.flow-path }}" ]; then
+            echo "flow_path=${{ inputs.flow-path }}" >> $GITHUB_OUTPUT
+          else
+            # iOS: run all single-device flows (skip multi_device only)
+            echo "flow_path=maestro/flows/account maestro/flows/calls maestro/flows/channels maestro/flows/share_extension maestro/flows/timezone" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Maestro Flows (iOS)
+        run: |
+          set -a
+          source maestro/.maestro-test-env.sh
+          set +a
+
+          mkdir -p build
+          FLOW_PATH="${{ steps.resolve-flow-path.outputs.flow_path }}"
+
+          ~/.maestro/bin/maestro test \
+            --format junit \
+            --output build/maestro-report.xml \
+            --test-output-dir build/maestro-artifacts \
+            --flatten-debug-output \
+            --env SITE_1_URL="${SITE_1_URL}" \
+            --env TEST_USER_EMAIL="${TEST_USER_EMAIL}" \
+            --env TEST_USER_PASSWORD="${TEST_USER_PASSWORD}" \
+            --env TEST_CHANNEL_NAME="${TEST_CHANNEL_NAME}" \
+            --env TEST_TEAM_NAME="${TEST_TEAM_NAME}" \
+            --env ADMIN_TOKEN="${ADMIN_TOKEN}" \
+            --env MAESTRO_APP_ID="com.mattermost.rnbeta" \
+            $FLOW_PATH
+
+      - name: Upload Maestro Artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: maestro-ios-results-${{ github.run_id }}
+          path: build/
+
+      - name: Report Test Results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Maestro iOS E2E Results
+          path: build/maestro-report.xml
+          reporter: java-junit
+          fail-on-error: false
+
+  e2e-maestro-android:
+    name: Maestro E2E Tests (Android)
+    if: ${{ inputs.platform == 'android' }}
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.MOBILE_VERSION }}
+
+      - name: ci/prepare-node-deps
+        uses: ./.github/actions/prepare-node-deps
+
+      - name: Cache Maestro
+        id: maestro-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.maestro
+          key: maestro-2.3.0-linux
+
+      - name: Install Maestro CLI
+        if: steps.maestro-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash -s -- --version 2.3.0
+          MAESTRO_BIN="$HOME/.maestro/bin/maestro"
+          if [ ! -f "$MAESTRO_BIN" ]; then
+            echo "Error: Maestro binary not found at $MAESTRO_BIN"
+            exit 1
+          fi
+          echo "Maestro installed successfully at $MAESTRO_BIN"
+          "$MAESTRO_BIN" --version
+
+      - name: Verify Maestro installation
+        run: ~/.maestro/bin/maestro --version
+
+      - name: Download Android APK Build
+        uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
+        with:
+          name: android-build-files-${{ github.run_id }}
+          path: mobile-artifacts/apk
+
+      - name: Seed test data
+        run: |
+          cd maestro
+          npm install
+          npx tsx fixtures/seed.ts
+        env:
+          SITE_1_URL: ${{ env.SITE_1_URL }}
+          ADMIN_EMAIL: ${{ env.ADMIN_EMAIL }}
+          ADMIN_USERNAME: ${{ env.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ env.ADMIN_PASSWORD }}
+
+      - name: Resolve flow path
+        id: resolve-flow-path
+        run: |
+          if [ -n "${{ inputs.flow-path }}" ]; then
+            echo "flow_path=${{ inputs.flow-path }}" >> $GITHUB_OUTPUT
+          else
+            # Android: skip share_extension (cross-app), multi_device,
+            # and channels/channel_bookmark_file (iOS document picker navigation)
+            echo "flow_path=maestro/flows/account maestro/flows/calls maestro/flows/timezone" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Enable KVM for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Maestro Flows (Android)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4_xl
+          ram-size: 4096M
+          heap-size: 512M
+          disk-size: 10240M
+          avd-name: maestro_avd
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            set -e
+
+            # Wait for emulator to be fully ready
+            adb wait-for-device
+            adb shell input keyevent 82
+
+            # Install APK
+            APK_PATH=$(find mobile-artifacts/apk -name "*.apk" | head -1)
+            if [ -z "$APK_PATH" ]; then
+              echo "Error: Could not find APK in mobile-artifacts/apk/"
+              ls -la mobile-artifacts/apk/ || true
+              exit 1
+            fi
+            echo "Installing APK from: $APK_PATH"
+            adb install -r "$APK_PATH"
+
+            # Set timezone for MM-T1325 timezone flow.
+            # google_apis emulators support 'adb root', allowing setprop to change the system timezone.
+            # The app is restarted inside the flow (launchApp: stopApp: true) to pick it up.
+            adb root
+            adb shell setprop persist.sys.timezone "America/New_York"
+
+            # Push test fixture file for bookmark flow
+            FIXTURE="detox/e2e/support/fixtures/image.png"
+            if [ -f "$FIXTURE" ]; then
+              adb push "$FIXTURE" /sdcard/Download/test_bookmark.png
+              echo "Pushed test fixture to /sdcard/Download/test_bookmark.png"
+            fi
+
+            # Source the seeded env vars
+            set -a
+            source maestro/.maestro-test-env.sh
+            set +a
+
+            FLOW_PATH="${{ steps.resolve-flow-path.outputs.flow_path }}"
+
+            mkdir -p build
+            ~/.maestro/bin/maestro test \
+              --format junit \
+              --output build/maestro-report.xml \
+              --test-output-dir build/maestro-artifacts \
+              --flatten-debug-output \
+              --platform android \
+              --env SITE_1_URL="${SITE_1_URL}" \
+              --env TEST_USER_EMAIL="${TEST_USER_EMAIL}" \
+              --env TEST_USER_PASSWORD="${TEST_USER_PASSWORD}" \
+              --env TEST_CHANNEL_NAME="${TEST_CHANNEL_NAME}" \
+              --env TEST_TEAM_NAME="${TEST_TEAM_NAME}" \
+              --env ADMIN_TOKEN="${ADMIN_TOKEN}" \
+              --env MAESTRO_APP_ID="com.mattermost.rnbeta" \
+              $FLOW_PATH
+
+      - name: Upload Maestro Artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: maestro-android-results-${{ github.run_id }}
+          path: build/
+
+      - name: Report Test Results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Maestro Android E2E Results
+          path: build/maestro-report.xml
+          reporter: java-junit
+          fail-on-error: false

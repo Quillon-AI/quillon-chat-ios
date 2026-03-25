@@ -67,13 +67,29 @@ class RecentMentionsScreen {
         // Poll for the post to become visible without waiting for idle bridge
         await waitForElementToBeVisible(postListPostItem, timeouts.TEN_SEC);
 
-        // Dismiss keyboard by tapping on the post list (needed after posting a message)
-        const flatList = this.postList.getFlatList();
-        await flatList.scroll(100, 'down');
+        // Choose the safest longPress target inside the post:
+        // - post_pre_header.text (the "Saved"/"Pinned" indicator) has no interactive children
+        //   and is at the very top of the post card — use it when present.
+        // - Fall back to the timestamp (post_header.date_time) which sits in the header row
+        //   away from the @mention message body.
+        const postPreHeaderText = element(
+            by.id('post_pre_header.text').withAncestor(by.id(`${this.testID.recentMentionPostList}.${postId}`)),
+        );
+        const postHeaderDateTime = element(
+            by.id('post_header.date_time').withAncestor(by.id(`${this.testID.recentMentionPostList}.${postId}`)),
+        );
+        let longPressTarget = postHeaderDateTime;
+        try {
+            await waitFor(postPreHeaderText).toExist().withTimeout(timeouts.TWO_SEC);
+            longPressTarget = postPreHeaderText;
+        } catch (_e) {
+            // No pre-header (post is not saved/pinned) — fall back to timestamp
+        }
+        await waitFor(longPressTarget).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await wait(timeouts.ONE_SEC);
 
         // # Open post options
-        await postListPostItem.longPress(timeouts.TWO_SEC);
+        await longPressTarget.longPress(timeouts.TWO_SEC);
         await PostOptionsScreen.toBeVisible();
         await wait(timeouts.TWO_SEC);
     };

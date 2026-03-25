@@ -8,6 +8,7 @@ import {SYSTEM_IDENTIFIERS} from '@constants/database';
 import DatabaseManager from '@database/manager';
 import NetworkManager from '@managers/network_manager';
 import {querySavedPostsPreferences, queryPreferencesByCategoryAndName} from '@queries/servers/preference';
+import EphemeralStore from '@store/ephemeral_store';
 import TestHelper from '@test/test_helper';
 
 import {
@@ -47,6 +48,7 @@ const throwFunc = () => {
 };
 
 jest.mock('@queries/servers/preference');
+jest.mock('@store/ephemeral_store');
 
 const mockClient = {
     getMyPreferences: jest.fn(() => [preference1]),
@@ -115,6 +117,7 @@ describe('preferences', () => {
         expect(result.preferences).toBeDefined();
         expect(result.preferences?.length).toBe(1);
         expect(result.preferences?.[0].category).toBe(Preferences.CATEGORIES.SAVED_POST);
+        expect(EphemeralStore.clearRecentlyUnsavedSavedPost).toHaveBeenCalledWith(serverUrl, post1.id);
     });
 
     it('savePreference - handle error', async () => {
@@ -155,6 +158,7 @@ describe('preferences', () => {
         expect(result).toBeDefined();
         expect(result.error).toBeUndefined();
         expect(result.preference).toBeDefined();
+        expect(EphemeralStore.addRecentlyUnsavedSavedPost).toHaveBeenCalledWith(serverUrl, post1.id);
         expect(prefModel.destroyPermanently).toHaveBeenCalledTimes(1);
     });
 

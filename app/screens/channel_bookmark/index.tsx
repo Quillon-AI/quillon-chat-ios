@@ -180,6 +180,17 @@ const ChannelBookmarkAddOrEdit = ({
         enableSaveButton(Boolean(displayName));
     }, [bookmark, enableSaveButton]);
 
+    const setBookmarkLinkUrl = useCallback((linkUrl: string) => {
+        if (bookmark) {
+            setBookmark((prev) => ({
+                ...(prev!),
+                link_url: linkUrl,
+            }));
+
+            enableSaveButton(Boolean(bookmark.display_name && linkUrl));
+        }
+    }, [bookmark, enableSaveButton]);
+
     const setBookmarkEmoji = useCallback((emoji?: string) => {
         if (bookmark) {
             setBookmark((prev) => ({
@@ -278,6 +289,7 @@ const ChannelBookmarkAddOrEdit = ({
                     disabled={isSaving}
                     initialUrl={original?.link_url}
                     setBookmark={setLinkBookmark}
+                    setBookmarkLinkUrl={setBookmarkLinkUrl}
                     resetBookmark={resetBookmark}
                 />
             }

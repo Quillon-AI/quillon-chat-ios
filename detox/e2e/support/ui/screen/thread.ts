@@ -11,7 +11,7 @@ import {
     SendButton,
 } from '@support/ui/component';
 import {PostOptionsScreen} from '@support/ui/screen';
-import {longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
+import {isAndroid, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect} from 'detox';
 
 class ThreadScreen {
@@ -104,10 +104,16 @@ class ThreadScreen {
         // Poll for the post to become visible without waiting for idle bridge
         await waitForElementToBeVisible(postListPostItem, timeouts.TEN_SEC);
 
+        // On Android, long-press on the inner text element — more reliable than the
+        // compound-matched post container, which can silently swallow the gesture.
+        const longPressTarget = isAndroid()
+            ? element(by.text(text).withAncestor(by.id(`${this.testID.threadScreenPrefix}post_list.post.${postId}`)))
+            : postListPostItem;
+
         // Retry longPress with scroll: keyboard dismiss animation can leave the gesture
         // responder temporarily unresponsive after posting a message.
         await longPressWithScrollRetry(
-            postListPostItem,
+            longPressTarget,
             this.postList.getFlatList(),
             PostOptionsScreen.postOptionsScreen,
         );

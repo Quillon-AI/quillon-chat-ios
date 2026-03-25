@@ -1,0 +1,83 @@
+# Sub-flow: Login to Mattermost
+# Usage: - runFlow: ../utils/login.yml
+# Requires: SITE_1_URL, TEST_USER_EMAIL, TEST_USER_PASSWORD env vars
+# Optional: MAESTRO_APP_ID (defaults to com.mattermost.rnbeta)
+#
+# NOTE: Do NOT use clearState:true here. On iOS, clearState simulates a fresh
+# install which triggers the native "Allow Notifications?" system dialog. That
+# dialog appears after the server form loads and interferes with the connection
+# flow, leaving the app stuck on the server connect screen. Without clearState
+# the app keeps its DB (persisted server registration) and the flow is reliable.
+appId: ${MAESTRO_APP_ID}
+---
+# Stop then relaunch so the app always starts from its root entry point.
+# On iOS, stopApp + launchApp restores the app to its last active screen
+# (e.g., inside a channel), NOT necessarily the channel list where the tab
+# bar is visible. The optional back taps below navigate out of any channel
+# or thread view back to the channel list so tab_bar.home.tab becomes visible.
+- stopApp
+- launchApp
+# iOS notification permission dialog may appear on first launch after a device
+# wipe or new test session. Dismiss with Allow so push can work; optional so it
+# is silently skipped when the dialog is absent.
+- tapOn:
+    text: "Allow"
+    optional: true
+# Navigate back to channel list from whatever screen the app restored to.
+# Handles: channel_info (close button), thread/channel (back button × 2),
+# or any other modal with a close button. Each tap is optional so unknown
+# states are silently skipped without failing the flow.
+- tapOn:
+    id: "close.channel_info.button"
+    optional: true
+- tapOn:
+    id: "navigation.header.back"
+    optional: true
+- tapOn:
+    id: "navigation.header.back"
+    optional: true
+# If the previous flow left the app logged in, log out first so we reach a
+# clean login form.  Skipped when not on the home screen (already logged out).
+- runFlow:
+    when:
+      visible:
+        id: "tab_bar.home.tab"
+    file: logout.yml
+# Android: notification permission dialog may appear after the initial navigation
+# cleanup (dialog takes longer to surface than on iOS). Second optional dismiss
+# handles the case where the dialog was not yet visible on the first attempt above.
+- tapOn:
+    text: "Allow"
+    optional: true
+# Server connection section — only runs when the server form is visible.
+# After a fresh DB wipe or first run, no server is registered and the form
+# shows empty. After logout the server stays in the DB and the login form
+# appears directly, bypassing this block entirely.
+- runFlow:
+    when:
+      visible:
+        id: "server_form.server_url.input"
+    file: connect_server.yml
+# Login screen
+- extendedWaitUntil:
+    visible:
+      id: "login_form.username.input"
+    timeout: 15000
+- tapOn:
+    id: "login_form.username.input"
+- inputText: ${TEST_USER_EMAIL}
+- tapOn:
+    id: "login_form.password.input"
+- inputText: ${TEST_USER_PASSWORD}
+- tapOn:
+    id: "login_form.signin.button"
+# iOS 26: dismiss "Save Password?" Keychain dialog before it blocks the home tab assertion.
+# Maestro's default element-wait (~5 s) is enough; optional so it skips if the dialog is absent.
+- tapOn:
+    text: "Not Now"
+    optional: true
+# Wait for home screen
+- extendedWaitUntil:
+    visible:
+      id: "tab_bar.home.tab"
+    timeout: 30000

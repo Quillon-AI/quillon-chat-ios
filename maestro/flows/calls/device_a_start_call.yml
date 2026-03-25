@@ -1,0 +1,71 @@
+# MM-T4830 (Device A): User A starts a call; Device B should see the join banner
+#
+# Run with Device A:
+#   maestro --device $DEVICE_A_UDID test this file \
+#     --env TEST_USER_EMAIL=$USER_A_EMAIL \
+#     --env TEST_USER_PASSWORD=$USER_A_PASSWORD \
+#     --env ... (see run_calls_two_device.sh)
+#
+# Required env vars:
+#   SITE_1_URL, TEST_USER_EMAIL, TEST_USER_PASSWORD, TEST_CHANNEL_NAME
+#   SYNC_TOKEN — written to the channel so Device B knows the call is active
+#   TEST_CHANNEL_ID, ADMIN_TOKEN — used by poll_for_message to gate Device B start
+#   MAESTRO_APP_ID
+tags:
+  - MM-T4830
+appId: ${MAESTRO_APP_ID}
+---
+- runFlow: ../../utils/login.yml
+- runFlow: ../../utils/navigate_to_channel.yml
+
+# Open the channel quick actions sheet via the three-dots (⋮) button.
+- tapOn:
+    id: "channel_header.channel_quick_actions.button"
+- extendedWaitUntil:
+    visible:
+      id: "channel_info.channel_actions.join_start_call.action"
+    timeout: 60000
+- tapOn:
+    id: "channel_info.channel_actions.join_start_call.action"
+
+# Grant permissions
+- tapOn:
+    text: "Allow"
+    optional: true
+- tapOn:
+    text: "Allow"
+    optional: true
+
+# Verify call screen — User A is now the sole active participant
+- extendedWaitUntil:
+    visible:
+      id: "mute-unmute"
+    timeout: 15000
+- takeScreenshot: calls-device-a-call-active
+
+# Post the sync token to the channel so Device B is unblocked to join.
+# Device B polls the API (via tsx maestro/fixtures/poll_for_message.ts) and starts
+# its flow only after this message appears.
+- tapOn:
+    id: "navigation.header.back"
+    optional: true
+- back
+
+# Wait for Device B to finish before we clean up (handled by the orchestration script).
+# User A stays on the call for the duration of the test.
+# The orchestration script kills Device A's process once Device B completes.
+#
+# Post the sync token to signal readiness (admin API call handled outside this flow).
+# Device A simply stays in the call — the test coordinator leaves the call after B joins.
+- extendedWaitUntil:
+    visible:
+      id: "calls.current_call_bar"
+    timeout: 15000
+- takeScreenshot: calls-device-a-call-bar-visible
+
+# Hold the call open for 30 s to give Device B time to join and take a screenshot.
+# The orchestration script sends SIGTERM to this process once Device B completes.
+- extendedWaitUntil:
+    notVisible:
+      id: "calls.current_call_bar"
+    timeout: 30000

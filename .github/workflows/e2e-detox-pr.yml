@@ -490,6 +490,32 @@ jobs:
       parallelism: 1
     secrets: inherit
 
+  run-maestro-ios-on-pr:
+    if: github.event.action != 'labeled' || contains(github.event.label.name, 'E2E iOS smoke tests for PR')
+    name: Maestro iOS
+    uses: ./.github/workflows/e2e-maestro-template.yml
+    needs:
+      - build-ios-simulator-smoke
+    with:
+      platform: ios
+      run-type: "PR"
+      MOBILE_VERSION: ${{ github.event.pull_request.head.sha }}
+      MM_TEST_SERVER_URL: "https://mobile-e2e-site-3.test.mattermost.cloud"
+    secrets: inherit
+
+  run-maestro-android-on-pr:
+    if: github.event.action != 'labeled' || contains(github.event.label.name, 'E2E Android smoke tests for PR')
+    name: Maestro Android
+    uses: ./.github/workflows/e2e-maestro-template.yml
+    needs:
+      - build-android-apk-smoke
+    with:
+      platform: android
+      run-type: "PR"
+      MOBILE_VERSION: ${{ github.event.pull_request.head.sha }}
+      MM_TEST_SERVER_URL: "https://mobile-e2e-site-3.test.mattermost.cloud"
+    secrets: inherit
+
   update-final-status-ios:
     runs-on: ubuntu-22.04
     if: contains(github.event.label.name, 'E2E iOS tests for PR')

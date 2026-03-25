@@ -50,6 +50,7 @@ type FloatingTextInputProps = /*TextInputProps &*/ {
     onLayout?: (e: LayoutChangeEvent) => void;
     placeholder?: string;
     hideErrorIcon?: boolean;
+    containerTestID?: string;
     testID?: string;
     theme: Theme;
     value?: string;
@@ -80,6 +81,7 @@ const FloatingTextInput = forwardRef<FloatingTextInputRef, FloatingTextInputProp
     onLayout,
     placeholder,
     hideErrorIcon = false,
+    containerTestID,
     testID,
     theme,
     value,
@@ -140,7 +142,7 @@ const FloatingTextInput = forwardRef<FloatingTextInputRef, FloatingTextInputProp
             focused={focused}
             focusedLabel={focusedLabel}
             editable={editable}
-            testID={testID || 'floating-text-input-label'}
+            testID={containerTestID || testID || 'floating-text-input-label'}
         >
             <TextInput
                 {...textInputProps}
@@ -168,4 +170,3 @@ const FloatingTextInput = forwardRef<FloatingTextInputRef, FloatingTextInputProp
 FloatingTextInput.displayName = 'FloatingTextInput';
 
 export default FloatingTextInput;
-

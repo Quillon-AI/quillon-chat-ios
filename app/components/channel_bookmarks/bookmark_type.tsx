@@ -53,6 +53,7 @@ const BookmarkType = ({channelId, type, ownerId}: Props) => {
             action={onPress}
             label={label}
             icon={icon}
+            testID={`channel_bookmark.type.${type}`}
             type='default'
         />
     );

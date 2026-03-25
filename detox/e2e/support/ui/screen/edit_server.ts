@@ -21,7 +21,7 @@ class EditServerScreen {
     closeButton = element(by.id(this.testID.closeButton));
     headerTitle = element(by.id(this.testID.headerTitle));
     headerDescription = element(by.id(this.testID.headerDescription));
-    serverDisplayNameInput = element(by.id(this.testID.serverDisplayNameInput));
+    serverDisplayNameInput = element(by.id(this.testID.serverDisplayNameInput)).atIndex(1);
     serverDisplayNameInputError = element(by.id(this.testID.serverDisplayNameInputError));
     displayHelp = element(by.id(this.testID.displayHelp));
     saveButton = element(by.id(this.testID.saveButton));
@@ -29,7 +29,7 @@ class EditServerScreen {
 
     toBeVisible = async () => {
         await waitFor(this.editServerScreen).toExist().withTimeout(timeouts.TEN_SEC);
-        await waitFor(this.serverDisplayNameInput).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        await waitFor(this.serverDisplayNameInput).toExist().withTimeout(timeouts.TEN_SEC);
 
         return this.editServerScreen;
     };

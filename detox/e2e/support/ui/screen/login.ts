@@ -33,9 +33,12 @@ class LoginScreen {
     descriptionEnterCredentials = element(by.id(this.testID.descriptionEnterCredentials));
     descriptionSelectOption = element(by.id(this.testID.descriptionSelectOption));
     descriptionNone = element(by.id(this.testID.descriptionNone));
-    usernameInput = element(by.id(this.testID.usernameInput));
+
+    // FloatingTextInput places testID on both outer container View (index 0) and TextInput (index 1).
+    // atIndex(1) targets the actual TextInput for interactions and visibility checks.
+    usernameInput = element(by.id(this.testID.usernameInput)).atIndex(1);
     usernameInputError = element(by.id(this.testID.usernameInputError));
-    passwordInput = element(by.id(this.testID.passwordInput));
+    passwordInput = element(by.id(this.testID.passwordInput)).atIndex(1);
     passwordInputError = element(by.id(this.testID.passwordInputError));
     forgotPasswordButton = element(by.id(this.testID.forgotPasswordButton));
     signinButton = element(by.id(this.testID.signinButton));
@@ -44,7 +47,7 @@ class LoginScreen {
     toBeVisible = async () => {
         await wait(timeouts.FOUR_SEC);
         await waitFor(this.loginScreen).toExist().withTimeout(timeouts.TEN_SEC);
-        await waitFor(this.usernameInput).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        await waitFor(this.usernameInput).toExist().withTimeout(timeouts.TEN_SEC);
         return this.loginScreen;
     };
 

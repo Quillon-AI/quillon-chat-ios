@@ -34,8 +34,13 @@ class EmojiPickerScreen {
         // # Open emoji picker screen
         await PostOptionsScreen.pickReactionButton.tap();
         if (closeToolTip) {
-            await wait(timeouts.ONE_SEC);
-            await this.toolTipCloseButton.tap();
+            // Skin tone tooltip appears on first open (Android); may not appear on all platforms
+            try {
+                await waitFor(this.toolTipCloseButton).toBeVisible().withTimeout(timeouts.TWO_SEC);
+                await this.toolTipCloseButton.tap();
+            } catch (_e) {
+                // Tooltip did not appear — continue normally
+            }
         }
 
         return this.toBeVisible();

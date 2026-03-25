@@ -158,7 +158,11 @@ const PostList = ({
 
             if (stateChanged && (isFullyOpen || isFullyClosed)) {
                 const offset = postInputContainerHeight + keyboardTranslateY;
-                runOnJS(setProgressViewOffset)(offset);
+
+                // Guard against NaN/Infinity from keyboard animation to prevent RCTRefreshControl crash
+                if (Number.isFinite(offset)) {
+                    runOnJS(setProgressViewOffset)(offset);
+                }
             }
             prevIsFullyOpen.value = isFullyOpen;
             prevIsFullyClosed.value = isFullyClosed;
@@ -432,11 +436,15 @@ const PostList = ({
 
     // contentInset only for dynamic keyboard height
     const animatedProps = useAnimatedProps(
-        () => ({
-            contentInset: {
-                top: contentInset.value, // For inverted FlatList, applies to visual bottom
-            },
-        }),
+        () => {
+            // IEEE 754: NaN !== NaN — guard against NaN/Infinity from keyboard animation to prevent CALayer crash
+            const topInset = contentInset.value;
+            return {
+                contentInset: {
+                    top: Number.isFinite(topInset) ? topInset : 0,
+                },
+            };
+        },
         [contentInset],
     );
 

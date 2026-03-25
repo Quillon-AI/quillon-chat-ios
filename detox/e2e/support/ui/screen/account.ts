@@ -6,7 +6,7 @@ import {
     ProfilePicture,
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
-import {timeouts} from '@support/utils';
+import {timeouts, wait} from '@support/utils';
 import {expect} from 'detox';
 
 class AccountScreen {
@@ -74,12 +74,44 @@ class AccountScreen {
     };
 
     toBeVisible = async () => {
-        await waitFor(this.accountScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        await waitFor(this.accountScreen).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
         return this.accountScreen;
     };
 
     open = async () => {
+        // Dismiss iOS native dialogs whose backdrop UIView covers the full screen and
+        // blocks all hit-tests — these appear after login on iOS 26+ (iPad and iPhone).
+        if (device.getPlatform() === 'ios') {
+            // "Save Password?" sheet (iOS Password manager autofill offer after login).
+            // Tap "Not Now" directly — if the native sheet is present it will be dismissed;
+            // if not present Detox throws "element not found" which we catch safely.
+            try {
+                await element(by.label('Not Now')).tap();
+                await wait(timeouts.HALF_SEC);
+            } catch { /* not present */ }
+            // "Notifications cannot be received from this server" alert.
+            try {
+                await element(by.label('Okay')).tap();
+                await wait(timeouts.HALF_SEC);
+            } catch { /* not present */ }
+        }
+
+        // Dismiss the "Scheduled Posts" tutorial tooltip before tapping the account tab.
+        // On iPad the channel is always co-visible with the sidebar, so this tooltip appears
+        // after every fresh login and sits directly over the account tab (bottom-right corner).
+        // Wait up to TWO_SEC for the tooltip to finish animating in before dismissing.
+        try {
+            await waitFor(element(by.id('scheduled_post.tooltip.close.button'))).toBeVisible().withTimeout(timeouts.TWO_SEC);
+            await element(by.id('scheduled_post.tooltip.close.button')).tap();
+            await waitFor(element(by.id('scheduled_post.tooltip.close.button'))).not.toExist().withTimeout(timeouts.FIVE_SEC);
+        } catch { /* no tooltip */ }
+        try {
+            await waitFor(element(by.id('scheduled_post_tutorial_tooltip.close'))).toBeVisible().withTimeout(timeouts.TWO_SEC);
+            await element(by.id('scheduled_post_tutorial_tooltip.close')).tap();
+            await waitFor(element(by.id('scheduled_post_tutorial_tooltip.close'))).not.toExist().withTimeout(timeouts.FIVE_SEC);
+        } catch { /* no admin-variant tooltip */ }
+
         try {
             await waitFor(HomeScreen.accountTab).toExist().withTimeout(timeouts.TEN_SEC);
             await HomeScreen.accountTab.tap();

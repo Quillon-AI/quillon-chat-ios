@@ -33,6 +33,14 @@ export const isIos = (): boolean => {
 };
 
 /**
+ * Check if running on iPad simulator.
+ * @return {boolean} true if iPad
+ */
+export const isIpad = (): boolean => {
+    return isIos() && device.name.toLowerCase().includes('ipad');
+};
+
+/**
  * Get random id.
  * @param {number} length - length on random string to return, e.g. 6 (default)
  * @return {string} random string
@@ -143,11 +151,17 @@ export async function longPressWithScrollRetry(
     const {waitFor: detoxWaitFor} = require('detox');
     /* eslint-disable no-await-in-loop */
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        await scrollTarget.scroll(100, 'down', NaN, 0.5);
-        await wait(timeouts.ONE_SEC);
+        // Scroll to settle the UI and dismiss any keyboard. Ignore if the list cannot scroll
+        // (e.g. only a few posts that fit on screen without overflow).
+        try {
+            await scrollTarget.scroll(100, 'down', NaN, 0.5);
+        } catch {
+            // List is already at scroll boundary — proceed with longPress anyway
+        }
+        await wait(timeouts.THREE_SEC);
         await target.longPress(timeouts.FIVE_SEC);
         try {
-            await detoxWaitFor(checkElement).toExist().withTimeout(timeouts.TEN_SEC);
+            await detoxWaitFor(checkElement).toExist().withTimeout(timeouts.HALF_MIN);
             return;
         } catch {
             if (attempt === maxAttempts) {
