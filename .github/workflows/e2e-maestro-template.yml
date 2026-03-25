@@ -27,11 +27,19 @@ on:
         required: false
         type: string
         default: "PR"
+      MM_TEST_USER_NAME:
+        description: "Admin username for Matterwick-provisioned instances"
+        required: false
+        type: string
+      MM_TEST_PASSWORD:
+        description: "Admin password for Matterwick-provisioned instances"
+        required: false
+        type: string
 
 env:
-  ADMIN_EMAIL: ${{ secrets.MM_MOBILE_E2E_ADMIN_EMAIL }}
-  ADMIN_USERNAME: ${{ secrets.MM_MOBILE_E2E_ADMIN_USERNAME }}
-  ADMIN_PASSWORD: ${{ secrets.MM_MOBILE_E2E_ADMIN_PASSWORD }}
+  ADMIN_EMAIL: ${{ inputs.MM_TEST_USER_NAME && format('{0}@example.mattermost.com', inputs.MM_TEST_USER_NAME) || secrets.MM_MOBILE_E2E_ADMIN_EMAIL }}
+  ADMIN_USERNAME: ${{ inputs.MM_TEST_USER_NAME || secrets.MM_MOBILE_E2E_ADMIN_USERNAME }}
+  ADMIN_PASSWORD: ${{ inputs.MM_TEST_PASSWORD || secrets.MM_MOBILE_E2E_ADMIN_PASSWORD }}
   SITE_1_URL: ${{ inputs.MM_TEST_SERVER_URL || 'https://mobile-e2e-site-1.test.mattermost.cloud' }}
   TYPE: ${{ inputs.run-type }}
 
@@ -87,7 +95,7 @@ jobs:
         run: |
           set -e
           DEVICE_NAME="iPhone 17 Pro"
-          DEVICE_OS_VERSION="iOS 26.3.1"
+          DEVICE_OS_VERSION="iOS 26.2"
 
           echo "Looking for simulator: $DEVICE_NAME with $DEVICE_OS_VERSION"
 
