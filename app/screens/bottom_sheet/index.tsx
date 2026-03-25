@@ -208,7 +208,7 @@ const BottomSheet = ({
         <View
             style={[styles.content, isTablet && styles.contentTablet, contentStyle]}
             testID={`${testID}.screen`}
-            accessibilityViewIsModal={true}
+            accessibilityViewIsModal={!isTablet}
         >
             {renderContent()}
         </View>
