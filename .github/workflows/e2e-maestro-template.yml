@@ -246,12 +246,18 @@ jobs:
 
       - name: Report Test Results
         if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: Maestro iOS E2E Results
-          path: build/maestro-report.xml
-          reporter: java-junit
-          fail-on-error: false
+        run: |
+          if [ -f build/maestro-report.xml ]; then
+            echo "### Maestro iOS E2E Results" >> "$GITHUB_STEP_SUMMARY"
+            TESTS=$(grep -oP 'tests="\K[0-9]+' build/maestro-report.xml | head -1 || echo "0")
+            FAILURES=$(grep -oP 'failures="\K[0-9]+' build/maestro-report.xml | head -1 || echo "0")
+            echo "| Tests | Failures |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|:---:|:---:|" >> "$GITHUB_STEP_SUMMARY"
+            echo "| $TESTS | $FAILURES |" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Maestro iOS E2E Results" >> "$GITHUB_STEP_SUMMARY"
+            echo "No test report found." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   e2e-maestro-android:
     name: Maestro E2E Tests (Android)
@@ -323,72 +329,84 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Set up Android SDK
+        run: |
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools:$PATH
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "PATH=$PATH" >> "$GITHUB_ENV"
+
+      - name: Install Android SDK components
+        run: |
+          for attempt in 1 2 3; do
+            echo "SDK install attempt $attempt..."
+            yes | sdkmanager --install "platform-tools" "emulator" "platforms;android-34" "system-images;android-34;google_apis;x86_64" && break
+            echo "Attempt $attempt failed, retrying..."
+            sleep 10
+          done
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+
+      - name: Create and start Android emulator
+        run: |
+          echo "no" | avdmanager create avd -n maestro_avd -k "system-images;android-34;google_apis;x86_64" -d "pixel_4_xl" --force
+          nohup emulator -avd maestro_avd -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none &
+          adb wait-for-device
+          # Wait for boot to complete
+          while [ "$(adb shell getprop sys.boot_completed 2>/dev/null)" != "1" ]; do sleep 2; done
+          adb shell input keyevent 82
+          # Disable animations
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+
       - name: Run Maestro Flows (Android)
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          arch: x86_64
-          target: google_apis
-          profile: pixel_4_xl
-          ram-size: 4096M
-          heap-size: 512M
-          disk-size: 10240M
-          avd-name: maestro_avd
-          force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: true
-          script: |
-            set -e
+        run: |
+          set -e
 
-            # Wait for emulator to be fully ready
-            adb wait-for-device
-            adb shell input keyevent 82
+          # Install APK
+          APK_PATH=$(find mobile-artifacts/apk -name "*.apk" | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: Could not find APK in mobile-artifacts/apk/"
+            ls -la mobile-artifacts/apk/ || true
+            exit 1
+          fi
+          echo "Installing APK from: $APK_PATH"
+          adb install -r "$APK_PATH"
 
-            # Install APK
-            APK_PATH=$(find mobile-artifacts/apk -name "*.apk" | head -1)
-            if [ -z "$APK_PATH" ]; then
-              echo "Error: Could not find APK in mobile-artifacts/apk/"
-              ls -la mobile-artifacts/apk/ || true
-              exit 1
-            fi
-            echo "Installing APK from: $APK_PATH"
-            adb install -r "$APK_PATH"
+          # Set timezone for MM-T1325 timezone flow.
+          adb root
+          adb shell setprop persist.sys.timezone "America/New_York"
 
-            # Set timezone for MM-T1325 timezone flow.
-            # google_apis emulators support 'adb root', allowing setprop to change the system timezone.
-            # The app is restarted inside the flow (launchApp: stopApp: true) to pick it up.
-            adb root
-            adb shell setprop persist.sys.timezone "America/New_York"
+          # Push test fixture file for bookmark flow
+          FIXTURE="detox/e2e/support/fixtures/image.png"
+          if [ -f "$FIXTURE" ]; then
+            adb push "$FIXTURE" /sdcard/Download/test_bookmark.png
+            echo "Pushed test fixture to /sdcard/Download/test_bookmark.png"
+          fi
 
-            # Push test fixture file for bookmark flow
-            FIXTURE="detox/e2e/support/fixtures/image.png"
-            if [ -f "$FIXTURE" ]; then
-              adb push "$FIXTURE" /sdcard/Download/test_bookmark.png
-              echo "Pushed test fixture to /sdcard/Download/test_bookmark.png"
-            fi
+          # Source the seeded env vars
+          set -a
+          source maestro/.maestro-test-env.sh
+          set +a
 
-            # Source the seeded env vars
-            set -a
-            source maestro/.maestro-test-env.sh
-            set +a
+          FLOW_PATH="${{ steps.resolve-flow-path.outputs.flow_path }}"
 
-            FLOW_PATH="${{ steps.resolve-flow-path.outputs.flow_path }}"
-
-            mkdir -p build
-            ~/.maestro/bin/maestro test \
-              --format junit \
-              --output build/maestro-report.xml \
-              --test-output-dir build/maestro-artifacts \
-              --flatten-debug-output \
-              --platform android \
-              --env SITE_1_URL="${SITE_1_URL}" \
-              --env TEST_USER_EMAIL="${TEST_USER_EMAIL}" \
-              --env TEST_USER_PASSWORD="${TEST_USER_PASSWORD}" \
-              --env TEST_CHANNEL_NAME="${TEST_CHANNEL_NAME}" \
-              --env TEST_TEAM_NAME="${TEST_TEAM_NAME}" \
-              --env ADMIN_TOKEN="${ADMIN_TOKEN}" \
-              --env MAESTRO_APP_ID="com.mattermost.rnbeta" \
-              $FLOW_PATH
+          mkdir -p build
+          ~/.maestro/bin/maestro test \
+            --format junit \
+            --output build/maestro-report.xml \
+            --test-output-dir build/maestro-artifacts \
+            --flatten-debug-output \
+            --platform android \
+            --env SITE_1_URL="${SITE_1_URL}" \
+            --env TEST_USER_EMAIL="${TEST_USER_EMAIL}" \
+            --env TEST_USER_PASSWORD="${TEST_USER_PASSWORD}" \
+            --env TEST_CHANNEL_NAME="${TEST_CHANNEL_NAME}" \
+            --env TEST_TEAM_NAME="${TEST_TEAM_NAME}" \
+            --env ADMIN_TOKEN="${ADMIN_TOKEN}" \
+            --env MAESTRO_APP_ID="com.mattermost.rnbeta" \
+            $FLOW_PATH
 
       - name: Upload Maestro Artifacts
         if: always()
@@ -399,9 +417,15 @@ jobs:
 
       - name: Report Test Results
         if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: Maestro Android E2E Results
-          path: build/maestro-report.xml
-          reporter: java-junit
-          fail-on-error: false
+        run: |
+          if [ -f build/maestro-report.xml ]; then
+            echo "### Maestro Android E2E Results" >> "$GITHUB_STEP_SUMMARY"
+            TESTS=$(grep -oP 'tests="\K[0-9]+' build/maestro-report.xml | head -1 || echo "0")
+            FAILURES=$(grep -oP 'failures="\K[0-9]+' build/maestro-report.xml | head -1 || echo "0")
+            echo "| Tests | Failures |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|:---:|:---:|" >> "$GITHUB_STEP_SUMMARY"
+            echo "| $TESTS | $FAILURES |" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Maestro Android E2E Results" >> "$GITHUB_STEP_SUMMARY"
+            echo "No test report found." >> "$GITHUB_STEP_SUMMARY"
+          fi
