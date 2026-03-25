@@ -223,9 +223,7 @@ jobs:
     with:
       run-type: ${{ inputs.run_type || 'PR' }}
       MOBILE_VERSION: ${{ inputs.MOBILE_VERSION }}
-      MM_TEST_SERVER_URL: ${{ inputs.SITE_1_URL }}
-      MM_TEST_SERVER_URL_2: ${{ inputs.SITE_2_URL }}
-      MM_TEST_SERVER_URL_3: ${{ inputs.SITE_3_URL }}
+      MM_TEST_SERVER_URL: ${{ inputs.SITE_2_URL }}
       ios_device_name: "iPad Pro 13-inch (M5)"
       ios_device_os_name: "iOS 26.3"
       search_path: "detox/e2e/test/products/channels/ipad"
@@ -243,7 +241,7 @@ jobs:
       platform: ios
       run-type: ${{ inputs.run_type || 'PR' }}
       MOBILE_VERSION: ${{ inputs.MOBILE_VERSION }}
-      MM_TEST_SERVER_URL: ${{ inputs.SITE_3_URL }}
+      MM_TEST_SERVER_URL: ${{ inputs.SITE_2_URL }}
     secrets: inherit
 
   run-maestro-android-on-pr:
