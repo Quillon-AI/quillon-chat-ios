@@ -195,10 +195,7 @@ const FloatingInputContainer = ({
         <TouchableWithoutFeedback
             onLayout={onLayout}
         >
-            <View
-                style={styles.container}
-                testID={testID}
-            >
+            <View style={styles.container}>
                 <Pressable onPress={handlePressOnContainer}>
                     <Animated.Text
                         style={[styles.label, textAnimatedTextStyle]}
