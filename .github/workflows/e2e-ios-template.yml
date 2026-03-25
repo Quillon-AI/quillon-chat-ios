@@ -26,7 +26,7 @@ on:
       MOBILE_VERSION:
         description: "The mobile version to test"
         required: false
-        default: ${{ github.head_ref || github.ref }}
+        default: ""
         type: string
       run-type:
         type: string
