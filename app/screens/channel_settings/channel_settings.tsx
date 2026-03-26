@@ -126,6 +126,7 @@ const ChannelSettings = ({
                                 canArchive={canArchive}
                                 canUnarchive={canUnarchive}
                                 channelId={channelId}
+                                componentId={componentId}
                                 type={type}
                             />
                         </>

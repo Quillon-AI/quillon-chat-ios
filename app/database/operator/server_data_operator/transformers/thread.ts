@@ -38,7 +38,7 @@ export const transformThreadRecord = ({action, database, value}: TransformerArgs
 
         // When post is individually fetched, we get last_reply_at as 0, so we use the record's value.
         // If there is no reply at, we default to the post's create_at
-        thread.lastReplyAt = raw.last_reply_at || record?.lastReplyAt || raw.post?.create_at || 0;
+        thread.lastReplyAt = raw.last_reply_at || record?.lastReplyAt || raw.post.create_at;
 
         thread.lastViewedAt = raw.last_viewed_at ?? record?.lastViewedAt ?? 0;
         thread.replyCount = raw.reply_count;

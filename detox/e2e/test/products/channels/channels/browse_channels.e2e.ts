@@ -140,7 +140,8 @@ describe('Channels - Browse Channels', () => {
         await BrowseChannelsScreen.close();
     });
 
-    it('MM-T4729_5 - should be able to browse an archived channel', async () => {
+    // TODO: review flow — test needs server ExperimentalViewArchivedChannels=true to work
+    it.skip('MM-T4729_5 - should be able to browse an archived channel', async () => {
         // # Archive a channel, open browse channels screen, tap on channel dropdown, tap on archived channels menu item, and search for the archived channel
         const {channel: archivedChannel} = await Channel.apiCreateChannel(siteOneUrl, {teamId: testTeam.id});
         await Channel.apiAddUserToChannel(siteOneUrl, testUser.id, archivedChannel.id);

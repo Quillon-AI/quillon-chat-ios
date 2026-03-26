@@ -31,7 +31,7 @@ env:
   ADMIN_EMAIL: ${{ secrets.MM_MOBILE_E2E_ADMIN_EMAIL }}
   ADMIN_USERNAME: ${{ secrets.MM_MOBILE_E2E_ADMIN_USERNAME }}
   ADMIN_PASSWORD: ${{ secrets.MM_MOBILE_E2E_ADMIN_PASSWORD }}
-  SITE_1_URL: ${{ inputs.MM_TEST_SERVER_URL || 'https://mobile-e2e-site-1.test.mattermost.cloud' }}
+  SITE_1_URL: ${{ inputs.MM_TEST_SERVER_URL }}
   TYPE: ${{ inputs.run-type }}
 
 jobs:

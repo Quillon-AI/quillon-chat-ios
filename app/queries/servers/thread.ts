@@ -124,15 +124,6 @@ export const prepareThreadsFromReceivedPosts = async (operator: ServerDataOperat
     const toUpdate: {[rootId: string]: number | undefined} = {};
     const {database} = operator;
     let processedThreads: Set<string> | undefined;
-    let existingFollowState = new Map<string, boolean>();
-
-    const rootPosts = posts.filter((post: Post) => !post.root_id && ['', PostTypes.CUSTOM_CALLS].includes(post.type));
-    if (rootPosts.length) {
-        const existingThreads = await database.get<ThreadModel>(THREAD).query(
-            Q.where('id', Q.oneOf(rootPosts.map((post) => post.id))),
-        ).fetch();
-        existingFollowState = new Map(existingThreads.map((thread) => [thread.id, thread.isFollowing]));
-    }
 
     posts.forEach((post: Post) => {
         if (!post.root_id && ['', PostTypes.CUSTOM_CALLS].includes(post.type)) {
@@ -142,8 +133,7 @@ export const prepareThreadsFromReceivedPosts = async (operator: ServerDataOperat
                 reply_count: post.reply_count,
                 last_reply_at: post.last_reply_at || post.create_at,
 
-                // Root post payloads can lag the current thread follow state after auto-follow on reply.
-                is_following: post.is_following || existingFollowState.get(post.id) || false,
+                is_following: post.is_following ?? false,
                 lastFetchedAt: post.create_at,
             } as ThreadWithLastFetchedAt);
         } else if (post.root_id && updateLastFetchAt) {

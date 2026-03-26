@@ -266,7 +266,7 @@ export const observePinnedPostsInChannel = (database: Database, channelId: strin
 };
 
 export const observeSavedPostsByIds = (database: Database, postIds: string[], serverUrl?: string) => {
-    const savedPostIds$ = querySavedPostsPreferences(database).extend(
+    const savedPostIds = querySavedPostsPreferences(database).extend(
         Q.where('name', Q.oneOf(postIds)),
     ).observeWithColumns(['name']).pipe(
         switchMap((prefs) => of$(new Set(prefs.map((p) => p.name)))),
@@ -274,12 +274,12 @@ export const observeSavedPostsByIds = (database: Database, postIds: string[], se
 
     const resolvedServerUrl = serverUrl || getServerUrlForDatabase(database);
     if (!resolvedServerUrl) {
-        return savedPostIds$;
+        return savedPostIds;
     }
 
-    return combineLatest([savedPostIds$, EphemeralStore.observeRecentlyUnsavedSavedPosts(resolvedServerUrl)]).pipe(
-        map(([savedPostIds, recentlyUnsavedSavedPosts]) => {
-            return new Set([...savedPostIds].filter((postId) => !recentlyUnsavedSavedPosts.has(postId)));
+    return combineLatest([savedPostIds, EphemeralStore.observeRecentlyUnsavedSavedPosts(resolvedServerUrl)]).pipe(
+        map(([currentSavedPostIds, recentlyUnsavedSavedPosts]) => {
+            return new Set([...currentSavedPostIds].filter((postId) => !recentlyUnsavedSavedPosts.has(postId)));
         }),
     );
 };

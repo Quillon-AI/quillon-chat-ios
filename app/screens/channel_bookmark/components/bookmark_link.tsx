@@ -104,7 +104,6 @@ const BookmarkLink = ({disabled, initialUrl = '', resetBookmark, setBookmark, se
     const lastSubmittedUrlRef = useRef(getComparableUrl(initialUrl));
     const linkChangedFromInitialRef = useRef(false);
     const linkFieldFocusedRef = useRef(false);
-    const pendingUrlRef = useRef('');
     const requestSequenceRef = useRef(0);
     const styles = getStyleSheet(theme);
     const keyboard = (Platform.OS === 'android') ? 'default' : 'url';
@@ -130,82 +129,71 @@ const BookmarkLink = ({disabled, initialUrl = '', resetBookmark, setBookmark, se
         }
     }, []);
 
-    const validateAndFetchOG = useCallback(async (text: string, requestSequence: number) => {
+    const validateAndFetchOG = useCallback(async (text: string) => {
         const comparableUrl = getComparableUrl(text);
+        const mySequence = requestSequenceRef.current;
+
         setLoading(true);
-        const urlResult = await resolveBookmarkTargetUrl(text);
-
-        if (requestSequence !== requestSequenceRef.current || pendingUrlRef.current !== comparableUrl) {
-            setLoading(false);
-            return;
-        }
-
-        if ('failed' in urlResult) {
-            pendingUrlRef.current = '';
-            setError(intl.formatMessage({
-                id: 'channel_bookmark_add.link.invalid',
-                defaultMessage: 'Please enter a valid link',
-            }));
-            setLoading(false);
-            return;
-        }
-
-        const resolvedUrl = urlResult.url;
-        let title = text.trim();
-        let imageUrl = '';
         try {
-            const ogResult = await Promise.race([
-                fetchOpenGraph(resolvedUrl, true).catch(() => null),
-                new Promise<null>((resolve) => {
-                    setTimeout(() => resolve(null), LINK_METADATA_TIMEOUT_MS);
-                }),
-            ]);
-            if (
-                ogResult &&
-                requestSequence === requestSequenceRef.current &&
-                pendingUrlRef.current === comparableUrl
-            ) {
-                title = ogResult.title || title;
-                imageUrl = ogResult.favIcon || ogResult.imageURL || '';
+            const urlResult = await resolveBookmarkTargetUrl(text);
+            if (mySequence !== requestSequenceRef.current) {
+                return;
             }
+
+            if ('failed' in urlResult) {
+                setError(intl.formatMessage({
+                    id: 'channel_bookmark_add.link.invalid',
+                    defaultMessage: 'Please enter a valid link',
+                }));
+                return;
+            }
+
+            const resolvedUrl = urlResult.url;
+            let title = text.trim();
+            let imageUrl = '';
+            try {
+                const ogResult = await Promise.race([
+                    fetchOpenGraph(resolvedUrl, true).catch(() => null),
+                    new Promise<null>((resolve) => {
+                        setTimeout(() => resolve(null), LINK_METADATA_TIMEOUT_MS);
+                    }),
+                ]);
+                if (ogResult && mySequence === requestSequenceRef.current) {
+                    title = ogResult.title || title;
+                    imageUrl = ogResult.favIcon || ogResult.imageURL || '';
+                }
+            } catch {
+                // Use link text as title when OG fetch fails or times out
+            }
+
+            if (mySequence !== requestSequenceRef.current) {
+                return;
+            }
+
+            lastSubmittedUrlRef.current = comparableUrl;
+            bookmarkSetterRef.current(resolvedUrl, title, imageUrl);
         } catch {
-            // Use link text as title when OG fetch fails or times out
+            // Ignore network failures for stale requests
+        } finally {
+            if (mySequence === requestSequenceRef.current) {
+                setLoading(false);
+            }
         }
-
-        if (requestSequence !== requestSequenceRef.current || pendingUrlRef.current !== comparableUrl) {
-            setLoading(false);
-            return;
-        }
-
-        pendingUrlRef.current = '';
-        lastSubmittedUrlRef.current = comparableUrl;
-        setLoading(false);
-        bookmarkSetterRef.current(resolvedUrl, title, imageUrl);
     }, [intl]);
-
-    const runValidation = useCallback(async (text: string, requestSequence: number) => {
-        try {
-            await validateAndFetchOG(text, requestSequence);
-        } catch {
-            // Ignore stale network failures here; the active request path handles UI state.
-        }
-    }, [validateAndFetchOG]);
 
     const queueFetch = useCallback((text: string, delay = 500) => {
         const trimmedText = text.trim();
         const comparableUrl = getComparableUrl(trimmedText);
 
-        if (!trimmedText || comparableUrl === lastSubmittedUrlRef.current || comparableUrl === pendingUrlRef.current) {
+        if (!trimmedText || comparableUrl === lastSubmittedUrlRef.current) {
             return;
         }
 
         clearPendingFetch();
-        pendingUrlRef.current = comparableUrl;
-        const requestSequence = requestSequenceRef.current;
         debounceTimeoutRef.current = setTimeout(() => {
-            runValidation(trimmedText, requestSequence);
+            validateAndFetchOG(trimmedText);
         }, delay);
-    }, [clearPendingFetch, runValidation]);
+    }, [clearPendingFetch, validateAndFetchOG]);
 
     const onChangeText = useCallback((text: string) => {
         const currentComparableUrl = getComparableUrl(url);
@@ -220,7 +208,6 @@ const BookmarkLink = ({disabled, initialUrl = '', resetBookmark, setBookmark, se
 
         clearPendingFetch();
         requestSequenceRef.current += 1;
-        pendingUrlRef.current = '';
         setLoading(false);
         setUrl(text);
         setError('');

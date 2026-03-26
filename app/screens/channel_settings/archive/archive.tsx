@@ -10,7 +10,9 @@ import OptionItem from '@components/option_item';
 import {General} from '@constants';
 import {useServerUrl} from '@context/server';
 import {usePreventDoubleTap} from '@hooks/utils';
-import {dismissAllModals, popToRoot} from '@screens/navigation';
+import {dismissModal, popToRoot} from '@screens/navigation';
+
+import type {AvailableScreens} from '@typings/screens/navigation';
 import {alertErrorWithFallback} from '@utils/draft';
 
 type Props = {
@@ -18,6 +20,7 @@ type Props = {
     canUnarchive: boolean;
     canViewArchivedChannels: boolean;
     channelId: string;
+    componentId: AvailableScreens;
     displayName: string;
     type?: ChannelType;
 }
@@ -72,17 +75,17 @@ const messages = defineMessages({
 
 const Archive = ({
     canArchive, canUnarchive, canViewArchivedChannels,
-    channelId, displayName, type,
+    channelId, componentId, displayName, type,
 }: Props) => {
     const intl = useIntl();
     const serverUrl = useServerUrl();
 
     const close = useCallback(async (pop: boolean) => {
-        await dismissAllModals();
+        await dismissModal({componentId});
         if (pop) {
             popToRoot();
         }
-    }, []);
+    }, [componentId]);
 
     const alertAndHandleYesAction = useCallback((title: MessageDescriptor, message: MessageDescriptor, onPressAction: () => void) => {
         const {formatMessage} = intl;

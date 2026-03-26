@@ -222,7 +222,7 @@ jobs:
       platform: ios
       run-type: "MAIN"
       MOBILE_VERSION: ${{ github.ref }}
-      MM_TEST_SERVER_URL: "https://mobile-e2e-site-3.test.mattermost.cloud"
+      MM_TEST_SERVER_URL: ${{ inputs.MM_TEST_SERVER_URL_3 }}
     secrets: inherit
 
   run-maestro-android:
@@ -234,5 +234,5 @@ jobs:
       platform: android
       run-type: "MAIN"
       MOBILE_VERSION: ${{ github.ref }}
-      MM_TEST_SERVER_URL: "https://mobile-e2e-site-3.test.mattermost.cloud"
+      MM_TEST_SERVER_URL: ${{ inputs.MM_TEST_SERVER_URL_3 }}
     secrets: inherit
