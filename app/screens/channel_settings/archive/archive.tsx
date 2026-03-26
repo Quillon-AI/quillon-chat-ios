@@ -14,6 +14,7 @@ import {dismissModal, popToRoot} from '@screens/navigation';
 import {alertErrorWithFallback} from '@utils/draft';
 
 import type {AvailableScreens} from '@typings/screens/navigation';
+
 type Props = {
     canArchive: boolean;
     canUnarchive: boolean;
