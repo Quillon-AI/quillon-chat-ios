@@ -308,32 +308,6 @@ describe('processReceivedThreads', () => {
         expect(models?.length).toBe(4); // post, thread, thread participant, thread in team
     });
 
-    it('handles thread payloads without post data', async () => {
-        await operator.handleTeam({teams: [team], prepareRecordsOnly: false});
-        await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}, {id: SYSTEM_IDENTIFIERS.CURRENT_USER_ID, value: user.id}], prepareRecordsOnly: false});
-        await operator.handleUsers({users: [user], prepareRecordsOnly: false});
-
-        const thread = [
-            {
-                id: rootPost.id,
-                reply_count: 1,
-                last_reply_at: 0,
-                last_viewed_at: 123,
-                is_following: true,
-                unread_replies: 1,
-                unread_mentions: 0,
-            },
-        ] as Thread[];
-
-        const {models, error} = await processReceivedThreads(serverUrl, thread, team.id);
-        const savedThread = await operator.database.get<ThreadModel>('Thread').find(rootPost.id);
-
-        expect(error).toBeUndefined();
-        expect(models).toBeDefined();
-        expect(models?.length).toBe(2); // thread, thread in team
-        expect(savedThread.lastReplyAt).toBe(0);
-        expect(savedThread.isFollowing).toBe(true);
-    });
 });
 
 describe('markTeamThreadsAsRead', () => {

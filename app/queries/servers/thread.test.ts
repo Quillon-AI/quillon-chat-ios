@@ -25,7 +25,7 @@ describe('Thread Queries', () => {
         await DatabaseManager.destroyServerDatabase(serverUrl);
     });
 
-    it('preserves followed state when fetched root posts lag the thread follow state', async () => {
+    it('uses post is_following value directly without preserving existing DB state', async () => {
         const rootPost = TestHelper.basicPost!;
 
         await operator.handleThreads({
@@ -46,6 +46,7 @@ describe('Thread Queries', () => {
             prepareRecordsOnly: false,
         });
 
+        // Server sends is_following: false — client should trust the server value
         const models = await prepareThreadsFromReceivedPosts(operator, [{
             ...rootPost,
             is_following: false,
@@ -54,6 +55,6 @@ describe('Thread Queries', () => {
         await operator.batchRecords(models, 'test');
 
         const thread = await getThreadById(database, rootPost.id);
-        expect(thread?.isFollowing).toBe(true);
+        expect(thread?.isFollowing).toBe(false);
     });
 });
