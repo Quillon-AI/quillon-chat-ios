@@ -30,8 +30,8 @@
     "ios.simulator": {
       "type": "ios.simulator",
       "device": {
-        "type": "iPhone 17 Pro",
-        "os": "26.3.1"
+        "type": "__DEVICE_NAME__",
+        "os": "__DEVICE_OS_VERSION__"
       },
       "environment": {
         "MM_FEATUREFLAGS_InteractiveDialogAppsForm": "true"
@@ -40,8 +40,8 @@
     "ios.ipad": {
       "type": "ios.simulator",
       "device": {
-        "type": "iPad Pro 13-inch (M5)",
-        "os": "26.3.1"
+        "type": "__DEVICE_NAME__",
+        "os": "__DEVICE_OS_VERSION__"
       },
       "environment": {
         "MM_FEATUREFLAGS_InteractiveDialogAppsForm": "true"
@@ -50,7 +50,7 @@
     "android.emulator": {
       "type": "android.emulator",
       "device": {
-        "avdName": "detox_pixel_4_xl_api_34"
+        "avdName": "__AVD_NAME__"
       },
       "environment": {
         "MM_FEATUREFLAGS_InteractiveDialogAppsForm": "true"
