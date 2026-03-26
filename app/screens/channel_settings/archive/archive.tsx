@@ -11,10 +11,9 @@ import {General} from '@constants';
 import {useServerUrl} from '@context/server';
 import {usePreventDoubleTap} from '@hooks/utils';
 import {dismissModal, popToRoot} from '@screens/navigation';
-
-import type {AvailableScreens} from '@typings/screens/navigation';
 import {alertErrorWithFallback} from '@utils/draft';
 
+import type {AvailableScreens} from '@typings/screens/navigation';
 type Props = {
     canArchive: boolean;
     canUnarchive: boolean;
