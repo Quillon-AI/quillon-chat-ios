@@ -41,14 +41,6 @@ on:
         required: false
         default: "PR"
         type: string
-      MM_TEST_USER_NAME:
-        description: "Admin username for Matterwick-provisioned instances"
-        required: false
-        type: string
-      MM_TEST_PASSWORD:
-        description: "Admin password for Matterwick-provisioned instances"
-        required: false
-        type: string
 
 concurrency:
   # Key on pr_number (or run_id for non-PR runs like nightly/push) so
