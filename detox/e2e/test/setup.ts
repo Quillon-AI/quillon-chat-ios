@@ -399,6 +399,7 @@ export async function launchAppWithRetry(): Promise<void> {
                 const isCI = Boolean(process.env.CI);
                 await device.launchApp({
                     newInstance: true,
+
                     // In CI: delete: true reinstalls the app, giving a clean state — no need for
                     // resetAppState (which requires the app to already be installed). Locally:
                     // resetAppState: true clears data without deleting the app binary (deleting
