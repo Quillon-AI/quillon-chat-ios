@@ -92,6 +92,9 @@ wait_for_emulator() {
 install_app() {
     echo "Installing the app..."
     adb install -r ../android/app/build/outputs/apk/debug/app-debug.apk
+    # Install the test/instrumentation APK — required by Detox (reinstallApp: false assumes
+    # both the main APK and the test APK are already present on the device).
+    adb install -r ../android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
     adb shell pm list packages | grep "com.mattermost.rnbeta" && echo "App is installed." || echo "App is not installed."
 }
 
