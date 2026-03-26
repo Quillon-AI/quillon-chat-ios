@@ -441,7 +441,7 @@ const PostList = ({
             const topInset = contentInset.value;
             return {
                 contentInset: {
-                    top: Number.isFinite(topInset) ? topInset : 0,
+                    top: Number.isFinite(topInset) ? topInset : 0, // For inverted FlatList, applies to visual bottom
                 },
             };
         },

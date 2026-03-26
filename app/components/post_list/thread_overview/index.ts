@@ -2,9 +2,8 @@
 // See LICENSE.txt for license information.
 
 import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
-import React from 'react';
 
-import {useServerUrl} from '@context/server';
+import {withServerUrl} from '@context/server';
 import {observePost, observePostSaved, queryPostReplies} from '@queries/servers/post';
 
 import ThreadOverview from './thread_overview';
@@ -21,14 +20,4 @@ const enhanced = withObservables(
         };
     });
 
-const EnhancedThreadOverview = withDatabase(enhanced(ThreadOverview));
-
-type EnhancedThreadOverviewProps = React.ComponentProps<typeof EnhancedThreadOverview>;
-
-export default function ThreadOverviewWithServerUrl(props: Omit<EnhancedThreadOverviewProps, 'serverUrl'>) {
-    const serverUrl = useServerUrl();
-    return React.createElement(EnhancedThreadOverview, {
-        ...props,
-        serverUrl,
-    });
-}
+export default withDatabase(withServerUrl(enhanced(ThreadOverview)));

@@ -36,6 +36,16 @@ appId: ${MAESTRO_APP_ID}
     text: "Allow"
     optional: true
 
+# After starting a call the app stays on the channel view with a call bar overlay
+# (rather than auto-navigating to the full call screen). Tap the call bar to open
+# the full call screen so the mute-unmute button becomes visible.
+- extendedWaitUntil:
+    visible:
+      id: "calls.current_call_bar"
+    timeout: 15000
+- tapOn:
+    id: "calls.current_call_bar"
+
 # Verify call screen — User A is now the sole active participant
 - extendedWaitUntil:
     visible:
@@ -51,21 +61,12 @@ appId: ${MAESTRO_APP_ID}
     optional: true
 - back
 
-# Wait for Device B to finish before we clean up (handled by the orchestration script).
-# User A stays on the call for the duration of the test.
-# The orchestration script kills Device A's process once Device B completes.
-#
-# Post the sync token to signal readiness (admin API call handled outside this flow).
-# Device A simply stays in the call — the test coordinator leaves the call after B joins.
+# Verify the call bar is visible on the channel view (User A is still in the call).
+# After this screenshot Device A's flow exits. The Mattermost app continues running
+# and User A remains in the call — the call stays active on the server. Device B can
+# then log in and join the call independently.
 - extendedWaitUntil:
     visible:
       id: "calls.current_call_bar"
     timeout: 15000
 - takeScreenshot: calls-device-a-call-bar-visible
-
-# Hold the call open for 30 s to give Device B time to join and take a screenshot.
-# The orchestration script sends SIGTERM to this process once Device B completes.
-- extendedWaitUntil:
-    notVisible:
-      id: "calls.current_call_bar"
-    timeout: 30000

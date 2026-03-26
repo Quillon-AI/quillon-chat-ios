@@ -6,7 +6,7 @@ import React from 'react';
 import {of as of$} from 'rxjs';
 import {switchMap} from 'rxjs/operators';
 
-import {useServerUrl} from '@context/server';
+import {withServerUrl} from '@context/server';
 import {observeIsChannelAutotranslated} from '@queries/servers/channel';
 import {queryAllCustomEmojis} from '@queries/servers/custom_emoji';
 import {observeSavedPostsByIds, observeIsPostAcknowledgementsEnabled} from '@queries/servers/post';
@@ -48,16 +48,4 @@ const enhanced = withObservables(['posts'], ({database, posts, serverUrl}: {post
     };
 });
 
-const EnhancedPostList = withDatabase(enhancedWithoutPosts(enhanced(PostList)));
-
-type EnhancedPostListProps = React.ComponentProps<typeof EnhancedPostList>;
-
-function PostListWithServerUrl(props: Omit<EnhancedPostListProps, 'serverUrl'>) {
-    const serverUrl = useServerUrl();
-    return React.createElement(EnhancedPostList, {
-        ...props,
-        serverUrl,
-    });
-}
-
-export default React.memo(PostListWithServerUrl);
+export default React.memo(withDatabase(enhancedWithoutPosts(withServerUrl(enhanced(PostList)))));

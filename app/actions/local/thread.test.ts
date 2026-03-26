@@ -233,25 +233,20 @@ describe('createThreadFromNewPost', () => {
         expect(models?.length).toBe(2); // thread, thread participant
     });
 
-    it('auto-follows the thread for the current user when replying and auto-follow is enabled', async () => {
+    it('should not set is_following locally — server handles follow state via WebSocket events', async () => {
         await operator.handleUsers({users: [user], prepareRecordsOnly: false});
         await operator.handleThreads({threads: [{...threads[0], is_following: false}], prepareRecordsOnly: false, teamId: team.id});
         await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_USER_ID, value: user.id}], prepareRecordsOnly: false});
-        await operator.handleConfigs({
-            configs: [{id: 'ThreadAutoFollow', value: 'true'}],
-            configsToDelete: [],
-            prepareRecordsOnly: false,
-        });
         const post = TestHelper.fakePost({channel_id: channelId, user_id: user.id, id: 'postid', create_at: 1, root_id: rootPost.id});
 
         const {error} = await createThreadFromNewPost(serverUrl, post, false);
         const savedThread = await operator.database.get<ThreadModel>('Thread').find(rootPost.id);
 
         expect(error).toBeUndefined();
-        expect(savedThread.isFollowing).toBe(true);
+        expect(savedThread.isFollowing).toBe(false);
     });
 
-    it('creates and auto-follows the thread when replying before the thread row exists locally', async () => {
+    it('should update reply_count when creating thread from new reply post', async () => {
         await operator.handleUsers({users: [user], prepareRecordsOnly: false});
         await operator.handlePosts({
             actionType: ActionType.POSTS.RECEIVED_IN_CHANNEL,
@@ -267,7 +262,6 @@ describe('createThreadFromNewPost', () => {
 
         expect(error).toBeUndefined();
         expect(savedThread.replyCount).toBe(1);
-        expect(savedThread.isFollowing).toBe(true);
     });
 
     it('base case - no root post', async () => {

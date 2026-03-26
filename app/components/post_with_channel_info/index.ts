@@ -2,10 +2,9 @@
 // See LICENSE.txt for license information.
 
 import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
-import React from 'react';
 import {of as of$} from 'rxjs';
 
-import {useServerUrl} from '@context/server';
+import {withServerUrl} from '@context/server';
 import {observeIsChannelAutotranslated} from '@queries/servers/channel';
 import {observePostSaved} from '@queries/servers/post';
 import {observeIsCRTEnabled} from '@queries/servers/thread';
@@ -29,14 +28,4 @@ const enhance = withObservables(['post', 'skipSavedPostsHighlight'], ({database,
     };
 });
 
-const EnhancedPostWithChannelInfo = withDatabase(enhance(PostWithChannelInfo));
-
-type EnhancedPostWithChannelInfoProps = React.ComponentProps<typeof EnhancedPostWithChannelInfo>;
-
-export default function PostWithChannelInfoWithServerUrl(props: Omit<EnhancedPostWithChannelInfoProps, 'serverUrl'>) {
-    const serverUrl = useServerUrl();
-    return React.createElement(EnhancedPostWithChannelInfo, {
-        ...props,
-        serverUrl,
-    });
-}
+export default withDatabase(withServerUrl(enhance(PostWithChannelInfo)));

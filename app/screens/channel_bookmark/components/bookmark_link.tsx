@@ -16,7 +16,7 @@ import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 import {getUrlAfterRedirect, sanitizeUrl} from '@utils/url';
 
-/** HEAD/OG fetches have no default timeout; unresponsive hosts would spin forever. */
+/** Maximum time to wait for HEAD/OG requests before falling back to the raw URL. */
 const LINK_METADATA_TIMEOUT_MS = 12_000;
 
 type HeadRaceResult = {url: string} | {timedOut: true} | {failed: true};
@@ -67,7 +67,7 @@ const getComparableUrl = (value: string) => {
 
     try {
         const parsed = new URL(trimmed);
-        const pathname = parsed.pathname === '/' ? '' : parsed.pathname.replace(/\/+$/, '');
+        const pathname = parsed.pathname.replace(/\/+$/, '');
         return `${parsed.protocol}//${parsed.host}${pathname}${parsed.search}${parsed.hash}`;
     } catch {
         return trimmed.replace(/\/+$/, '');
@@ -293,7 +293,6 @@ const BookmarkLink = ({disabled, initialUrl = '', resetBookmark, setBookmark, se
         <View style={subContainerStyle}>
             <FloatingTextInput
                 rawInput={true}
-                containerTestID='channel_bookmark_add.link.input.container'
                 disableFullscreenUI={true}
                 editable={!disabled}
                 keyboardType={keyboard}

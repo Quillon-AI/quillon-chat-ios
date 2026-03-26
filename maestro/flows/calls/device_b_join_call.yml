@@ -17,7 +17,7 @@ appId: ${MAESTRO_APP_ID}
 - extendedWaitUntil:
     visible:
       id: "calls.join_call_banner.join"
-    timeout: 20000
+    timeout: 120000
 - takeScreenshot: calls-device-b-join-banner-visible
 
 # Grant microphone permission before tapping Join (system dialog appears after tap)
@@ -31,6 +31,15 @@ appId: ${MAESTRO_APP_ID}
 - tapOn:
     text: "Allow"
     optional: true
+
+# Joining keeps the app on the channel view with a call bar overlay (same as starting
+# a call). Tap the call bar to open the full call screen so mute-unmute is accessible.
+- extendedWaitUntil:
+    visible:
+      id: "calls.current_call_bar"
+    timeout: 15000
+- tapOn:
+    id: "calls.current_call_bar"
 
 # Verify Device B is now on the call screen
 - extendedWaitUntil:
@@ -46,11 +55,6 @@ appId: ${MAESTRO_APP_ID}
     timeout: 5000
 - takeScreenshot: calls-device-b-participants-visible
 
-# Leave the call — Device B is done
-- tapOn:
-    id: "leave"
-- extendedWaitUntil:
-    notVisible:
-      id: "mute-unmute"
-    timeout: 10000
-- takeScreenshot: calls-device-b-call-ended
+# Leave intentionally omitted here for two-device orchestration:
+# device_a_verify_joined.yml runs on Device A while Device B is still on the call
+# screen, showing both participants. device_b_leave_call.yml handles cleanup after.

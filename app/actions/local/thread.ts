@@ -9,7 +9,7 @@ import DatabaseManager from '@database/manager';
 import {getTranslations} from '@i18n';
 import {getChannelById} from '@queries/servers/channel';
 import {getPostById} from '@queries/servers/post';
-import {getConfigValue, getCurrentTeamId, getCurrentUserId, prepareCommonSystemValues, type PrepareCommonSystemValuesArgs, setCurrentTeamAndChannelId} from '@queries/servers/system';
+import {getCurrentTeamId, getCurrentUserId, prepareCommonSystemValues, type PrepareCommonSystemValuesArgs, setCurrentTeamAndChannelId} from '@queries/servers/system';
 import {addChannelToTeamHistory, addTeamToTeamHistory} from '@queries/servers/team';
 import {getThreadById, prepareThreadsFromReceivedPosts, queryThreadsInTeam} from '@queries/servers/thread';
 import {getCurrentUser} from '@queries/servers/user';
@@ -170,16 +170,12 @@ export async function createThreadFromNewPost(serverUrl: string, post: Post, pre
         const {database, operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
         const models: Model[] = [];
         if (post.root_id) {
-            const currentUserId = await getCurrentUserId(database);
-            const autoFollowEnabled = await getConfigValue(database, 'ThreadAutoFollow' as keyof ClientConfig) !== 'false';
-            const shouldAutoFollow = autoFollowEnabled && post.user_id === currentUserId;
             const existingThread = await getThreadById(database, post.root_id);
 
             if (existingThread) {
                 // Update the thread data: `reply_count`
                 const {model: threadModel} = await updateThread(serverUrl, post.root_id, {
                     reply_count: post.reply_count,
-                    is_following: shouldAutoFollow ? true : undefined,
                 }, true);
                 if (threadModel) {
                     models.push(threadModel);
@@ -190,7 +186,6 @@ export async function createThreadFromNewPost(serverUrl: string, post: Post, pre
                     const threadModels = await prepareThreadsFromReceivedPosts(operator, [{
                         ...await rootPost.toApi(),
                         reply_count: post.reply_count,
-                        is_following: shouldAutoFollow ? true : undefined,
                     }], false);
                     models.push(...threadModels);
                 }
