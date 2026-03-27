@@ -24,39 +24,41 @@ function randomPrefix(): string {
     return Math.random().toString(36).slice(2, 8);
 }
 
-function request(method: string, urlPath: string, body: object | null, token?: string): Promise<any> {
+const MAX_REDIRECTS = 5;
+
+function doRequest(urlStr: string, method: string, payload: string | null, headers: Record<string, string>, redirectCount = 0): Promise<IncomingMessage & {body: string}> {
     return new Promise((resolve, reject) => {
-        const url = new URL(SITE_1_URL + urlPath);
+        const url = new URL(urlStr);
         const lib = url.protocol === 'https:' ? https : http;
-        const payload = body ? JSON.stringify(body) : null;
         const options: RequestOptions = {
             hostname: url.hostname,
             port: url.port || (url.protocol === 'https:' ? 443 : 80),
             path: url.pathname + url.search,
             method,
             headers: {
-                'Content-Type': 'application/json',
-                ...(token ? {Authorization: `Bearer ${token}`} : {}),
-                ...(payload ? {'Content-Length': Buffer.byteLength(payload)} : {}),
+                ...headers,
+                ...(payload ? {'Content-Length': String(Buffer.byteLength(payload))} : {}),
             },
         };
 
         const req = lib.request(options, (res: IncomingMessage) => {
+            if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                if (redirectCount >= MAX_REDIRECTS) {
+                    reject(new Error(`[seed] Too many redirects (${MAX_REDIRECTS}) for ${method} ${urlStr}`));
+                    return;
+                }
+                const redirectUrl = new URL(res.headers.location, urlStr).toString();
+                console.log(`[seed] Following ${res.statusCode} redirect to ${redirectUrl}`);
+                doRequest(redirectUrl, method, payload, headers, redirectCount + 1).then(resolve, reject);
+                return;
+            }
+
             let data = '';
             res.on('data', (chunk: string) => {
                 data += chunk;
             });
             res.on('end', () => {
-                try {
-                    const parsed = JSON.parse(data);
-                    if ((res.statusCode ?? 0) >= 400) {
-                        reject(new Error(`[seed] HTTP ${res.statusCode} on ${method} ${urlPath}: ${parsed.message || data}`));
-                    } else {
-                        resolve(parsed);
-                    }
-                } catch (e) {
-                    reject(new Error(`[seed] Failed to parse response from ${method} ${urlPath}: ${data}`));
-                }
+                resolve(Object.assign(res, {body: data}));
             });
         });
 
@@ -68,50 +70,52 @@ function request(method: string, urlPath: string, body: object | null, token?: s
     });
 }
 
+function request(method: string, urlPath: string, body: object | null, token?: string): Promise<any> {
+    const urlStr = SITE_1_URL + urlPath;
+    const payload = body ? JSON.stringify(body) : null;
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? {Authorization: `Bearer ${token}`} : {}),
+    };
+
+    return doRequest(urlStr, method, payload, headers).then((res) => {
+        try {
+            const parsed = JSON.parse(res.body);
+            if ((res.statusCode ?? 0) >= 400) {
+                throw new Error(`[seed] HTTP ${res.statusCode} on ${method} ${urlPath}: ${parsed.message || res.body}`);
+            }
+            return parsed;
+        } catch (e) {
+            if (e instanceof Error && e.message.startsWith('[seed]')) {
+                throw e;
+            }
+            throw new Error(`[seed] Failed to parse response from ${method} ${urlPath}: ${res.body}`);
+        }
+    });
+}
+
 function loginAndGetToken(): Promise<{user: any; token: string}> {
-    return new Promise((resolve, reject) => {
-        const url = new URL(SITE_1_URL + '/api/v4/users/login');
-        const lib = url.protocol === 'https:' ? https : http;
-        const loginId = ADMIN_USERNAME;
-        const payload = JSON.stringify({login_id: loginId, password: ADMIN_PASSWORD});
-        const options: RequestOptions = {
-            hostname: url.hostname,
-            port: url.port || (url.protocol === 'https:' ? 443 : 80),
-            path: url.pathname,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(payload),
-            },
-        };
+    const urlStr = SITE_1_URL + '/api/v4/users/login';
+    const payload = JSON.stringify({login_id: ADMIN_USERNAME, password: ADMIN_PASSWORD});
+    const headers: Record<string, string> = {'Content-Type': 'application/json'};
 
-        const req = lib.request(options, (res: IncomingMessage) => {
-            let data = '';
-            res.on('data', (chunk: string) => {
-                data += chunk;
-            });
-            res.on('end', () => {
-                try {
-                    const parsed = JSON.parse(data);
-                    if ((res.statusCode ?? 0) >= 400) {
-                        reject(new Error(`[seed] Login failed (HTTP ${res.statusCode}): ${parsed.message || data}`));
-                        return;
-                    }
-                    const sessionToken = res.headers.token as string;
-                    if (!sessionToken) {
-                        reject(new Error('[seed] Login succeeded but no session token in response headers'));
-                        return;
-                    }
-                    resolve({user: parsed, token: sessionToken});
-                } catch (e) {
-                    reject(new Error(`[seed] Failed to parse login response: ${data}`));
-                }
-            });
-        });
-
-        req.on('error', reject);
-        req.write(payload);
-        req.end();
+    return doRequest(urlStr, 'POST', payload, headers).then((res) => {
+        try {
+            const parsed = JSON.parse(res.body);
+            if ((res.statusCode ?? 0) >= 400) {
+                throw new Error(`[seed] Login failed (HTTP ${res.statusCode}): ${parsed.message || res.body}`);
+            }
+            const sessionToken = res.headers.token as string;
+            if (!sessionToken) {
+                throw new Error('[seed] Login succeeded but no session token in response headers');
+            }
+            return {user: parsed, token: sessionToken};
+        } catch (e) {
+            if (e instanceof Error && e.message.startsWith('[seed]')) {
+                throw e;
+            }
+            throw new Error(`[seed] Failed to parse login response: ${res.body}`);
+        }
     });
 }
 
