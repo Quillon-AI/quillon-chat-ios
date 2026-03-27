@@ -48,8 +48,7 @@ describe('Channels - Convert to Private Channel', () => {
         await CreateOrEditChannelScreen.openCreateChannel();
         await CreateOrEditChannelScreen.displayNameInput.replaceText(channelDisplayName);
         await CreateOrEditChannelScreen.createButton.tap();
-        await wait(timeouts.TWO_SEC);
-        await ChannelScreen.scheduledPostTooltipCloseButtonAdminAccount.tap();
+        await ChannelScreen.dismissScheduledPostTooltip();
         await ChannelInfoScreen.open();
         await ChannelInfoScreen.openChannelSettings();
         await ChannelSettingsScreen.toBeVisible();

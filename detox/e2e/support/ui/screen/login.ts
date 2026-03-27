@@ -120,16 +120,45 @@ class LoginScreen {
     };
 
     loginAsAdmin = async (user: any = {}) => {
-        await this.toBeVisible();
-        await this.usernameInput.tap({x: 150, y: 10});
+        const maxAttempts = 3;
+        let attempt = 0;
+        let lastError;
 
-        await this.usernameInput.replaceText(user.username);
-        await this.passwordInput.tap();
-        await this.passwordInput.replaceText(user.password);
-        await this.loginFormInfoText.tap();
-        await this.signinButton.tap();
-        await this.dismissSavePasswordIfVisible();
-        await waitFor(ChannelListScreen.channelListScreen).toBeVisible().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
+        while (attempt < maxAttempts) {
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await this.toBeVisible();
+                // eslint-disable-next-line no-await-in-loop
+                await this.usernameInput.tap({x: 150, y: 10});
+
+                // eslint-disable-next-line no-await-in-loop
+                await this.usernameInput.replaceText(user.username);
+                // eslint-disable-next-line no-await-in-loop
+                await this.passwordInput.tap();
+                // eslint-disable-next-line no-await-in-loop
+                await this.passwordInput.replaceText(user.password);
+                // eslint-disable-next-line no-await-in-loop
+                await this.loginFormInfoText.tap();
+                // eslint-disable-next-line no-await-in-loop
+                await this.signinButton.tap();
+                // eslint-disable-next-line no-await-in-loop
+                await this.dismissSavePasswordIfVisible();
+                // eslint-disable-next-line no-await-in-loop
+                await waitFor(ChannelListScreen.channelListScreen).toBeVisible().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
+                return;
+            } catch (error) {
+                lastError = error;
+                attempt += 1;
+                if (attempt < maxAttempts) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await wait(timeouts.ONE_SEC);
+                    // eslint-disable-next-line no-await-in-loop
+                    await device.reloadReactNative();
+                }
+            }
+        }
+
+        throw lastError;
     };
 }
 
