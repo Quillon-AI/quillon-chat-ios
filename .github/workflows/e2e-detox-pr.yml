@@ -50,6 +50,7 @@ concurrency:
 
 env:
   INTUNE_ENABLED: 'true'
+  DETOX_AWS_S3_BUCKET: "mattermost-detox-report"
 
 jobs:
   update-initial-status-ios:
@@ -556,7 +557,7 @@ jobs:
         env:
           AWS_KEY: ${{ secrets.MM_MOBILE_DETOX_AWS_ACCESS_KEY_ID }}
           AWS_SECRET: ${{ secrets.MM_MOBILE_DETOX_AWS_SECRET_ACCESS_KEY }}
-          AWS_BUCKET: ${{ secrets.MM_MOBILE_DETOX_AWS_S3_BUCKET }}
+          AWS_BUCKET: ${{ env.DETOX_AWS_S3_BUCKET }}
           REPORT_PATH: unified-${{ github.run_id }}
 
       - name: Post or update unified PR comment
@@ -626,7 +627,7 @@ jobs:
           PR_NUMBER: ${{ inputs.pr_number }}
           PLATFORM_DATA: ${{ env.PLATFORM_DATA }}
           MOBILE_SHA: ${{ inputs.MOBILE_VERSION }}
-          S3_BUCKET: ${{ secrets.MM_MOBILE_DETOX_AWS_S3_BUCKET }}
+          S3_BUCKET: ${{ env.DETOX_AWS_S3_BUCKET }}
 
       - name: Send unified webhook
         if: inputs.run_type != '' && inputs.run_type != 'NONE'
@@ -671,7 +672,7 @@ jobs:
         env:
           PLATFORM_DATA: ${{ env.PLATFORM_DATA }}
           RUN_ID: ${{ github.run_id }}
-          S3_BUCKET: ${{ secrets.MM_MOBILE_DETOX_AWS_S3_BUCKET }}
+          S3_BUCKET: ${{ env.DETOX_AWS_S3_BUCKET }}
           WEBHOOK_URL: ${{ secrets.MM_MOBILE_E2E_WEBHOOK_URL }}
 
   e2e-remove-matterwick-label:
