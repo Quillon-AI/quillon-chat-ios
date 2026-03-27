@@ -142,7 +142,7 @@ jobs:
           FINGERPRINT=$(
             for p in "${NATIVE_PATHS[@]}"; do
               if [[ -d "$p" ]]; then git ls-files "$p" 2>/dev/null; elif [[ -f "$p" ]]; then echo "$p"; fi
-            done | sort -u | xargs -r sha256sum | sha256sum | cut -d' ' -f1
+            done | sort -u | while IFS= read -r f; do [[ -f "$f" ]] && echo "$f"; done | xargs -r sha256sum | sha256sum | cut -d' ' -f1
           )
           if [[ "${{ env.INTUNE_ENABLED }}" == "true" ]]; then
             FINGERPRINT=$(echo "${FINGERPRINT}-intune" | sha256sum | cut -d' ' -f1)
@@ -212,7 +212,7 @@ jobs:
           FINGERPRINT=$(
             for p in "${NATIVE_PATHS[@]}"; do
               if [[ -d "$p" ]]; then git ls-files "$p" 2>/dev/null; elif [[ -f "$p" ]]; then echo "$p"; fi
-            done | sort -u | xargs -r sha256sum | sha256sum | cut -d' ' -f1
+            done | sort -u | while IFS= read -r f; do [[ -f "$f" ]] && echo "$f"; done | xargs -r sha256sum | sha256sum | cut -d' ' -f1
           )
           echo "fingerprint=${FINGERPRINT}" >> "$GITHUB_OUTPUT"
           echo "cache-key=android-apk-build-${FINGERPRINT}" >> "$GITHUB_OUTPUT"
