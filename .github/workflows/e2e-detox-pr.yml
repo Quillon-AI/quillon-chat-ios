@@ -396,8 +396,9 @@ jobs:
           repository_full_name: ${{ github.repository }}
           commit_sha: ${{ inputs.MOBILE_VERSION }}
           context: e2e/maestro-ios-tests
-          description: Maestro iOS tests completed
-          status: ${{ needs.run-maestro-ios-on-pr.result == 'success' && 'success' || 'failure' }}
+          description: Completed with ${{ needs.run-maestro-ios-on-pr.outputs.FAILURES || '?' }} failures
+          status: ${{ needs.run-maestro-ios-on-pr.outputs.STATUS || (needs.run-maestro-ios-on-pr.result == 'success' && 'success' || 'failure') }}
+          target_url: ${{ needs.run-maestro-ios-on-pr.outputs.TARGET_URL }}
 
   update-final-status-maestro-android:
     runs-on: ubuntu-22.04
@@ -412,8 +413,9 @@ jobs:
           repository_full_name: ${{ github.repository }}
           commit_sha: ${{ inputs.MOBILE_VERSION }}
           context: e2e/maestro-android-tests
-          description: Maestro Android tests completed
-          status: ${{ needs.run-maestro-android-on-pr.result == 'success' && 'success' || 'failure' }}
+          description: Completed with ${{ needs.run-maestro-android-on-pr.outputs.FAILURES || '?' }} failures
+          status: ${{ needs.run-maestro-android-on-pr.outputs.STATUS || (needs.run-maestro-android-on-pr.result == 'success' && 'success' || 'failure') }}
+          target_url: ${{ needs.run-maestro-android-on-pr.outputs.TARGET_URL }}
 
   unified-report:
     name: Unified E2E Report
