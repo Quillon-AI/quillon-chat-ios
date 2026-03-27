@@ -135,10 +135,21 @@ jobs:
 
       - name: Compute native build fingerprint
         id: fingerprint
-        uses: ./.github/actions/compute-native-fingerprint
-        with:
-          platform: ios
-          intune-enabled: ${{ env.INTUNE_ENABLED }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          NATIVE_PATHS=("package.json" "package-lock.json" "patches/" "libraries/" "ios/" "fastlane/" ".ruby-version" "Gemfile.lock")
+          FINGERPRINT=$(
+            for p in "${NATIVE_PATHS[@]}"; do
+              if [[ -d "$p" ]]; then git ls-files "$p" 2>/dev/null; elif [[ -f "$p" ]]; then echo "$p"; fi
+            done | sort -u | xargs -r sha256sum | sha256sum | cut -d' ' -f1
+          )
+          if [[ "${{ env.INTUNE_ENABLED }}" == "true" ]]; then
+            FINGERPRINT=$(echo "${FINGERPRINT}-intune" | sha256sum | cut -d' ' -f1)
+          fi
+          echo "fingerprint=${FINGERPRINT}" >> "$GITHUB_OUTPUT"
+          echo "cache-key=ios-simulator-build-${FINGERPRINT}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Native iOS fingerprint: ${FINGERPRINT:0:12}… (cache key: ios-simulator-build-${FINGERPRINT})"
 
       - name: Restore cached iOS build
         id: cache-ios
@@ -194,9 +205,18 @@ jobs:
 
       - name: Compute native build fingerprint
         id: fingerprint
-        uses: ./.github/actions/compute-native-fingerprint
-        with:
-          platform: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          NATIVE_PATHS=("package.json" "package-lock.json" "patches/" "libraries/" "android/" "detox/package.json" "detox/package-lock.json")
+          FINGERPRINT=$(
+            for p in "${NATIVE_PATHS[@]}"; do
+              if [[ -d "$p" ]]; then git ls-files "$p" 2>/dev/null; elif [[ -f "$p" ]]; then echo "$p"; fi
+            done | sort -u | xargs -r sha256sum | sha256sum | cut -d' ' -f1
+          )
+          echo "fingerprint=${FINGERPRINT}" >> "$GITHUB_OUTPUT"
+          echo "cache-key=android-apk-build-${FINGERPRINT}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Native Android fingerprint: ${FINGERPRINT:0:12}… (cache key: android-apk-build-${FINGERPRINT})"
 
       - name: Restore cached Android build
         id: cache-android
