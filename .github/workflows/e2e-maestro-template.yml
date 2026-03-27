@@ -27,6 +27,19 @@ on:
         required: false
         type: string
         default: "PR"
+    outputs:
+      STATUS:
+        value: ${{ jobs.e2e-maestro-ios.outputs.STATUS || jobs.e2e-maestro-android.outputs.STATUS }}
+      TARGET_URL:
+        value: ${{ jobs.e2e-maestro-ios.outputs.TARGET_URL || jobs.e2e-maestro-android.outputs.TARGET_URL }}
+      FAILURES:
+        value: ${{ jobs.e2e-maestro-ios.outputs.FAILURES || jobs.e2e-maestro-android.outputs.FAILURES }}
+      PASSES:
+        value: ${{ jobs.e2e-maestro-ios.outputs.PASSES || jobs.e2e-maestro-android.outputs.PASSES }}
+      TOTAL:
+        value: ${{ jobs.e2e-maestro-ios.outputs.TOTAL || jobs.e2e-maestro-android.outputs.TOTAL }}
+      PERCENTAGE:
+        value: ${{ jobs.e2e-maestro-ios.outputs.PERCENTAGE || jobs.e2e-maestro-android.outputs.PERCENTAGE }}
 env:
   ADMIN_EMAIL: ${{ secrets.MM_MOBILE_E2E_ADMIN_EMAIL }}
   ADMIN_USERNAME: ${{ secrets.MM_MOBILE_E2E_ADMIN_USERNAME }}
@@ -40,6 +53,13 @@ jobs:
     if: ${{ inputs.platform == 'ios' || inputs.platform == '' }}
     runs-on: macos-15
     timeout-minutes: 60
+    outputs:
+      STATUS: ${{ steps.determine-status.outputs.STATUS }}
+      TARGET_URL: ${{ steps.set-url.outputs.TARGET_URL }}
+      FAILURES: ${{ steps.summary.outputs.FAILURES }}
+      PASSES: ${{ steps.summary.outputs.PASSES }}
+      TOTAL: ${{ steps.summary.outputs.TOTAL }}
+      PERCENTAGE: ${{ steps.summary.outputs.PERCENTAGE }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -243,26 +263,87 @@ jobs:
           name: maestro-ios-results-${{ github.run_id }}
           path: build/
 
-      - name: Report Test Results
+      - name: Parse Maestro Report
+        id: summary
         if: always()
         run: |
-          if [ -f build/maestro-report.xml ]; then
-            echo "### Maestro iOS E2E Results" >> "$GITHUB_STEP_SUMMARY"
-            TESTS=$(grep -oP 'tests="\K[0-9]+' build/maestro-report.xml | head -1 || echo "0")
-            FAILURES=$(grep -oP 'failures="\K[0-9]+' build/maestro-report.xml | head -1 || echo "0")
-            echo "| Tests | Failures |" >> "$GITHUB_STEP_SUMMARY"
-            echo "|:---:|:---:|" >> "$GITHUB_STEP_SUMMARY"
-            echo "| $TESTS | $FAILURES |" >> "$GITHUB_STEP_SUMMARY"
+          cd detox
+          npm ci --prefer-offline --no-audit --no-fund
+          node -e "
+            const {parseMaestroReport} = require('./utils/maestro_report');
+            const summary = parseMaestroReport('../build/maestro-report.xml');
+            if (summary) {
+              const s = summary.stats;
+              const output = [
+                'FAILURES=' + s.failures,
+                'PASSES=' + s.passes,
+                'TOTAL=' + s.tests,
+                'ERRORS=' + s.errors,
+                'SKIPPED=' + s.skipped,
+                'PERCENTAGE=' + s.passPercent,
+              ];
+              const fs = require('fs');
+              output.forEach(l => fs.appendFileSync(process.env.GITHUB_OUTPUT, l + '\n'));
+            } else {
+              const fs = require('fs');
+              ['FAILURES=0','PASSES=0','TOTAL=0','ERRORS=0','SKIPPED=0','PERCENTAGE=0'].forEach(l => fs.appendFileSync(process.env.GITHUB_OUTPUT, l + '\n'));
+            }
+          "
+
+      - name: Upload Maestro Report to S3
+        if: always()
+        run: |
+          cd detox
+          node -e "
+            const {saveArtifacts} = require('./utils/artifacts');
+            const fse = require('fs-extra');
+            fse.copySync('../build', './artifacts/maestro-ios', {overwrite: true});
+            saveArtifacts('maestro-ios').then(r => {
+              if (r && r.success) console.log('Uploaded:', r.reportLink);
+            }).catch(e => console.log('S3 upload skipped:', e.message));
+          "
+        env:
+          DETOX_AWS_ACCESS_KEY_ID: ${{ secrets.MM_MOBILE_DETOX_AWS_ACCESS_KEY_ID }}
+          DETOX_AWS_SECRET_ACCESS_KEY: ${{ secrets.MM_MOBILE_DETOX_AWS_SECRET_ACCESS_KEY }}
+          REPORT_PATH: maestro-ios-${{ github.run_id }}
+
+      - name: Set Target URL
+        id: set-url
+        if: always()
+        run: |
+          echo "TARGET_URL=https://mattermost-detox-report.s3.amazonaws.com/maestro-ios-${{ github.run_id }}/maestro-ios/maestro-report.xml" >> "$GITHUB_OUTPUT"
+
+      - name: Determine Status
+        id: determine-status
+        if: always()
+        run: |
+          FAILURES="${{ steps.summary.outputs.FAILURES }}"
+          if [[ "${FAILURES:-0}" -gt 0 ]]; then
+            echo "STATUS=failure" >> "$GITHUB_OUTPUT"
           else
-            echo "### Maestro iOS E2E Results" >> "$GITHUB_STEP_SUMMARY"
-            echo "No test report found." >> "$GITHUB_STEP_SUMMARY"
+            echo "STATUS=success" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Generate Summary
+        if: always()
+        run: |
+          echo "### Maestro iOS E2E Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tests | Passed :white_check_mark: | Failed :x: | Skipped :fast_forward: |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|:---:|:---:|:---:|:---:|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ${{ steps.summary.outputs.TOTAL }} | ${{ steps.summary.outputs.PASSES }} | ${{ steps.summary.outputs.FAILURES }} | ${{ steps.summary.outputs.SKIPPED }} |" >> "$GITHUB_STEP_SUMMARY"
 
   e2e-maestro-android:
     name: Maestro E2E Tests (Android)
     if: ${{ inputs.platform == 'android' }}
     runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
+    outputs:
+      STATUS: ${{ steps.determine-status.outputs.STATUS }}
+      TARGET_URL: ${{ steps.set-url.outputs.TARGET_URL }}
+      FAILURES: ${{ steps.summary.outputs.FAILURES }}
+      PASSES: ${{ steps.summary.outputs.PASSES }}
+      TOTAL: ${{ steps.summary.outputs.TOTAL }}
+      PERCENTAGE: ${{ steps.summary.outputs.PERCENTAGE }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -414,17 +495,71 @@ jobs:
           name: maestro-android-results-${{ github.run_id }}
           path: build/
 
-      - name: Report Test Results
+      - name: Parse Maestro Report
+        id: summary
         if: always()
         run: |
-          if [ -f build/maestro-report.xml ]; then
-            echo "### Maestro Android E2E Results" >> "$GITHUB_STEP_SUMMARY"
-            TESTS=$(grep -oP 'tests="\K[0-9]+' build/maestro-report.xml | head -1 || echo "0")
-            FAILURES=$(grep -oP 'failures="\K[0-9]+' build/maestro-report.xml | head -1 || echo "0")
-            echo "| Tests | Failures |" >> "$GITHUB_STEP_SUMMARY"
-            echo "|:---:|:---:|" >> "$GITHUB_STEP_SUMMARY"
-            echo "| $TESTS | $FAILURES |" >> "$GITHUB_STEP_SUMMARY"
+          cd detox
+          npm ci --prefer-offline --no-audit --no-fund
+          node -e "
+            const {parseMaestroReport} = require('./utils/maestro_report');
+            const summary = parseMaestroReport('../build/maestro-report.xml');
+            if (summary) {
+              const s = summary.stats;
+              const output = [
+                'FAILURES=' + s.failures,
+                'PASSES=' + s.passes,
+                'TOTAL=' + s.tests,
+                'ERRORS=' + s.errors,
+                'SKIPPED=' + s.skipped,
+                'PERCENTAGE=' + s.passPercent,
+              ];
+              const fs = require('fs');
+              output.forEach(l => fs.appendFileSync(process.env.GITHUB_OUTPUT, l + '\n'));
+            } else {
+              const fs = require('fs');
+              ['FAILURES=0','PASSES=0','TOTAL=0','ERRORS=0','SKIPPED=0','PERCENTAGE=0'].forEach(l => fs.appendFileSync(process.env.GITHUB_OUTPUT, l + '\n'));
+            }
+          "
+
+      - name: Upload Maestro Report to S3
+        if: always()
+        run: |
+          cd detox
+          node -e "
+            const {saveArtifacts} = require('./utils/artifacts');
+            const fse = require('fs-extra');
+            fse.copySync('../build', './artifacts/maestro-android', {overwrite: true});
+            saveArtifacts('maestro-android').then(r => {
+              if (r && r.success) console.log('Uploaded:', r.reportLink);
+            }).catch(e => console.log('S3 upload skipped:', e.message));
+          "
+        env:
+          DETOX_AWS_ACCESS_KEY_ID: ${{ secrets.MM_MOBILE_DETOX_AWS_ACCESS_KEY_ID }}
+          DETOX_AWS_SECRET_ACCESS_KEY: ${{ secrets.MM_MOBILE_DETOX_AWS_SECRET_ACCESS_KEY }}
+          REPORT_PATH: maestro-android-${{ github.run_id }}
+
+      - name: Set Target URL
+        id: set-url
+        if: always()
+        run: |
+          echo "TARGET_URL=https://mattermost-detox-report.s3.amazonaws.com/maestro-android-${{ github.run_id }}/maestro-android/maestro-report.xml" >> "$GITHUB_OUTPUT"
+
+      - name: Determine Status
+        id: determine-status
+        if: always()
+        run: |
+          FAILURES="${{ steps.summary.outputs.FAILURES }}"
+          if [[ "${FAILURES:-0}" -gt 0 ]]; then
+            echo "STATUS=failure" >> "$GITHUB_OUTPUT"
           else
-            echo "### Maestro Android E2E Results" >> "$GITHUB_STEP_SUMMARY"
-            echo "No test report found." >> "$GITHUB_STEP_SUMMARY"
+            echo "STATUS=success" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Generate Summary
+        if: always()
+        run: |
+          echo "### Maestro Android E2E Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tests | Passed :white_check_mark: | Failed :x: | Skipped :fast_forward: |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|:---:|:---:|:---:|:---:|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ${{ steps.summary.outputs.TOTAL }} | ${{ steps.summary.outputs.PASSES }} | ${{ steps.summary.outputs.FAILURES }} | ${{ steps.summary.outputs.SKIPPED }} |" >> "$GITHUB_STEP_SUMMARY"
