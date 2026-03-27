@@ -10,15 +10,15 @@ import {CookieJar} from 'tough-cookie';
 
 // Force IPv4 to avoid IPv6 connection timeouts in CI environments
 // where the test server is behind Cloudflare and IPv6 is unreachable.
-const httpAgent = new http.Agent({family: 4});
-const httpsAgent = new https.Agent({family: 4});
+// Set on global agents because axios-cookiejar-support v5 does not
+// support custom httpAgent/httpsAgent (it uses its own internally).
+(http.globalAgent as any).options.family = 4;
+(https.globalAgent as any).options.family = 4;
 
 const jar = new CookieJar();
 const baseClient = wrapper(axios.create({
     headers: {'X-Requested-With': 'XMLHttpRequest'},
     jar,
-    httpAgent,
-    httpsAgent,
 }));
 
 // Add request interceptor to handle CSRF tokens
