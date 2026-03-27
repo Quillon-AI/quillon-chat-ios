@@ -186,8 +186,8 @@ async function ensureEnterpriseLicense(adminToken: string): Promise<void> {
             console.log('[seed] Server already has Enterprise license.');
             return;
         }
-    } catch {
-        // Could not check license, try requesting trial anyway
+    } catch (err: any) {
+        console.warn(`[seed] License check failed: ${err.message}. Will try requesting trial anyway.`);
     }
 
     console.log('[seed] No Enterprise license — requesting trial...');

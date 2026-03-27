@@ -168,8 +168,12 @@ async function installPlugin(token, pluginId) {
 
     if (isInactive) {
         console.log(`[provision] Plugin ${pluginId} is installed but inactive, enabling...`);
-        await request('POST', `/api/v4/plugins/${encodeURIComponent(pluginId)}/enable`, {}, token);
-        console.log(`[provision] Plugin ${pluginId} enabled.`);
+        const enableRes = await request('POST', `/api/v4/plugins/${encodeURIComponent(pluginId)}/enable`, {}, token);
+        if (enableRes.status >= 400) {
+            console.warn(`[provision] Failed to enable ${pluginId} (HTTP ${enableRes.status}): ${enableRes.data.message || JSON.stringify(enableRes.data)}`);
+        } else {
+            console.log(`[provision] Plugin ${pluginId} enabled.`);
+        }
         return;
     }
 
@@ -183,8 +187,12 @@ async function installPlugin(token, pluginId) {
 
     // Enable
     console.log(`[provision] Enabling ${pluginId}...`);
-    await request('POST', `/api/v4/plugins/${encodeURIComponent(pluginId)}/enable`, {}, token);
-    console.log(`[provision] Plugin ${pluginId} installed and enabled.`);
+    const postInstallEnableRes = await request('POST', `/api/v4/plugins/${encodeURIComponent(pluginId)}/enable`, {}, token);
+    if (postInstallEnableRes.status >= 400) {
+        console.warn(`[provision] Failed to enable ${pluginId} after install (HTTP ${postInstallEnableRes.status}): ${postInstallEnableRes.data.message || JSON.stringify(postInstallEnableRes.data)}`);
+    } else {
+        console.log(`[provision] Plugin ${pluginId} installed and enabled.`);
+    }
 }
 
 async function main() {
