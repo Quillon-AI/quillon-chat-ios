@@ -113,7 +113,13 @@ function main() {
         process.exit(1);
     }
 
-    const platforms = JSON.parse(platformDataJson);
+    let platforms;
+    try {
+        platforms = JSON.parse(platformDataJson);
+    } catch (err) {
+        console.error('PLATFORM_DATA is not valid JSON:', err.message);
+        process.exit(1);
+    }
     const html = generateUnifiedHtml(platforms);
     const outputPath = path.join(outputDir, 'unified-report.html');
 
