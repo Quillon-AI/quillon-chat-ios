@@ -141,6 +141,7 @@ const FloatingTextInput = forwardRef<FloatingTextInputRef, FloatingTextInputProp
             focusedLabel={focusedLabel}
             editable={editable}
             testID={testID ? `${testID}.container` : 'floating-text-input-label'}
+            errorTestID={testID}
         >
             <TextInput
                 {...textInputProps}
@@ -156,6 +157,7 @@ const FloatingTextInput = forwardRef<FloatingTextInputRef, FloatingTextInputProp
                 ref={inputRef}
                 underlineColorAndroid='transparent'
                 testID={testID}
+                nativeID={testID}
                 keyboardAppearance={getKeyboardAppearanceFromTheme(theme)}
                 autoCorrect={!rawInput}
                 autoCapitalize={rawInput ? 'none' : undefined}
