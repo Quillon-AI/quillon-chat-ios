@@ -24,12 +24,6 @@ module.exports = {
             outputName: `${platform}-junit${shard}.xml`,
             uniqueOutputName: false,
         }],
-        ['jest-html-reporters', {
-            pageTitle: 'Mobile App E2E with Detox and Jest',
-            publicPath: './artifacts',
-            filename: `${platform}-report${shard}.html`,
-            expand: false,
-        }],
         ['jest-stare', {
             reportHeadline: 'Mobile App E2E with Detox and Jest',
             resultDir: './artifacts/jest-stare',
