@@ -213,7 +213,7 @@ export const apiUploadLicense = async (baseUrl: string): Promise<any> => {
 export const apiRequestTrialLicense = async (baseUrl: string): Promise<any> => {
     try {
         const response = await client.post(`${baseUrl}/api/v4/trial-license`, {
-            users: 100,
+            users: 1000,
             terms_accepted: true,
             receive_emails_accepted: true,
             contact_name: 'E2E Test',

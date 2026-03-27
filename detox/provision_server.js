@@ -34,8 +34,14 @@ if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
     process.exit(1);
 }
 
-// Plugins to install from Marketplace after licensing
-const REQUIRED_PLUGINS = ['mattermost-ai'];
+// Plugins to install after licensing.
+// Each entry has an id and an optional url for direct download (used when Marketplace doesn't have it).
+const REQUIRED_PLUGINS = [
+    {
+        id: 'mattermost-ai',
+        url: 'https://github.com/mattermost/mattermost-plugin-agents/releases/download/v1.14.0/mattermost-plugin-agents-v1.14.0-linux-amd64.tar.gz',
+    },
+];
 
 function request(method, urlPath, body, token) {
     return new Promise((resolve, reject) => {
@@ -107,7 +113,7 @@ async function ensureTrialLicense(token) {
 
     console.log('[provision] No Enterprise license — requesting trial...');
     const trialRes = await request('POST', '/api/v4/trial-license', {
-        users: 100,
+        users: 1000,
         terms_accepted: true,
         receive_emails_accepted: true,
         contact_name: 'E2E Test',
@@ -149,7 +155,7 @@ async function enablePluginUploads(token) {
     }
 }
 
-async function installPlugin(token, pluginId) {
+async function installPlugin(token, {id: pluginId, url: pluginUrl}) {
     // Check if already installed
     const pluginsRes = await request('GET', '/api/v4/plugins', null, token);
     if (pluginsRes.status >= 400) {
@@ -177,7 +183,24 @@ async function installPlugin(token, pluginId) {
         return;
     }
 
-    // Install from Marketplace
+    // Try URL-based install first (for plugins not in Marketplace)
+    if (pluginUrl) {
+        console.log(`[provision] Installing ${pluginId} from URL: ${pluginUrl}`);
+        const urlInstallRes = await request('POST', `/api/v4/plugins/install_from_url?plugin_download_url=${encodeURIComponent(pluginUrl)}&force=true`, null, token);
+        if (urlInstallRes.status < 400) {
+            console.log(`[provision] Enabling ${pluginId}...`);
+            const enableRes = await request('POST', `/api/v4/plugins/${encodeURIComponent(pluginId)}/enable`, {}, token);
+            if (enableRes.status >= 400) {
+                console.warn(`[provision] Failed to enable ${pluginId} (HTTP ${enableRes.status}): ${enableRes.data.message || JSON.stringify(enableRes.data)}`);
+            } else {
+                console.log(`[provision] Plugin ${pluginId} installed and enabled from URL.`);
+            }
+            return;
+        }
+        console.warn(`[provision] URL install failed for ${pluginId} (HTTP ${urlInstallRes.status}): ${urlInstallRes.data.message || JSON.stringify(urlInstallRes.data)}`);
+    }
+
+    // Fallback to Marketplace
     console.log(`[provision] Installing ${pluginId} from Marketplace...`);
     const installRes = await request('POST', '/api/v4/plugins/marketplace', {id: pluginId}, token);
     if (installRes.status >= 400) {
@@ -185,13 +208,12 @@ async function installPlugin(token, pluginId) {
         return;
     }
 
-    // Enable
     console.log(`[provision] Enabling ${pluginId}...`);
     const postInstallEnableRes = await request('POST', `/api/v4/plugins/${encodeURIComponent(pluginId)}/enable`, {}, token);
     if (postInstallEnableRes.status >= 400) {
         console.warn(`[provision] Failed to enable ${pluginId} after install (HTTP ${postInstallEnableRes.status}): ${postInstallEnableRes.data.message || JSON.stringify(postInstallEnableRes.data)}`);
     } else {
-        console.log(`[provision] Plugin ${pluginId} installed and enabled.`);
+        console.log(`[provision] Plugin ${pluginId} installed and enabled from Marketplace.`);
     }
 }
 
@@ -200,8 +222,8 @@ async function main() {
     await ensureTrialLicense(token);
     await enablePluginUploads(token);
 
-    for (const pluginId of REQUIRED_PLUGINS) {
-        await installPlugin(token, pluginId); // eslint-disable-line no-await-in-loop
+    for (const plugin of REQUIRED_PLUGINS) {
+        await installPlugin(token, plugin); // eslint-disable-line no-await-in-loop
     }
 
     console.log('[provision] Server provisioning complete.');

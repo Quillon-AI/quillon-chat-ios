@@ -193,7 +193,7 @@ async function ensureEnterpriseLicense(adminToken: string): Promise<void> {
     console.log('[seed] No Enterprise license — requesting trial...');
     try {
         await request('POST', '/api/v4/trial-license', {
-            users: 100,
+            users: 1000,
             terms_accepted: true,
             receive_emails_accepted: true,
             contact_name: 'E2E Test',

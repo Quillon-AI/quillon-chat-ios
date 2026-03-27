@@ -24,6 +24,12 @@ appId: ${MAESTRO_APP_ID}
     commands:
       - launchApp:
           stopApp: true
+      # Wait for the app to render an initial screen. On a fresh simulator the
+      # JS bundle takes 10-20s to load. Without this explicit wait the conditional
+      # checks below fire while the screen is still blank and the back-presses
+      # exit the app to the launcher.
+      - waitForAnimationToEnd:
+          timeout: 15000
 - runFlow:
     when:
       platform: Android
@@ -38,13 +44,7 @@ appId: ${MAESTRO_APP_ID}
       - extendedWaitUntil:
           visible:
             id: "server_form.server_url.input"
-          timeout: 15000
-# Give the app time to render its initial screen before any conditional checks.
-# On a fresh emulator/simulator start the JS bundle takes a few seconds to
-# initialize; without this wait the tab-bar / login-form checks below fire
-# before any screen is visible and the back presses exit to the launcher.
-- waitForAnimationToEnd:
-    timeout: 6000
+          timeout: 30000
 # iOS notification permission dialog may appear on first launch after a device
 # wipe or new test session. Dismiss with Allow so push can work; optional so it
 # is silently skipped when the dialog is absent.
