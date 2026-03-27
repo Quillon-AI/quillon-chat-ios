@@ -361,7 +361,7 @@ jobs:
       ios_device_name: "iPad Pro 13-inch (M5)"
       ios_device_os_name: "iOS 26.2"
       search_path: "detox/e2e/test/products/channels/ipad"
-      parallelism: "1"
+      parallelism: "2"
       detox_config: "ios.ipad.debug"
     secrets: inherit
 
@@ -548,7 +548,7 @@ jobs:
             const file = 'unified-report/unified-report.html';
             new Upload({client: s3, params: {
               Key: process.env.REPORT_PATH + '/unified-report.html',
-              Bucket: 'mattermost-detox-report',
+              Bucket: process.env.AWS_BUCKET,
               Body: fs.readFileSync(file),
               ContentType: 'text/html; charset=utf-8',
             }}).done().then(() => console.log('Uploaded unified report to S3'));
@@ -556,6 +556,7 @@ jobs:
         env:
           AWS_KEY: ${{ secrets.MM_MOBILE_DETOX_AWS_ACCESS_KEY_ID }}
           AWS_SECRET: ${{ secrets.MM_MOBILE_DETOX_AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET: ${{ secrets.MM_MOBILE_DETOX_AWS_S3_BUCKET }}
           REPORT_PATH: unified-${{ github.run_id }}
 
       - name: Post or update unified PR comment
@@ -567,7 +568,7 @@ jobs:
             if (!prNumber) return;
 
             const platforms = JSON.parse(process.env.PLATFORM_DATA);
-            const unifiedUrl = `https://mattermost-detox-report.s3.amazonaws.com/unified-${context.runId}/unified-report.html`;
+            const unifiedUrl = `https://${process.env.S3_BUCKET}.s3.amazonaws.com/unified-${context.runId}/unified-report.html`;
 
             const rows = platforms.map(p => {
               if (p.status === 'not_run') {
@@ -625,6 +626,7 @@ jobs:
           PR_NUMBER: ${{ inputs.pr_number }}
           PLATFORM_DATA: ${{ env.PLATFORM_DATA }}
           MOBILE_SHA: ${{ inputs.MOBILE_VERSION }}
+          S3_BUCKET: ${{ secrets.MM_MOBILE_DETOX_AWS_S3_BUCKET }}
 
       - name: Send unified webhook
         if: inputs.run_type != '' && inputs.run_type != 'NONE'
@@ -638,7 +640,7 @@ jobs:
             const totalPasses = ran.reduce((s, p) => s + (p.passes || 0), 0);
             const totalFailures = ran.reduce((s, p) => s + (p.failures || 0), 0);
             const overallPct = totalTests > 0 ? ((totalPasses / totalTests) * 100).toFixed(2) : '0.00';
-            const unifiedUrl = 'https://mattermost-detox-report.s3.amazonaws.com/unified-' + process.env.RUN_ID + '/unified-report.html';
+            const unifiedUrl = 'https://' + process.env.S3_BUCKET + '.s3.amazonaws.com/unified-' + process.env.RUN_ID + '/unified-report.html';
 
             const lines = platforms.map(p => {
               if (p.status === 'not_run') return '- ' + p.name + ': ⏸️ NOT RUN';
@@ -669,6 +671,7 @@ jobs:
         env:
           PLATFORM_DATA: ${{ env.PLATFORM_DATA }}
           RUN_ID: ${{ github.run_id }}
+          S3_BUCKET: ${{ secrets.MM_MOBILE_DETOX_AWS_S3_BUCKET }}
           WEBHOOK_URL: ${{ secrets.MM_MOBILE_E2E_WEBHOOK_URL }}
 
   e2e-remove-matterwick-label:
