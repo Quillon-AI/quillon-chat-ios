@@ -179,9 +179,40 @@ function writeEnvFile(vars: Record<string, string>): void {
     console.log(`[seed] Wrote env vars to ${ENV_FILE}`);
 }
 
+async function ensureEnterpriseLicense(adminToken: string): Promise<void> {
+    try {
+        const license = await request('GET', '/api/v4/license/client?format=old', null, adminToken);
+        if (license.IsLicensed === 'true') {
+            console.log('[seed] Server already has Enterprise license.');
+            return;
+        }
+    } catch {
+        // Could not check license, try requesting trial anyway
+    }
+
+    console.log('[seed] No Enterprise license — requesting trial...');
+    try {
+        await request('POST', '/api/v4/trial-license', {
+            users: 100,
+            terms_accepted: true,
+            receive_emails_accepted: true,
+            contact_name: 'E2E Test',
+            contact_email: 'admin@example.mattermost.com',
+            company_name: 'Mattermost E2E',
+            company_country: 'US',
+            company_size: 'ONE_TO_50',
+        }, adminToken);
+        console.log('[seed] Trial Enterprise license activated.');
+    } catch (err: any) {
+        console.warn(`[seed] Failed to request trial license: ${err.message}`);
+    }
+}
+
 async function main(): Promise<void> {
     const {user: adminUser, token: adminToken} = await loginAndGetToken();
     console.log(`[seed] Admin session token obtained (admin id: ${adminUser.id})`);
+
+    await ensureEnterpriseLicense(adminToken);
 
     const prefix = randomPrefix();
     const team = await createTeam(adminToken, prefix);
