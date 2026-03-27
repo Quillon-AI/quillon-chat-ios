@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 /* eslint-disable no-await-in-loop, no-console */
 
-import {execSync} from 'child_process';
+import {execSync, spawn} from 'child_process';
 
 import {ClaudePromptHandler} from '@support/pilot/ClaudePromptHandler';
 import {Plugin, System, User} from '@support/server_api';
@@ -350,6 +350,52 @@ async function dismissRedBoxIfVisible(): Promise<void> {
 }
 
 /**
+ * Pre-terminate the iOS app with a timeout to work around `xcrun simctl terminate`
+ * hanging indefinitely. If the graceful terminate doesn't complete within the timeout,
+ * fall back to SIGKILL via `pkill -9` on the app process.
+ *
+ * This prevents the global beforeAll from burning its entire 240s Jest timeout waiting
+ * for a stuck simctl terminate, which was causing ~50% of iOS CI failures.
+ */
+async function forceTerminateIosApp(bundleId: string, timeoutMs = 15000): Promise<void> {
+    // Try graceful terminate with a timeout
+    try {
+        await new Promise<void>((resolve, reject) => {
+            const proc = spawn('xcrun', ['simctl', 'terminate', 'booted', bundleId], {stdio: 'pipe'});
+            const timer = setTimeout(() => {
+                proc.kill('SIGKILL');
+                reject(new Error(`simctl terminate timed out after ${timeoutMs}ms`));
+            }, timeoutMs);
+
+            proc.on('close', () => {
+                clearTimeout(timer);
+                resolve();
+            });
+            proc.on('error', (err) => {
+                clearTimeout(timer);
+                reject(err);
+            });
+        });
+        console.info('✅ iOS app terminated gracefully');
+    } catch (e) {
+        console.warn(`⚠️ Graceful terminate failed (${(e as Error).message}), force-killing app process`);
+
+        // Fall back to SIGKILL on the app process directly.
+        // bundleId is a compile-time constant (e.g. "com.mattermost.rnbeta"), not user input.
+        try {
+            execSync(`pkill -9 -f "${bundleId}"`, {stdio: 'pipe'});
+
+            // Give the simulator a moment to clean up after the force-kill
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            console.info('✅ iOS app force-killed via pkill');
+        } catch {
+            // pkill returns exit code 1 if no matching process — that's fine, app is already dead
+            console.info('ℹ️ No matching app process found (app may already be terminated)');
+        }
+    }
+}
+
+/**
  * Launch the app with retry mechanism
  * @returns {Promise<void>}
  */
@@ -397,6 +443,16 @@ export async function launchAppWithRetry(): Promise<void> {
                 // bundle container — deleting the app destroys the symlink target, so the next
                 // launch can't find the binary. newInstance: true alone clears in-memory state.
                 const isCI = Boolean(process.env.CI);
+
+                // Pre-terminate the app before the first launch to prevent `xcrun simctl terminate`
+                // from hanging inside Detox's `device.launchApp({delete: true})`. Detox calls
+                // simctl terminate internally with no timeout, which can block for 240s+ on iOS
+                // simulators (known Xcode bug). By terminating with our own 15s timeout + SIGKILL
+                // fallback, we ensure Detox's launchApp finds the app already dead.
+                if (isCI && device.getPlatform() === 'ios') {
+                    await forceTerminateIosApp('com.mattermost.rnbeta');
+                }
+
                 await device.launchApp({
                     newInstance: true,
 
