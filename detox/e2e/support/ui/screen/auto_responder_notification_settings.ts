@@ -21,7 +21,7 @@ class AutoResponderNotificationSettingsScreen {
     scrollView = element(by.id(this.testID.scrollView));
     enableAutomaticRepliesOptionToggledOff = element(by.id(this.testID.enableAutomaticRepliesOptionToggledOff));
     enableAutomaticRepliesOptionToggledOn = element(by.id(this.testID.enableAutomaticRepliesOptionToggledOn));
-    messageInput = element(by.id(this.testID.messageInput)).atIndex(1);
+    messageInput = element(by.id(this.testID.messageInput));
     messageInputDescription = element(by.id(this.testID.messageInputDescription));
 
     toBeVisible = async () => {

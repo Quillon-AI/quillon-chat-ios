@@ -114,24 +114,24 @@ describe('Account - User Attributes', () => {
             toBeVisible().
             whileElement(by.id(EditProfileScreen.testID.scrollView)).
             scroll(300, 'down');
-        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[0]}.input`)).atIndex(1).tap();
-        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[0]}.input`)).atIndex(1).typeText(`${attrValue1}\n`);
+        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[0]}.input`)).tap();
+        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[0]}.input`)).typeText(`${attrValue1}\n`);
 
         // # Scroll to second attribute field, tap it, type value + '\n' to dismiss keyboard
         await waitFor(element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[1]}`))).
             toBeVisible().
             whileElement(by.id(EditProfileScreen.testID.scrollView)).
             scroll(200, 'down');
-        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[1]}.input`)).atIndex(1).tap();
-        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[1]}.input`)).atIndex(1).typeText(`${attrValue2}\n`);
+        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[1]}.input`)).tap();
+        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[1]}.input`)).typeText(`${attrValue2}\n`);
 
         // # Scroll to third attribute field, tap it, type value + '\n' to dismiss keyboard
         await waitFor(element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[2]}`))).
             toBeVisible().
             whileElement(by.id(EditProfileScreen.testID.scrollView)).
             scroll(200, 'down');
-        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[2]}.input`)).atIndex(1).tap();
-        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[2]}.input`)).atIndex(1).typeText(`${attrValue3}\n`);
+        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[2]}.input`)).tap();
+        await element(by.id(`edit_profile_form.customAttributes.${createdFieldIds[2]}.input`)).typeText(`${attrValue3}\n`);
 
         // * Verify returned to account screen — '\n' on the last field triggers onFocusNextField
         // which calls submitUser() automatically (isLastEnabledField=true, canSave=true)

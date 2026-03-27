@@ -8,7 +8,7 @@ import CustomProfileAttributes from './custom_profile_attributes';
 import Ldap from './ldap';
 import Playbooks from './playbooks';
 import PlaybooksHelpers from './playbooks_helpers';
-import Plugin, {CallsPlugin, DemoPlugin} from './plugin';
+import Plugin, {AgentsPlugin, CallsPlugin, DemoPlugin} from './plugin';
 import Post from './post';
 import Preference from './preference';
 import Setup from './setup';
@@ -18,6 +18,7 @@ import Team from './team';
 import User from './user';
 
 export {
+    AgentsPlugin,
     Bot,
     CallsPlugin,
     Channel,

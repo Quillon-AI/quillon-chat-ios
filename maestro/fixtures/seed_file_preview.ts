@@ -4,18 +4,20 @@
 
 /* eslint-disable no-process-env, no-console */
 
+const concatBuffers = (parts: Buffer[]): Buffer => Buffer.concat(parts as unknown as Uint8Array[]);
+
 import fs from 'fs';
 import http, {type IncomingMessage, type RequestOptions} from 'http';
 import https from 'https';
 import path from 'path';
 
 const SITE_1_URL = process.env.SITE_1_URL as string;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL as string;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME as string;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD as string;
 const ENV_FILE = '.maestro-test-env.sh';
 
-if (!SITE_1_URL || !ADMIN_EMAIL || !ADMIN_PASSWORD) {
-    console.error('[seed_file_preview] Error: SITE_1_URL, ADMIN_EMAIL, and ADMIN_PASSWORD are required');
+if (!SITE_1_URL || !ADMIN_USERNAME || !ADMIN_PASSWORD) {
+    console.error('[seed_file_preview] Error: SITE_1_URL, ADMIN_USERNAME, and ADMIN_PASSWORD are required');
     process.exit(1);
 }
 
@@ -24,7 +26,7 @@ const DETOX_FIXTURES = path.join(__dirname, '../../detox/e2e/support/fixtures');
 // Minimal valid MP4: ftyp box (24 bytes) + free box (8 bytes).
 // The 'ftyp isom' magic causes Mattermost server to return video/mp4 MIME type.
 function createMp4Stub(): Buffer {
-    return Buffer.concat([
+    return concatBuffers([
         Buffer.from([0x00, 0x00, 0x00, 0x18]), // ftyp box size = 24
         Buffer.from('ftyp'), // box type
         Buffer.from('isom'), // major brand
@@ -40,7 +42,7 @@ function createMp4Stub(): Buffer {
 // PK\x05\x06 magic → Mattermost returns application/zip MIME type.
 // application/zip is NOT in SUPPORTED_DOCS_FORMAT so the app renders a generic file card.
 function createZipStub(): Buffer {
-    return Buffer.concat([
+    return concatBuffers([
         Buffer.from([0x50, 0x4B, 0x05, 0x06]), // end-of-central-dir signature
         Buffer.alloc(18, 0), // 18 zero bytes (rest of EOCD record)
     ]);
@@ -145,7 +147,8 @@ function loginAndGetToken(): Promise<{user: any; token: string}> {
     return new Promise((resolve, reject) => {
         const url = new URL(SITE_1_URL + '/api/v4/users/login');
         const lib = url.protocol === 'https:' ? https : http;
-        const payload = JSON.stringify({login_id: ADMIN_EMAIL, password: ADMIN_PASSWORD});
+        const loginId = ADMIN_USERNAME;
+        const payload = JSON.stringify({login_id: loginId, password: ADMIN_PASSWORD});
         const options: RequestOptions = {
             hostname: url.hostname,
             port: url.port || (url.protocol === 'https:' ? 443 : 80),
@@ -165,7 +168,15 @@ function loginAndGetToken(): Promise<{user: any; token: string}> {
             res.on('end', () => {
                 try {
                     const parsed = JSON.parse(data);
+                    if ((res.statusCode ?? 0) >= 400) {
+                        reject(new Error(`[seed_file_preview] Login failed (HTTP ${res.statusCode}): ${parsed.message || data}`));
+                        return;
+                    }
                     const sessionToken = res.headers.token as string;
+                    if (!sessionToken) {
+                        reject(new Error('[seed_file_preview] Login succeeded but no session token in response headers'));
+                        return;
+                    }
                     resolve({user: parsed, token: sessionToken});
                 } catch (e) {
                     reject(new Error(`[seed_file_preview] Failed to parse login response: ${data}`));
@@ -184,7 +195,7 @@ function loginAndGetToken(): Promise<{user: any; token: string}> {
 function uploadFile(token: string, channelId: string, fileContent: Buffer, fileName: string, mimeType: string): Promise<any> {
     return new Promise((resolve, reject) => {
         const boundary = `MaestroBoundary${Date.now()}`;
-        const body = Buffer.concat([
+        const body = concatBuffers([
             Buffer.from(
                 `--${boundary}\r\n` +
                 'Content-Disposition: form-data; name="channel_id"\r\n\r\n' +

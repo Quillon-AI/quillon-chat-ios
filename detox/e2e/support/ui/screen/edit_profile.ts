@@ -34,22 +34,20 @@ class EditProfileScreen {
     saveButton = element(by.id(this.testID.saveButton));
     scrollView = element(by.id(this.testID.scrollView));
 
-    // FloatingTextInput places testID on both outer container View (index 0) and TextInput (index 1).
-    // atIndex(1) targets the actual TextInput for interactions and text assertions.
-    firstNameInput = element(by.id(this.testID.firstNameInput)).atIndex(1);
-    firstNameInputDisabled = element(by.id(this.testID.firstNameInputDisabled)).atIndex(1);
-    lastNameInput = element(by.id(this.testID.lastNameInput)).atIndex(1);
-    lastNameInputDisabled = element(by.id(this.testID.lastNameInputDisabled)).atIndex(1);
-    usernameInput = element(by.id(this.testID.usernameInput)).atIndex(1);
-    usernameInputDisabled = element(by.id(this.testID.usernameInputDisabled)).atIndex(1);
+    firstNameInput = element(by.id(this.testID.firstNameInput));
+    firstNameInputDisabled = element(by.id(this.testID.firstNameInputDisabled));
+    lastNameInput = element(by.id(this.testID.lastNameInput));
+    lastNameInputDisabled = element(by.id(this.testID.lastNameInputDisabled));
+    usernameInput = element(by.id(this.testID.usernameInput));
+    usernameInputDisabled = element(by.id(this.testID.usernameInputDisabled));
     usernameInputError = element(by.id(this.testID.usernameInputError));
-    emailInput = element(by.id(this.testID.emailInput)).atIndex(1);
-    emailInputDisabled = element(by.id(this.testID.emailInputDisabled)).atIndex(1);
+    emailInput = element(by.id(this.testID.emailInput));
+    emailInputDisabled = element(by.id(this.testID.emailInputDisabled));
     emailInputDescription = element(by.id(this.testID.emailInputDescription));
-    nicknameInput = element(by.id(this.testID.nicknameInput)).atIndex(1);
-    nicknameInputDisabled = element(by.id(this.testID.nicknameInputDisabled)).atIndex(1);
-    positionInput = element(by.id(this.testID.positionInput)).atIndex(1);
-    positionInputDisabled = element(by.id(this.testID.positionInputDisabled)).atIndex(1);
+    nicknameInput = element(by.id(this.testID.nicknameInput));
+    nicknameInputDisabled = element(by.id(this.testID.nicknameInputDisabled));
+    positionInput = element(by.id(this.testID.positionInput));
+    positionInputDisabled = element(by.id(this.testID.positionInputDisabled));
 
     getEditProfilePicture = (userId: string) => {
         return element(ProfilePicture.getProfilePictureItemMatcher(this.testID.editProfileScreenPrefix, userId));

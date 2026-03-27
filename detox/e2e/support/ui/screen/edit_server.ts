@@ -21,7 +21,7 @@ class EditServerScreen {
     closeButton = element(by.id(this.testID.closeButton));
     headerTitle = element(by.id(this.testID.headerTitle));
     headerDescription = element(by.id(this.testID.headerDescription));
-    serverDisplayNameInput = element(by.id(this.testID.serverDisplayNameInput)).atIndex(1);
+    serverDisplayNameInput = element(by.id(this.testID.serverDisplayNameInput));
     serverDisplayNameInputError = element(by.id(this.testID.serverDisplayNameInputError));
     displayHelp = element(by.id(this.testID.displayHelp));
     saveButton = element(by.id(this.testID.saveButton));

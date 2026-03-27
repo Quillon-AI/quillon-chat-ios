@@ -35,7 +35,7 @@ class MentionNotificationSettingsScreen {
     nonCaseSensitiveUsernameOptionToggledOn = element(by.id(this.testID.nonCaseSensitiveUsernameOptionToggledOn));
     channelWideMentionsOptionToggledOff = element(by.id(this.testID.channelWideMentionsOptionToggledOff));
     channelWideMentionsOptionToggledOn = element(by.id(this.testID.channelWideMentionsOptionToggledOn));
-    keywordsInput = element(by.id(this.testID.keywordsInput)).atIndex(1);
+    keywordsInput = element(by.id(this.testID.keywordsInput));
     keywordsInputDescription = element(by.id(this.testID.keywordsInputDescription));
     threadsStartParticipateOption = element(by.id(this.testID.threadsStartParticipateOption));
     threadsStartParticipateOptionSelected = element(by.id(this.testID.threadsStartParticipateOptionSelected));

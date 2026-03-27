@@ -37,10 +37,10 @@ class CreateOrEditChannelScreen {
     makePrivateToggledOff = element(by.id(this.testID.makePrivateToggledOff));
     makePrivateToggledOn = element(by.id(this.testID.makePrivateToggledOn));
     makePrivateDescription = element(by.id(this.testID.makePrivateDescription));
-    displayNameInput = element(by.id(this.testID.displayNameInput)).atIndex(1);
-    purposeInput = element(by.id(this.testID.purposeInput)).atIndex(1);
+    displayNameInput = element(by.id(this.testID.displayNameInput));
+    purposeInput = element(by.id(this.testID.purposeInput));
     purposeDescription = element(by.id(this.testID.purposeDescription));
-    headerInput = element(by.id(this.testID.headerInput)).atIndex(1);
+    headerInput = element(by.id(this.testID.headerInput));
     headerDescription = element(by.id(this.testID.headerDescription));
 
     toBeVisible = async () => {

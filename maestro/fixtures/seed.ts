@@ -9,13 +9,13 @@ import http, {type IncomingMessage, type RequestOptions} from 'http';
 import https from 'https';
 
 const SITE_1_URL = process.env.SITE_1_URL as string;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL as string;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME as string;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD as string;
 const TWO_USERS = process.argv.includes('--two-users');
 const ENV_FILE = '.maestro-test-env.sh';
 
-if (!SITE_1_URL || !ADMIN_EMAIL || !ADMIN_PASSWORD) {
-    console.error('[seed] Error: SITE_1_URL, ADMIN_EMAIL, and ADMIN_PASSWORD are required');
+if (!SITE_1_URL || !ADMIN_USERNAME || !ADMIN_PASSWORD) {
+    console.error('[seed] Error: SITE_1_URL, ADMIN_USERNAME, and ADMIN_PASSWORD are required');
     process.exit(1);
 }
 
@@ -72,7 +72,8 @@ function loginAndGetToken(): Promise<{user: any; token: string}> {
     return new Promise((resolve, reject) => {
         const url = new URL(SITE_1_URL + '/api/v4/users/login');
         const lib = url.protocol === 'https:' ? https : http;
-        const payload = JSON.stringify({login_id: ADMIN_EMAIL, password: ADMIN_PASSWORD});
+        const loginId = ADMIN_USERNAME;
+        const payload = JSON.stringify({login_id: loginId, password: ADMIN_PASSWORD});
         const options: RequestOptions = {
             hostname: url.hostname,
             port: url.port || (url.protocol === 'https:' ? 443 : 80),
@@ -92,7 +93,15 @@ function loginAndGetToken(): Promise<{user: any; token: string}> {
             res.on('end', () => {
                 try {
                     const parsed = JSON.parse(data);
+                    if ((res.statusCode ?? 0) >= 400) {
+                        reject(new Error(`[seed] Login failed (HTTP ${res.statusCode}): ${parsed.message || data}`));
+                        return;
+                    }
                     const sessionToken = res.headers.token as string;
+                    if (!sessionToken) {
+                        reject(new Error('[seed] Login succeeded but no session token in response headers'));
+                        return;
+                    }
                     resolve({user: parsed, token: sessionToken});
                 } catch (e) {
                     reject(new Error(`[seed] Failed to parse login response: ${data}`));

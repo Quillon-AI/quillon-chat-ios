@@ -8,6 +8,8 @@
 // *******************************************************************
 
 import {
+    AgentsPlugin,
+    Plugin,
     Setup,
 } from '@support/server_api';
 import {
@@ -28,22 +30,46 @@ describe('Agents - Channel Summary', () => {
     const serverOneDisplayName = 'Server 1';
     const channelsCategory = 'channels';
     let testChannel: any;
+    let agentsEnabled = false;
 
     beforeAll(async () => {
+        // # Ensure agents plugin is active; skip suite if not installed
+        const pluginStatus = await Plugin.apiGetPluginStatus(siteOneUrl, AgentsPlugin.id);
+        if (!pluginStatus.isInstalled) {
+            // eslint-disable-next-line no-console
+            console.warn(`Agents plugin (${AgentsPlugin.id}) is not installed — skipping suite`);
+            return;
+        }
+        if (!pluginStatus.isActive) {
+            await Plugin.apiEnablePluginById(siteOneUrl, AgentsPlugin.id);
+        }
+        agentsEnabled = true;
+
         const {channel, user} = await Setup.apiInit(siteOneUrl);
         testChannel = channel;
 
         // # Log in to server
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(user);
+
+        // # Wait for WebSocket to connect and agents status to be fetched
+        await wait(timeouts.FOUR_SEC);
     });
 
     beforeEach(async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // * Verify on channel list screen
         await ChannelListScreen.toBeVisible();
     });
 
     afterAll(async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Log out
         await HomeScreen.logout();
     });
@@ -57,7 +83,7 @@ describe('Agents - Channel Summary', () => {
         await ChannelScreen.channelQuickActionsButton.tap();
 
         // * Verify Ask Agents option is visible
-        await waitFor(element(by.id('channel.quick_actions.ask_agents'))).toBeVisible().withTimeout(timeouts.FOUR_SEC);
+        await waitFor(element(by.id('channel.quick_actions.ask_agents'))).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
         // # Close the bottom sheet by pressing back
         await device.pressBack();
@@ -73,7 +99,7 @@ describe('Agents - Channel Summary', () => {
         await ChannelScreen.channelQuickActionsButton.tap();
 
         // # Wait for and tap Ask Agents option to open the summary sheet
-        await waitFor(element(by.id('channel.quick_actions.ask_agents'))).toBeVisible().withTimeout(timeouts.FOUR_SEC);
+        await waitFor(element(by.id('channel.quick_actions.ask_agents'))).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await element(by.id('channel.quick_actions.ask_agents')).tap();
 
         // * Verify summary options are visible

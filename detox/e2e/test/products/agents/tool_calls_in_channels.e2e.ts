@@ -8,7 +8,9 @@
 // *******************************************************************
 
 import {
+    AgentsPlugin,
     Channel,
+    Plugin,
     Setup,
     Team,
     User,
@@ -103,8 +105,21 @@ describe('Agents - Tool Calls in Channels', () => {
     let testChannel: any;
     let testUser: any;
     let testTeam: any;
+    let agentsEnabled = false;
 
     beforeAll(async () => {
+        // # Ensure agents plugin is active; skip suite if not installed
+        const pluginStatus = await Plugin.apiGetPluginStatus(siteOneUrl, AgentsPlugin.id);
+        if (!pluginStatus.isInstalled) {
+            // eslint-disable-next-line no-console
+            console.warn(`Agents plugin (${AgentsPlugin.id}) is not installed — skipping suite`);
+            return;
+        }
+        if (!pluginStatus.isActive) {
+            await Plugin.apiEnablePluginById(siteOneUrl, AgentsPlugin.id);
+        }
+        agentsEnabled = true;
+
         const {channel, team, user} = await Setup.apiInit(siteOneUrl);
         testChannel = channel;
         testUser = user;
@@ -113,14 +128,25 @@ describe('Agents - Tool Calls in Channels', () => {
         // # Log in to server
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(user);
+
+        // # Wait for WebSocket to connect and agents status to be fetched
+        await wait(timeouts.FOUR_SEC);
     });
 
     beforeEach(async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // * Verify on channel list screen
         await ChannelListScreen.toBeVisible();
     });
 
     afterAll(async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Log out
         await HomeScreen.logout();
     });
@@ -396,7 +422,7 @@ describe('Agents - Tool Calls in Channels', () => {
         // # Use find channels to navigate to the DM
         const {headerPlusButton} = ChannelListScreen;
         await headerPlusButton.tap();
-        await element(by.id('channel_list.header.plus_menu.open_direct_message')).tap();
+        await element(by.id('plus_menu_item.open_direct_message')).tap();
 
         // # Search for admin user in the DM create screen
         await waitFor(element(by.id('create_direct_message.search_bar.search.input'))).toBeVisible().withTimeout(timeouts.FOUR_SEC);

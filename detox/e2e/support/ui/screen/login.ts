@@ -34,11 +34,9 @@ class LoginScreen {
     descriptionSelectOption = element(by.id(this.testID.descriptionSelectOption));
     descriptionNone = element(by.id(this.testID.descriptionNone));
 
-    // FloatingTextInput places testID on both outer container View (index 0) and TextInput (index 1).
-    // atIndex(1) targets the actual TextInput for interactions and visibility checks.
-    usernameInput = element(by.id(this.testID.usernameInput)).atIndex(1);
+    usernameInput = element(by.id(this.testID.usernameInput));
     usernameInputError = element(by.id(this.testID.usernameInputError));
-    passwordInput = element(by.id(this.testID.passwordInput)).atIndex(1);
+    passwordInput = element(by.id(this.testID.passwordInput));
     passwordInputError = element(by.id(this.testID.passwordInputError));
     forgotPasswordButton = element(by.id(this.testID.forgotPasswordButton));
     signinButton = element(by.id(this.testID.signinButton));

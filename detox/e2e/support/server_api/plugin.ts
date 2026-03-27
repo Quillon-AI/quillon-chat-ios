@@ -53,6 +53,11 @@ export const apiGetLatestPluginVersion = async (repo: string): Promise<string> =
     }
 };
 
+// Agents Plugin Constants
+export const AgentsPlugin = {
+    id: 'mattermost-ai',
+} as const;
+
 // Calls Plugin Constants
 export const CallsPlugin = {
     id: 'com.mattermost.calls',
