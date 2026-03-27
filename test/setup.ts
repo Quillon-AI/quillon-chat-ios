@@ -386,6 +386,7 @@ jest.doMock('react-native', () => {
             ignoreLogs: jest.fn(),
             ignoreAllLogs: jest.fn(),
         },
+        findNodeHandle: jest.fn(() => null),
     }, ReactNative);
 });
 
@@ -492,6 +493,13 @@ jest.mock('react-native-keyboard-controller', () => {
             dismiss: jest.fn(() => Promise.resolve()),
         },
         KeyboardAwareScrollView: 'KeyboardAwareScrollView',
+        KeyboardState: {
+            UNKNOWN: 0,
+            OPENING: 1,
+            OPEN: 2,
+            CLOSING: 3,
+            CLOSED: 4,
+        },
     };
 });
 

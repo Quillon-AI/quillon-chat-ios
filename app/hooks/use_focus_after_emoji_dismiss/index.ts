@@ -6,7 +6,7 @@ import {Platform} from 'react-native';
 import {runOnUI} from 'react-native-reanimated';
 
 import {isAndroidEdgeToEdge} from '@constants/device';
-import {useKeyboardAnimationContext} from '@context/keyboard_animation';
+import {useKeyboardState} from '@context/keyboard_state';
 
 import type {PasteInputRef} from '@mattermost/react-native-paste-input';
 
@@ -18,18 +18,16 @@ import type {PasteInputRef} from '@mattermost/react-native-paste-input';
  *
  */
 export const useFocusAfterEmojiDismiss = (
-    inputRef: React.MutableRefObject<PasteInputRef | undefined>,
+    inputRef: React.MutableRefObject<PasteInputRef | null>,
     focusInput: () => void,
 ) => {
     const {
         showInputAccessoryView,
         setShowInputAccessoryView,
-        isInputAccessoryViewMode,
-        inputAccessoryViewAnimatedHeight,
-        keyboardTranslateY,
-        isTransitioningFromCustomView,
         setIsEmojiSearchFocused,
-    } = useKeyboardAnimationContext();
+        stateContext,
+        stateMachine,
+    } = useKeyboardState();
 
     const [isManuallyFocusingAfterEmojiDismiss, setIsManuallyFocusingAfterEmojiDismiss] = useState(false);
     const isDismissingEmojiPicker = useRef(false);
@@ -47,7 +45,7 @@ export const useFocusAfterEmojiDismiss = (
             inputRef.current?.blur();
 
             // Use requestAnimationFrame to ensure state updates have been applied
-            requestAnimationFrame(() => {
+            const raf = requestAnimationFrame(() => {
                 const handleDelayedFocus = () => {
                     focusInput();
                     setIsManuallyFocusingAfterEmojiDismiss(false);
@@ -58,6 +56,10 @@ export const useFocusAfterEmojiDismiss = (
             });
 
             return () => {
+                if (raf) {
+                    cancelAnimationFrame(raf);
+                }
+
                 if (focusTimeoutRef.current) {
                     clearTimeout(focusTimeoutRef.current);
                     focusTimeoutRef.current = null;
@@ -71,21 +73,24 @@ export const useFocusAfterEmojiDismiss = (
     // Wrapped focus function that handles emoji picker dismissal
     const focusWithEmojiDismiss = useCallback(() => {
         // Android < 35: Use complex dismissal logic with delays
-        // Android >= 35 (EdgeToEdge): Use simple focus like iOS - onFocus will handle transition
+        // Android >= 35 (EdgeToEdge): Use simple focus like iOS - state machine handles transition
         if (Platform.OS === 'android' && !isAndroidEdgeToEdge && showInputAccessoryView) {
             isDismissingEmojiPicker.current = true;
             setIsManuallyFocusingAfterEmojiDismiss(true);
 
+            // Set guard flag to block keyboard events during transition
+            stateContext.isEmojiPickerTransition.value = true;
+
+            // Animate emoji picker to 0 and dispatch close event
             runOnUI(() => {
                 'worklet';
-                inputAccessoryViewAnimatedHeight.value = 0;
-                keyboardTranslateY.value = 0;
-                isInputAccessoryViewMode.value = false;
-                isTransitioningFromCustomView.value = true;
+                stateContext.inputAccessoryHeight.value = 0;
+                stateContext.postInputTranslateY.value = 0;
             })();
 
             setIsEmojiSearchFocused(false);
             setShowInputAccessoryView(false);
+            stateMachine.onUserCloseEmoji();
 
             if (focusTimeoutRef.current) {
                 clearTimeout(focusTimeoutRef.current);
@@ -99,20 +104,21 @@ export const useFocusAfterEmojiDismiss = (
                 setIsManuallyFocusingAfterEmojiDismiss(false);
                 isDismissingEmojiPicker.current = false;
                 focusTimeoutRef.current = null;
+
+                // Clear guard flag after transition completes
+                stateContext.isEmojiPickerTransition.value = false;
             }, 200);
         } else {
             focusInput();
         }
     }, [
         showInputAccessoryView,
-        inputAccessoryViewAnimatedHeight,
         setShowInputAccessoryView,
-        isInputAccessoryViewMode,
-        keyboardTranslateY,
-        isTransitioningFromCustomView,
         setIsEmojiSearchFocused,
         inputRef,
         focusInput,
+        stateContext,
+        stateMachine,
     ]);
 
     return {

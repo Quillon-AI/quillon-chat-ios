@@ -17,7 +17,7 @@ import SystemAvatar from '@components/system_avatar';
 import SystemHeader from '@components/system_header';
 import {Screens} from '@constants';
 import {POST_TIME_TO_FAIL} from '@constants/post';
-import {useKeyboardAnimationContext} from '@context/keyboard_animation';
+import {useKeyboardState} from '@context/keyboard_state';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {usePreventDoubleTap} from '@hooks/utils';
@@ -153,7 +153,7 @@ const Post = ({
     const pressDetected = useRef(false);
     const serverUrl = useServerUrl();
     const theme = useTheme();
-    const {blurAndDismissKeyboard, closeInputAccessoryView, showInputAccessoryView} = useKeyboardAnimationContext();
+    const {blurAndDismissKeyboard} = useKeyboardState();
     const styles = getStyleSheet(theme);
     const isAutoResponder = fromAutoResponder(post);
     const isPendingOrFailed = isPostPendingOrFailed(post);
@@ -233,14 +233,10 @@ const Post = ({
             return;
         }
 
-        if (showInputAccessoryView) {
-            closeInputAccessoryView();
-        }
-
         await blurAndDismissKeyboard();
         const passProps = {sourceScreen: location, postId: post.id, showAddReaction};
         navigateToScreen(Screens.POST_OPTIONS, passProps);
-    }, [post, isSystemPost, canDelete, hasBeenDeleted, isPendingOrFailed, isEphemeral, showInputAccessoryView, blurAndDismissKeyboard, location, showAddReaction, closeInputAccessoryView]);
+    }, [post, isSystemPost, canDelete, hasBeenDeleted, isPendingOrFailed, isEphemeral, blurAndDismissKeyboard, location, showAddReaction]);
 
     const [, rerender] = useState(false);
     useEffect(() => {

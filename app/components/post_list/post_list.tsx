@@ -3,8 +3,8 @@
 
 import React, {type ReactElement, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {DeviceEventEmitter, type GestureResponderEvent, type ListRenderItemInfo, Platform, type StyleProp, StyleSheet, type ViewStyle, type NativeSyntheticEvent, type NativeScrollEvent, FlatList} from 'react-native';
-import {useKeyboardState} from 'react-native-keyboard-controller';
-import Animated, {runOnJS, useAnimatedProps, useAnimatedReaction, useAnimatedStyle, useSharedValue, type AnimatedStyle} from 'react-native-reanimated';
+import {KeyboardState, useAnimatedKeyboard, useKeyboardState as useControllerKeyboardState} from 'react-native-keyboard-controller';
+import Animated, {runOnJS, useAnimatedProps, useAnimatedReaction, useAnimatedStyle, type AnimatedStyle} from 'react-native-reanimated';
 
 import {removePost} from '@actions/local/post';
 import {fetchPosts, fetchPostThread} from '@actions/remote/post';
@@ -14,12 +14,12 @@ import NewMessagesLine from '@components/post_list/new_message_line';
 import Post from '@components/post_list/post';
 import ThreadOverview from '@components/post_list/thread_overview';
 import {Events, Screens} from '@constants';
-import {isAndroidEdgeToEdge} from '@constants/device';
+import {isAndroidEdgeToEdge, isEdgeToEdge} from '@constants/device';
 import {PostTypes} from '@constants/post';
-import {useKeyboardAnimationContext} from '@context/keyboard_animation';
+import {useKeyboardState} from '@context/keyboard_state';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
-import {DEFAULT_INPUT_ACCESSORY_HEIGHT} from '@hooks/useInputAccessoryView';
+import {DEFAULT_INPUT_ACCESSORY_HEIGHT} from '@keyboard';
 import {getDateForDateLine, preparePostList} from '@utils/post_list';
 
 import {INITIAL_BATCH_TO_RENDER, SCROLL_POSITION_CONFIG, VIEWABILITY_CONFIG} from './config';
@@ -116,17 +116,51 @@ const PostList = ({
 }: Props) => {
     const firstIdInPosts = posts[0]?.id;
 
+    // CRITICAL: Destructure to avoid passing entire context (which contains refs) to worklets
+    const {stateContext, onScroll: onScrollProp, postInputContainerHeight, stateMachine} = useKeyboardState();
     const {
-        keyboardTranslateY: keyboardHeightValue,
-        bottomInset: contentInset,
-        onScroll: onScrollProp,
-        postInputContainerHeight,
-        keyboardHeight,
-        isKeyboardFullyOpen,
-        isKeyboardFullyClosed,
-        inputAccessoryViewAnimatedHeight,
-        isInputAccessoryViewMode,
-    } = useKeyboardAnimationContext();
+        scrollOffset: scrollOffsetShared,
+        scrollPosition: scrollPositionShared,
+        postInputTranslateY,
+        postInputContainerHeight: postInputContainerHeightShared,
+        inputAccessoryHeight,
+    } = stateContext;
+
+    const scrollToOffsetCallback = useCallback((offset: number, position: number) => {
+        const targetOffset = -offset + position;
+        listRef?.current?.scrollToOffset({
+            offset: targetOffset,
+            animated: false,
+        });
+    }, [listRef]);
+
+    useAnimatedReaction(
+        () => ({
+            scrollOffset: scrollOffsetShared.value,
+            scrollPosition: scrollPositionShared.value,
+            isReconcilerPaused: stateContext.isReconcilerPaused.value,
+        }),
+        (current, previous) => {
+            'worklet';
+
+            // Skip scroll compensation if reconciler is paused
+            // This allows exit actions to manually adjust scrollPosition without interference
+            if (current.isReconcilerPaused) {
+                return;
+            }
+
+            // Trigger scroll compensation if EITHER scrollOffset or scrollPosition changed
+            // This ensures we continuously adjust scroll as contentInset changes during keyboard animation
+            const offsetChanged = previous === null || Math.abs(current.scrollOffset - (previous?.scrollOffset || 0)) > 0.5;
+
+            if (!offsetChanged) {
+                return;
+            }
+
+            runOnJS(scrollToOffsetCallback)(current.scrollOffset, current.scrollPosition);
+        },
+        [scrollToOffsetCallback],
+    );
 
     const onScrollEndIndexListener = useRef<onScrollEndIndexListenerEvent>();
     const onViewableItemsChangedListener = useRef<ViewableItemsChangedListenerEvent>();
@@ -134,36 +168,29 @@ const PostList = ({
     const [refreshing, setRefreshing] = useState(false);
     const [showScrollToEndBtn, setShowScrollToEndBtn] = useState(false);
     const [lastPostId, setLastPostId] = useState<string | undefined>(firstIdInPosts);
+
     const [progressViewOffset, setProgressViewOffset] = useState(postInputContainerHeight);
     const [emojiPickerPadding, setEmojiPickerPadding] = useState(0);
     const theme = useTheme();
     const serverUrl = useServerUrl();
-    const {isVisible: isKeyboardVisible} = useKeyboardState();
+    const {isVisible: isKeyboardVisible} = useControllerKeyboardState();
+    const {state} = useAnimatedKeyboard();
 
-    // Update progressViewOffset to position RefreshControl correctly when keyboard-aware props are applied.
-    // Only update when keyboard state changes (fully open ↔ fully closed) to prevent flickering during animation.
-    const prevIsFullyOpen = useSharedValue(false);
-    const prevIsFullyClosed = useSharedValue(true);
     useAnimatedReaction(
-        () => ({
-            isFullyOpen: isKeyboardFullyOpen.value,
-            isFullyClosed: isKeyboardFullyClosed.value,
-            keyboardTranslateY: keyboardHeightValue.value,
-        }),
-        ({isFullyOpen, isFullyClosed, keyboardTranslateY}) => {
-            // Only update when state actually changes (transition detected)
-            const stateChanged = (prevIsFullyClosed.value !== isFullyClosed) || (prevIsFullyOpen.value !== isFullyOpen);
-
-            if (stateChanged && (isFullyOpen || isFullyClosed)) {
-                const offset = postInputContainerHeight + keyboardTranslateY;
-                if (!isAndroidEdgeToEdge) {
-                    runOnJS(setProgressViewOffset)(offset);
-                }
-            }
-            prevIsFullyOpen.value = isFullyOpen;
-            prevIsFullyClosed.value = isFullyClosed;
+        () => {
+            return {
+                state: state.value,
+            };
         },
-        [postInputContainerHeight],
+        ({state: kbState}) => {
+            if (!isAndroidEdgeToEdge && (kbState === KeyboardState.CLOSED || kbState === KeyboardState.OPEN)) {
+                const translateY = postInputTranslateY.value;
+                const containerHeight = postInputContainerHeightShared.value;
+                const offset = containerHeight + translateY;
+                runOnJS(setProgressViewOffset)(offset);
+            }
+        },
+        [],
     );
 
     const orderedPosts = useMemo(() => {
@@ -177,11 +204,7 @@ const PostList = ({
     const isNewMessage = lastPostId ? firstIdInPosts !== lastPostId : false;
 
     const scrollToEnd = useCallback(() => {
-        const activeHeight = Math.max(keyboardHeight.value, inputAccessoryViewAnimatedHeight.value);
-        const targetOffset = -activeHeight;
-
-        listRef?.current?.scrollToOffset({offset: targetOffset, animated: true});
-
+        listRef?.current?.scrollToOffset({offset: -postInputTranslateY.value, animated: true});
         setShowScrollToEndBtn(false);
 
         // Shared values don't need to be in dependencies - they're stable references
@@ -411,12 +434,10 @@ const PostList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [orderedPosts, highlightedId]);
 
-    // Sync emoji picker padding from SharedValue to React state
-    // This ensures the padding updates when SharedValues change
     useAnimatedReaction(
         () => {
-            const shouldAddEmojiPickerPadding = Platform.OS === 'android' && !isAndroidEdgeToEdge && !isKeyboardVisible && isInputAccessoryViewMode.value;
-            const emojiPickerHeight = shouldAddEmojiPickerPadding ? (inputAccessoryViewAnimatedHeight.value || DEFAULT_INPUT_ACCESSORY_HEIGHT) : 0;
+            const shouldAddEmojiPickerPadding = Platform.OS === 'android' && !isAndroidEdgeToEdge && !isKeyboardVisible && stateMachine.isEmojiPickerActive();
+            const emojiPickerHeight = shouldAddEmojiPickerPadding ? (inputAccessoryHeight.value || DEFAULT_INPUT_ACCESSORY_HEIGHT) : 0;
             return emojiPickerHeight;
         },
         (emojiPickerHeight) => {
@@ -425,27 +446,26 @@ const PostList = ({
         [isKeyboardVisible],
     );
 
-    // Combine contentContainerStyle with padding style
-    // Use regular style with state value synced from SharedValues
     const contentContainerStyleWithPadding = useMemo(() => {
-        const paddingStyle = {paddingTop: location === Screens.PERMALINK ? 0 : postInputContainerHeight + emojiPickerPadding};
+        const paddingStyle = {paddingTop: location === Screens.PERMALINK || !isEdgeToEdge ? 0 : postInputContainerHeight + emojiPickerPadding};
         return contentContainerStyle ? [contentContainerStyle, paddingStyle] : paddingStyle;
-    }, [location, postInputContainerHeight, emojiPickerPadding, contentContainerStyle]);
+    }, [location, emojiPickerPadding, contentContainerStyle, postInputContainerHeight]);
 
-    // contentInset only for dynamic keyboard height
     const animatedProps = useAnimatedProps(
-        () => ({
-            contentInset: {
-                top: contentInset.value, // For inverted FlatList, applies to visual bottom
-            },
-        }),
-        [contentInset],
+        () => {
+            return {
+                contentInset: {
+                    top: Math.max(postInputTranslateY.value, 0),
+                },
+            };
+        },
+        [],
     );
 
     const androidExtra = useAnimatedStyle(() => {
         if (isAndroidEdgeToEdge) {
             return {
-                marginBottom: keyboardHeight.value || contentInset.value,
+                marginBottom: Math.max(postInputTranslateY.value, 0),
             };
         }
         return {};

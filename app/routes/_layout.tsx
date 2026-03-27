@@ -15,7 +15,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import tinycolor from 'tinycolor2';
 
 import {Screens} from '@constants';
-import {isAndroidEdgeToEdge} from '@constants/device';
+import {isEdgeToEdge} from '@constants/device';
 import {useThemeByAppearanceWithDefault} from '@context/theme';
 import {DEFAULT_LOCALE, getTranslations} from '@i18n';
 import {cleanup, initialize} from '@init/app';
@@ -159,14 +159,13 @@ export default function RootLayout() {
         return unsubscribe;
     }, [navigationRef]);
 
-    const isEdgeToEdge = isAndroidEdgeToEdge || Platform.OS === 'ios';
-
     const stackScreenOptions = useMemo<NativeStackNavigationOptions>(() => ({
         headerShown: false,
         animation: 'none',
         contentStyle: {backgroundColor: theme.centerChannelBg},
+        orientation: 'portrait',
         ...Platform.select({android: {statusBarBackgroundColor: theme.sidebarBg, statusBarTranslucent: isEdgeToEdge, statusBarStyle: tinycolor(theme.sidebarBg).isLight() ? 'dark' : 'light'}}),
-    }), [isEdgeToEdge, theme.centerChannelBg, theme.sidebarBg]);
+    }), [theme.centerChannelBg, theme.sidebarBg]);
 
     const modalScreenOptions = useMemo<NativeStackNavigationOptions>(() => ({
         presentation: 'modal',
@@ -180,7 +179,7 @@ export default function RootLayout() {
         headerShown: false,
         contentStyle: {backgroundColor: 'transparent'},
         ...Platform.select({android: {statusBarBackgroundColor: theme.sidebarBg, statusBarTranslucent: isEdgeToEdge}}),
-    }), [isEdgeToEdge, theme.sidebarBg]);
+    }), [theme.sidebarBg]);
 
     if (!appReady) {
         return null;

@@ -71,7 +71,6 @@ const Channel = ({
     const defaultHeight = useDefaultHeaderHeight();
     const [containerHeight, setContainerHeight] = useState(0);
     const shouldRender = !switchingTeam && !switchingChannels && shouldRenderPosts && Boolean(channelId);
-    const [isEmojiSearchFocused, setIsEmojiSearchFocused] = useState(false);
     const currentScreen = useCurrentScreen();
     const isVisible = useMemo(() => {
         if (isTablet) {
@@ -85,11 +84,8 @@ const Channel = ({
         if (isTablet) {
             return ['left', 'right'];
         }
-        if (isEmojiSearchFocused) {
-            return ['left', 'right'];
-        }
         return ['left', 'right', 'bottom'];
-    }, [isTablet, isEmojiSearchFocused]);
+    }, [isTablet]);
 
     useAndroidHardwareBackHandler(Screens.CHANNEL, navigateBack);
 
@@ -143,8 +139,7 @@ const Channel = ({
                     marginTop={marginTop}
                     scheduledPostCount={scheduledPostCount}
                     containerHeight={containerHeight}
-                    enabled={isVisible || shouldRender}
-                    onEmojiSearchFocusChange={setIsEmojiSearchFocused}
+                    enabled={isVisible}
                 />
             )}
             {showFloatingCallContainer && shouldRender &&

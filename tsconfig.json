@@ -52,6 +52,8 @@
             "@hooks/*": ["app/hooks/*"],
             "@i18n": ["app/i18n/index"],
             "@init/*": ["app/init/*"],
+            "@keyboard": ["app/keyboard/index"],
+            "@keyboard/*": ["app/keyboard/*"],
             "@managers/*": ["app/managers/*"],
             "@playbooks/*": ["app/products/playbooks/*"],
             "@queries/*": ["app/queries/*"],
