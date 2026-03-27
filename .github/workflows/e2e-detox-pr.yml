@@ -133,27 +133,48 @@ jobs:
         with:
           ref: ${{ inputs.MOBILE_VERSION }}
 
+      - name: Compute native build fingerprint
+        id: fingerprint
+        uses: ./.github/actions/compute-native-fingerprint
+        with:
+          platform: ios
+          intune-enabled: ${{ env.INTUNE_ENABLED }}
+
+      - name: Restore cached iOS build
+        id: cache-ios
+        uses: actions/cache@v4
+        with:
+          path: Mattermost-simulator-cached.app.zip
+          key: ${{ steps.fingerprint.outputs.cache-key }}
+
       - name: Prepare iOS Build
+        if: steps.cache-ios.outputs.cache-hit != 'true'
         uses: ./.github/actions/prepare-ios-build
         with:
           intune-enabled: ${{ env.INTUNE_ENABLED }}
           intune-ssh-private-key: ${{ secrets.MM_MOBILE_INTUNE_DEPLOY_KEY }}
 
       - name: Set .env with RUNNING_E2E=true
+        if: steps.cache-ios.outputs.cache-hit != 'true'
         run: echo "RUNNING_E2E=true" > .env
 
       - name: Build iOS Simulator
+        if: steps.cache-ios.outputs.cache-hit != 'true'
         env:
           TAG: ${{ inputs.MOBILE_VERSION }}
           GITHUB_TOKEN: ${{ secrets.MM_MOBILE_GITHUB_TOKEN }}
         run: bundle exec fastlane ios simulator --env ios.simulator skip_upload_to_s3_bucket:true
         working-directory: ./fastlane
 
+      - name: Copy build to cache path
+        if: steps.cache-ios.outputs.cache-hit != 'true'
+        run: cp Mattermost-simulator-*.app.zip Mattermost-simulator-cached.app.zip
+
       - name: Upload iOS Simulator Build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ios-build-simulator-${{ github.run_id }}
-          path: Mattermost-simulator-*.app.zip
+          path: Mattermost-simulator-cached.app.zip
 
   build-android-apk:
     if: inputs.PLATFORM == 'android' || inputs.PLATFORM == 'both'
@@ -171,7 +192,25 @@ jobs:
         with:
           ref: ${{ inputs.MOBILE_VERSION }}
 
+      - name: Compute native build fingerprint
+        id: fingerprint
+        uses: ./.github/actions/compute-native-fingerprint
+        with:
+          platform: android
+
+      - name: Restore cached Android build
+        id: cache-android
+        uses: actions/cache@v4
+        with:
+          path: android-build-cached.tar.zst
+          key: ${{ steps.fingerprint.outputs.cache-key }}
+
+      - name: Extract cached Android build
+        if: steps.cache-android.outputs.cache-hit == 'true'
+        run: tar --zstd -xf android-build-cached.tar.zst
+
       - name: Prepare Android Build
+        if: steps.cache-android.outputs.cache-hit != 'true'
         uses: ./.github/actions/prepare-android-build
         env:
           STORE_FILE: ${{ secrets.MM_MOBILE_STORE_FILE }}
@@ -180,12 +219,17 @@ jobs:
           MATTERMOST_BUILD_GH_TOKEN: ${{ secrets.MATTERMOST_BUILD_GH_TOKEN }}
 
       - name: Detox build
+        if: steps.cache-android.outputs.cache-hit != 'true'
         run: |
           cd detox
           npm ci --prefer-offline --no-audit --no-fund
           npm install -g detox-cli
           npm run e2e:android-inject-settings
           npm run e2e:android-build
+
+      - name: Save Android build to cache
+        if: steps.cache-android.outputs.cache-hit != 'true'
+        run: tar --zstd -cf android-build-cached.tar.zst android/app/build/outputs/apk/
 
       - name: Upload Android Build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

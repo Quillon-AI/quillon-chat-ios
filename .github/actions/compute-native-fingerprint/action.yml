@@ -1,0 +1,83 @@
+name: Compute Native Build Fingerprint
+description: |
+  Computes a hash of all files that affect the native iOS/Android binary.
+  JS/TS source is NOT included because debug builds use Metro at runtime.
+
+inputs:
+  platform:
+    description: "ios or android"
+    required: true
+  intune-enabled:
+    description: "Whether Intune is enabled (affects iOS build)"
+    required: false
+    default: "false"
+
+outputs:
+  fingerprint:
+    description: "SHA256 hash of native source files"
+    value: ${{ steps.compute.outputs.fingerprint }}
+  cache-key:
+    description: "Full cache key for the built artifact"
+    value: ${{ steps.compute.outputs.cache-key }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compute native fingerprint
+      id: compute
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        PLATFORM="${{ inputs.platform }}"
+        INTUNE="${{ inputs.intune-enabled }}"
+
+        # Files/dirs that affect the native binary (shared between platforms)
+        SHARED_PATHS=(
+          "package.json"
+          "package-lock.json"
+          "patches/"
+          "libraries/"
+        )
+
+        if [[ "$PLATFORM" == "ios" ]]; then
+          NATIVE_PATHS=(
+            "${SHARED_PATHS[@]}"
+            "ios/"
+            "fastlane/"
+            ".ruby-version"
+            "Gemfile.lock"
+          )
+          CACHE_PREFIX="ios-simulator-build"
+        else
+          NATIVE_PATHS=(
+            "${SHARED_PATHS[@]}"
+            "android/"
+            "detox/package.json"
+            "detox/package-lock.json"
+          )
+          CACHE_PREFIX="android-apk-build"
+        fi
+
+        # Compute hash of all native source files
+        # Use git ls-files to only include tracked files, then hash their contents
+        FINGERPRINT=$(
+          for p in "${NATIVE_PATHS[@]}"; do
+            if [[ -d "$p" ]]; then
+              git ls-files "$p" 2>/dev/null
+            elif [[ -f "$p" ]]; then
+              echo "$p"
+            fi
+          done | sort -u | xargs -r sha256sum | sha256sum | cut -d' ' -f1
+        )
+
+        # Include intune flag in iOS fingerprint since it changes the build
+        if [[ "$PLATFORM" == "ios" && "$INTUNE" == "true" ]]; then
+          FINGERPRINT=$(echo "${FINGERPRINT}-intune" | sha256sum | cut -d' ' -f1)
+        fi
+
+        CACHE_KEY="${CACHE_PREFIX}-${FINGERPRINT}"
+
+        echo "fingerprint=${FINGERPRINT}" >> "$GITHUB_OUTPUT"
+        echo "cache-key=${CACHE_KEY}" >> "$GITHUB_OUTPUT"
+        echo "::notice::Native ${PLATFORM} fingerprint: ${FINGERPRINT:0:12}… (cache key: ${CACHE_KEY})"
