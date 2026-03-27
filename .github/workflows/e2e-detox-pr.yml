@@ -415,15 +415,236 @@ jobs:
           description: Maestro Android tests completed
           status: ${{ needs.run-maestro-android-on-pr.result == 'success' && 'success' || 'failure' }}
 
-  e2e-remove-matterwick-label:
-    name: Remove Matterwick E2E label from PR
+  unified-report:
+    name: Unified E2E Report
     runs-on: ubuntu-22.04
+    if: always()
     needs:
       - run-ios-tests
       - run-android-tests
       - run-ios-ipad-tests
       - run-maestro-ios-on-pr
       - run-maestro-android-on-pr
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.MOBILE_VERSION }}
+
+      - name: ci/prepare-node-deps
+        uses: ./.github/actions/prepare-node-deps
+
+      - name: Build platform data JSON
+        id: platform-data
+        run: |
+          build_entry() {
+            local name="$1" status="$2" failures="$3" passes="$4" total="$5" skipped="$6" errors="$7" pct="$8" url="$9"
+            if [[ -z "$total" || "$total" == "" || "$status" == "" ]]; then
+              echo "{\"name\":\"$name\",\"status\":\"not_run\"}"
+            else
+              echo "{\"name\":\"$name\",\"status\":\"$status\",\"tests\":$total,\"passes\":$passes,\"failures\":$failures,\"skipped\":${skipped:-0},\"errors\":${errors:-0},\"reportUrl\":\"$url\"}"
+            fi
+          }
+
+          IOS=$(build_entry "Detox iOS" \
+            "${{ needs.run-ios-tests.outputs.STATUS }}" \
+            "${{ needs.run-ios-tests.outputs.FAILURES }}" \
+            "${{ needs.run-ios-tests.outputs.PASSES }}" \
+            "${{ needs.run-ios-tests.outputs.TOTAL }}" \
+            "${{ needs.run-ios-tests.outputs.SKIPPED }}" \
+            "${{ needs.run-ios-tests.outputs.ERRORS }}" \
+            "${{ needs.run-ios-tests.outputs.PERCENTAGE }}" \
+            "${{ needs.run-ios-tests.outputs.TARGET_URL }}")
+
+          ANDROID=$(build_entry "Detox Android" \
+            "${{ needs.run-android-tests.outputs.STATUS }}" \
+            "${{ needs.run-android-tests.outputs.FAILURES }}" \
+            "${{ needs.run-android-tests.outputs.PASSES }}" \
+            "${{ needs.run-android-tests.outputs.TOTAL }}" \
+            "${{ needs.run-android-tests.outputs.SKIPPED }}" \
+            "${{ needs.run-android-tests.outputs.ERRORS }}" \
+            "${{ needs.run-android-tests.outputs.PERCENTAGE }}" \
+            "${{ needs.run-android-tests.outputs.TARGET_URL }}")
+
+          IPAD=$(build_entry "Detox iPad" \
+            "${{ needs.run-ios-ipad-tests.outputs.STATUS }}" \
+            "${{ needs.run-ios-ipad-tests.outputs.FAILURES }}" \
+            "${{ needs.run-ios-ipad-tests.outputs.PASSES }}" \
+            "${{ needs.run-ios-ipad-tests.outputs.TOTAL }}" \
+            "${{ needs.run-ios-ipad-tests.outputs.SKIPPED }}" \
+            "${{ needs.run-ios-ipad-tests.outputs.ERRORS }}" \
+            "${{ needs.run-ios-ipad-tests.outputs.PERCENTAGE }}" \
+            "${{ needs.run-ios-ipad-tests.outputs.TARGET_URL }}")
+
+          MAESTRO_IOS=$(build_entry "Maestro iOS" \
+            "${{ needs.run-maestro-ios-on-pr.outputs.STATUS }}" \
+            "${{ needs.run-maestro-ios-on-pr.outputs.FAILURES }}" \
+            "${{ needs.run-maestro-ios-on-pr.outputs.PASSES }}" \
+            "${{ needs.run-maestro-ios-on-pr.outputs.TOTAL }}" \
+            "0" "0" \
+            "${{ needs.run-maestro-ios-on-pr.outputs.PERCENTAGE }}" \
+            "${{ needs.run-maestro-ios-on-pr.outputs.TARGET_URL }}")
+
+          MAESTRO_ANDROID=$(build_entry "Maestro Android" \
+            "${{ needs.run-maestro-android-on-pr.outputs.STATUS }}" \
+            "${{ needs.run-maestro-android-on-pr.outputs.FAILURES }}" \
+            "${{ needs.run-maestro-android-on-pr.outputs.PASSES }}" \
+            "${{ needs.run-maestro-android-on-pr.outputs.TOTAL }}" \
+            "0" "0" \
+            "${{ needs.run-maestro-android-on-pr.outputs.PERCENTAGE }}" \
+            "${{ needs.run-maestro-android-on-pr.outputs.TARGET_URL }}")
+
+          PLATFORM_DATA="[$IOS,$ANDROID,$IPAD,$MAESTRO_IOS,$MAESTRO_ANDROID]"
+          echo "PLATFORM_DATA=$PLATFORM_DATA" >> "$GITHUB_ENV"
+
+      - name: Generate unified HTML report
+        run: |
+          cd detox
+          npm ci --prefer-offline --no-audit --no-fund
+          node generate_unified_report.js
+        env:
+          PLATFORM_DATA: ${{ env.PLATFORM_DATA }}
+          OUTPUT_DIR: unified-report
+
+      - name: Upload unified report to S3
+        run: |
+          cd detox
+          node -e "
+            const {S3} = require('@aws-sdk/client-s3');
+            const {Upload} = require('@aws-sdk/lib-storage');
+            const fs = require('fs');
+            const s3 = new S3({credentials: {accessKeyId: process.env.AWS_KEY, secretAccessKey: process.env.AWS_SECRET}});
+            const file = 'unified-report/unified-report.html';
+            new Upload({client: s3, params: {
+              Key: process.env.REPORT_PATH + '/unified-report.html',
+              Bucket: 'mattermost-detox-report',
+              Body: fs.readFileSync(file),
+              ContentType: 'text/html; charset=utf-8',
+            }}).done().then(() => console.log('Uploaded unified report to S3'));
+          "
+        env:
+          AWS_KEY: ${{ secrets.MM_MOBILE_DETOX_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET: ${{ secrets.MM_MOBILE_DETOX_AWS_SECRET_ACCESS_KEY }}
+          REPORT_PATH: unified-${{ github.run_id }}
+
+      - name: Post or update unified PR comment
+        if: inputs.pr_number != ''
+        uses: actions/github-script@e7aeb8c663f696059ebb5f9ab1425ed2ef511bdb # v7.0.1
+        with:
+          script: |
+            const prNumber = parseInt(process.env.PR_NUMBER);
+            if (!prNumber) return;
+
+            const platforms = JSON.parse(process.env.PLATFORM_DATA);
+            const unifiedUrl = `https://mattermost-detox-report.s3.amazonaws.com/unified-${context.runId}/unified-report.html`;
+
+            const rows = platforms.map(p => {
+              if (p.status === 'not_run') {
+                return `| ${p.name} | - | - | - | - | ⏸️ NOT RUN |`;
+              }
+              const pct = p.tests > 0 ? ((p.passes / p.tests) * 100).toFixed(1) : '0.0';
+              const icon = p.failures > 0 ? '❌' : '✅';
+              const link = p.reportUrl ? `[${pct}%](${p.reportUrl})` : `${pct}%`;
+              return `| ${p.name} | ${p.tests} | ${p.passes} | ${p.failures} | ${p.skipped || 0} | ${icon} ${link} |`;
+            }).join('\n');
+
+            const ran = platforms.filter(p => p.status !== 'not_run');
+            const totalTests = ran.reduce((s, p) => s + (p.tests || 0), 0);
+            const totalPasses = ran.reduce((s, p) => s + (p.passes || 0), 0);
+            const totalFailures = ran.reduce((s, p) => s + (p.failures || 0), 0);
+            const totalSkipped = ran.reduce((s, p) => s + (p.skipped || 0), 0);
+            const overallPct = totalTests > 0 ? ((totalPasses / totalTests) * 100).toFixed(1) : '0.0';
+
+            const body = `## 📊 E2E Test Report — ${process.env.MOBILE_SHA?.substring(0, 8)}
+
+            | Platform | Tests | Passed | Failed | Skipped | Result |
+            |:---------|:-----:|:------:|:------:|:-------:|:------:|
+            ${rows}
+            | **Total** | **${totalTests}** | **${totalPasses}** | **${totalFailures}** | **${totalSkipped}** | **${overallPct}%** |
+
+            [View full unified report](${unifiedUrl})
+
+            🤖 Generated by E2E CI`;
+
+            const COMMENT_MARKER = '## 📊 E2E Test Report';
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 100,
+            });
+            const existing = comments.data.find(c => c.body && c.body.startsWith(COMMENT_MARKER));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          PLATFORM_DATA: ${{ env.PLATFORM_DATA }}
+          MOBILE_SHA: ${{ inputs.MOBILE_VERSION }}
+
+      - name: Send unified webhook
+        if: inputs.run_type != '' && inputs.run_type != 'NONE'
+        run: |
+          cd detox
+          node -e "
+            const axios = require('axios');
+            const platforms = JSON.parse(process.env.PLATFORM_DATA);
+            const ran = platforms.filter(p => p.status !== 'not_run');
+            const totalTests = ran.reduce((s, p) => s + (p.tests || 0), 0);
+            const totalPasses = ran.reduce((s, p) => s + (p.passes || 0), 0);
+            const totalFailures = ran.reduce((s, p) => s + (p.failures || 0), 0);
+            const overallPct = totalTests > 0 ? ((totalPasses / totalTests) * 100).toFixed(2) : '0.00';
+            const unifiedUrl = 'https://mattermost-detox-report.s3.amazonaws.com/unified-' + process.env.RUN_ID + '/unified-report.html';
+
+            const lines = platforms.map(p => {
+              if (p.status === 'not_run') return '- ' + p.name + ': ⏸️ NOT RUN';
+              const pct = p.tests > 0 ? ((p.passes / p.tests) * 100).toFixed(1) : '0.0';
+              const icon = p.failures > 0 ? ':x:' : ':white_check_mark:';
+              return '- ' + p.name + ': ' + icon + ' ' + pct + '% (' + p.passes + '/' + p.tests + ')';
+            }).join('\n');
+
+            const color = overallPct >= 100 ? '#43A047' : overallPct >= 98 ? '#FFEB3B' : overallPct >= 95 ? '#FF9800' : '#F44336';
+
+            const data = {
+              username: 'Mobile E2E Tests',
+              icon_url: 'https://mattermost.com/wp-content/uploads/2022/02/icon_WS.png',
+              attachments: [{
+                color,
+                author_name: 'Unified E2E Report',
+                title: 'Mobile E2E — ' + overallPct + '% (' + totalPasses + '/' + totalTests + ') | ' + totalFailures + ' failures',
+                text: lines + '\n\n[View full report](' + unifiedUrl + ')',
+              }],
+            };
+
+            if (process.env.WEBHOOK_URL) {
+              axios.post(process.env.WEBHOOK_URL, data).then(() => console.log('Webhook sent')).catch(e => console.log('Webhook failed:', e.message));
+            } else {
+              console.log('No WEBHOOK_URL set, skipping');
+            }
+          "
+        env:
+          PLATFORM_DATA: ${{ env.PLATFORM_DATA }}
+          RUN_ID: ${{ github.run_id }}
+          WEBHOOK_URL: ${{ secrets.MM_MOBILE_E2E_WEBHOOK_URL }}
+
+  e2e-remove-matterwick-label:
+    name: Remove Matterwick E2E label from PR
+    runs-on: ubuntu-22.04
+    needs:
+      - unified-report
     if: always() && inputs.pr_number != ''
     steps:
       - name: e2e/remove-label-from-pr
