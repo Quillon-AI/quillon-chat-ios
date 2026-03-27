@@ -19,7 +19,6 @@ export type HighlightWithoutNotificationKey = {
 
 export type MarkdownBlockStyles = {
     adjacentParagraph: ViewStyle;
-    headingBlock: ViewStyle;
     horizontalRule: ViewStyle;
     quoteBlockIcon: TextStyle;
 };

@@ -130,9 +130,6 @@ export const getMarkdownBlockStyles = makeStyleSheetFromTheme((theme: Theme) => 
         adjacentParagraph: {
             marginTop: 8,
         },
-        headingBlock: {
-            marginBottom: 8,
-        },
         horizontalRule: {
             backgroundColor: theme.centerChannelColor,
             height: StyleSheet.hairlineWidth,
