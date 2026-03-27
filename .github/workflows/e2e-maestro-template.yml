@@ -306,13 +306,16 @@ jobs:
         env:
           DETOX_AWS_ACCESS_KEY_ID: ${{ secrets.MM_MOBILE_DETOX_AWS_ACCESS_KEY_ID }}
           DETOX_AWS_SECRET_ACCESS_KEY: ${{ secrets.MM_MOBILE_DETOX_AWS_SECRET_ACCESS_KEY }}
+          DETOX_AWS_S3_BUCKET: ${{ env.DETOX_AWS_S3_BUCKET }}
           REPORT_PATH: maestro-ios-${{ github.run_id }}
 
       - name: Set Target URL
         id: set-url
         if: always()
+        env:
+          S3_BUCKET: ${{ env.DETOX_AWS_S3_BUCKET }}
         run: |
-          echo "TARGET_URL=https://${{ env.DETOX_AWS_S3_BUCKET }}.s3.amazonaws.com/maestro-ios-${{ github.run_id }}/maestro-ios/maestro-report.xml" >> "$GITHUB_OUTPUT"
+          echo "TARGET_URL=https://${S3_BUCKET:-mattermost-detox-report}.s3.amazonaws.com/maestro-ios-${{ github.run_id }}/maestro-ios/maestro-report.xml" >> "$GITHUB_OUTPUT"
 
       - name: Determine Status
         id: determine-status
@@ -560,13 +563,16 @@ jobs:
         env:
           DETOX_AWS_ACCESS_KEY_ID: ${{ secrets.MM_MOBILE_DETOX_AWS_ACCESS_KEY_ID }}
           DETOX_AWS_SECRET_ACCESS_KEY: ${{ secrets.MM_MOBILE_DETOX_AWS_SECRET_ACCESS_KEY }}
+          DETOX_AWS_S3_BUCKET: ${{ env.DETOX_AWS_S3_BUCKET }}
           REPORT_PATH: maestro-android-${{ github.run_id }}
 
       - name: Set Target URL
         id: set-url
         if: always()
+        env:
+          S3_BUCKET: ${{ env.DETOX_AWS_S3_BUCKET }}
         run: |
-          echo "TARGET_URL=https://${{ env.DETOX_AWS_S3_BUCKET }}.s3.amazonaws.com/maestro-android-${{ github.run_id }}/maestro-android/maestro-report.xml" >> "$GITHUB_OUTPUT"
+          echo "TARGET_URL=https://${S3_BUCKET:-mattermost-detox-report}.s3.amazonaws.com/maestro-android-${{ github.run_id }}/maestro-android/maestro-report.xml" >> "$GITHUB_OUTPUT"
 
       - name: Determine Status
         id: determine-status

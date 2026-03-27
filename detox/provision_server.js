@@ -26,6 +26,46 @@ if (!serverUrl) {
     process.exit(1);
 }
 
+// Validate server URL to prevent SSRF and credential exfiltration.
+// Only allow HTTPS URLs on known Mattermost-operated domains.
+const ALLOWED_DOMAIN_PATTERNS = [
+    /\.cloud\.mattermost\.com$/,
+    /\.test\.mattermost\.cloud$/,
+    /\.mattermost\.com$/,
+    /\.mattermost\.cloud$/,
+];
+
+function validateServerUrl(url) {
+    let parsed;
+    try {
+        parsed = new URL(url);
+    } catch {
+        console.error(`Invalid URL: ${url}`);
+        process.exit(1);
+    }
+
+    if (parsed.protocol !== 'https:') {
+        console.error(`Only HTTPS URLs are allowed, got: ${parsed.protocol}`);
+        process.exit(1);
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Block private/internal IPs
+    if (/^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|0\.|localhost|::1|\[::1\])/.test(hostname)) {
+        console.error(`Private/internal URLs are not allowed: ${hostname}`);
+        process.exit(1);
+    }
+
+    const isDomainAllowed = ALLOWED_DOMAIN_PATTERNS.some((pattern) => pattern.test(hostname));
+    if (!isDomainAllowed) {
+        console.error(`Domain not in allowlist: ${hostname}. Allowed patterns: ${ALLOWED_DOMAIN_PATTERNS.map((p) => p.source).join(', ')}`);
+        process.exit(1);
+    }
+}
+
+validateServerUrl(serverUrl);
+
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || process.env.ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 

@@ -134,59 +134,27 @@ jobs:
         with:
           ref: ${{ inputs.MOBILE_VERSION }}
 
-      - name: Compute native build fingerprint
-        id: fingerprint
-        shell: bash
-        run: |
-          set -euo pipefail
-          NATIVE_PATHS=("package.json" "package-lock.json" "patches/" "libraries/" "ios/" "fastlane/" ".ruby-version" "Gemfile.lock")
-          FINGERPRINT=$(
-            for p in "${NATIVE_PATHS[@]}"; do
-              if [[ -d "$p" ]]; then git ls-files "$p" 2>/dev/null; elif [[ -f "$p" ]]; then echo "$p"; fi
-            done | sort -u | while IFS= read -r f; do [[ -f "$f" ]] && echo "$f"; done | xargs -r sha256sum | sha256sum | cut -d' ' -f1
-          )
-          if [[ "${{ env.INTUNE_ENABLED }}" == "true" ]]; then
-            FINGERPRINT=$(echo "${FINGERPRINT}-intune" | sha256sum | cut -d' ' -f1)
-          fi
-          echo "fingerprint=${FINGERPRINT}" >> "$GITHUB_OUTPUT"
-          echo "cache-key=ios-simulator-build-${FINGERPRINT}" >> "$GITHUB_OUTPUT"
-          echo "::notice::Native iOS fingerprint: ${FINGERPRINT:0:12}… (cache key: ios-simulator-build-${FINGERPRINT})"
-
-      - name: Restore cached iOS build
-        id: cache-ios
-        uses: actions/cache@v4
-        with:
-          path: Mattermost-simulator-cached.app.zip
-          key: ${{ steps.fingerprint.outputs.cache-key }}
-
       - name: Prepare iOS Build
-        if: steps.cache-ios.outputs.cache-hit != 'true'
         uses: ./.github/actions/prepare-ios-build
         with:
           intune-enabled: ${{ env.INTUNE_ENABLED }}
           intune-ssh-private-key: ${{ secrets.MM_MOBILE_INTUNE_DEPLOY_KEY }}
 
       - name: Set .env with RUNNING_E2E=true
-        if: steps.cache-ios.outputs.cache-hit != 'true'
         run: echo "RUNNING_E2E=true" > .env
 
       - name: Build iOS Simulator
-        if: steps.cache-ios.outputs.cache-hit != 'true'
         env:
           TAG: ${{ inputs.MOBILE_VERSION }}
           GITHUB_TOKEN: ${{ secrets.MM_MOBILE_GITHUB_TOKEN }}
         run: bundle exec fastlane ios simulator --env ios.simulator skip_upload_to_s3_bucket:true
         working-directory: ./fastlane
 
-      - name: Copy build to cache path
-        if: steps.cache-ios.outputs.cache-hit != 'true'
-        run: cp Mattermost-simulator-*.app.zip Mattermost-simulator-cached.app.zip
-
       - name: Upload iOS Simulator Build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ios-build-simulator-${{ github.run_id }}
-          path: Mattermost-simulator-cached.app.zip
+          path: Mattermost-simulator-*.app.zip
 
   build-android-apk:
     if: inputs.PLATFORM == 'android' || inputs.PLATFORM == 'both'
@@ -204,34 +172,7 @@ jobs:
         with:
           ref: ${{ inputs.MOBILE_VERSION }}
 
-      - name: Compute native build fingerprint
-        id: fingerprint
-        shell: bash
-        run: |
-          set -euo pipefail
-          NATIVE_PATHS=("package.json" "package-lock.json" "patches/" "libraries/" "android/" "detox/package.json" "detox/package-lock.json")
-          FINGERPRINT=$(
-            for p in "${NATIVE_PATHS[@]}"; do
-              if [[ -d "$p" ]]; then git ls-files "$p" 2>/dev/null; elif [[ -f "$p" ]]; then echo "$p"; fi
-            done | sort -u | while IFS= read -r f; do [[ -f "$f" ]] && echo "$f"; done | xargs -r sha256sum | sha256sum | cut -d' ' -f1
-          )
-          echo "fingerprint=${FINGERPRINT}" >> "$GITHUB_OUTPUT"
-          echo "cache-key=android-apk-build-${FINGERPRINT}" >> "$GITHUB_OUTPUT"
-          echo "::notice::Native Android fingerprint: ${FINGERPRINT:0:12}… (cache key: android-apk-build-${FINGERPRINT})"
-
-      - name: Restore cached Android build
-        id: cache-android
-        uses: actions/cache@v4
-        with:
-          path: android-build-cached.tar.zst
-          key: ${{ steps.fingerprint.outputs.cache-key }}
-
-      - name: Extract cached Android build
-        if: steps.cache-android.outputs.cache-hit == 'true'
-        run: tar --zstd -xf android-build-cached.tar.zst
-
       - name: Prepare Android Build
-        if: steps.cache-android.outputs.cache-hit != 'true'
         uses: ./.github/actions/prepare-android-build
         env:
           STORE_FILE: ${{ secrets.MM_MOBILE_STORE_FILE }}
@@ -240,17 +181,12 @@ jobs:
           MATTERMOST_BUILD_GH_TOKEN: ${{ secrets.MATTERMOST_BUILD_GH_TOKEN }}
 
       - name: Detox build
-        if: steps.cache-android.outputs.cache-hit != 'true'
         run: |
           cd detox
           npm ci --prefer-offline --no-audit --no-fund
           npm install -g detox-cli
           npm run e2e:android-inject-settings
           npm run e2e:android-build
-
-      - name: Save Android build to cache
-        if: steps.cache-android.outputs.cache-hit != 'true'
-        run: tar --zstd -cf android-build-cached.tar.zst android/app/build/outputs/apk/
 
       - name: Upload Android Build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -262,6 +198,44 @@ jobs:
     name: Provision test servers
     runs-on: ubuntu-22.04
     steps:
+      - name: Validate server URLs
+        run: |
+          validate_url() {
+            local url="$1" label="$2"
+            if [ -z "$url" ]; then return 0; fi
+
+            # Must be HTTPS
+            if [[ ! "$url" =~ ^https:// ]]; then
+              echo "::error::$label must use HTTPS: $url"
+              exit 1
+            fi
+
+            # Extract hostname and validate against allowed domains
+            hostname=$(echo "$url" | sed -E 's|^https://([^/:]+).*|\1|' | tr '[:upper:]' '[:lower:]')
+
+            # Block private/internal IPs
+            if echo "$hostname" | grep -qE '^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|0\.|localhost)'; then
+              echo "::error::$label points to a private/internal address: $hostname"
+              exit 1
+            fi
+
+            # Allowlist: only Mattermost-operated domains
+            if ! echo "$hostname" | grep -qE '\.(cloud\.mattermost\.com|test\.mattermost\.cloud|mattermost\.com|mattermost\.cloud)$'; then
+              echo "::error::$label domain not in allowlist: $hostname"
+              exit 1
+            fi
+
+            echo "✓ $label validated: $hostname"
+          }
+
+          validate_url "$SITE_1_URL" "SITE_1_URL"
+          validate_url "$SITE_2_URL" "SITE_2_URL"
+          validate_url "$SITE_3_URL" "SITE_3_URL"
+        env:
+          SITE_1_URL: ${{ inputs.SITE_1_URL }}
+          SITE_2_URL: ${{ inputs.SITE_2_URL }}
+          SITE_3_URL: ${{ inputs.SITE_3_URL }}
+
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
