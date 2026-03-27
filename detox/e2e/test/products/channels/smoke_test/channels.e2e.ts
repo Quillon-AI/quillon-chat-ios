@@ -70,7 +70,7 @@ describe('Smoke Test - Channels', () => {
         await BrowseChannelsScreen.searchInput.tapReturnKey();
         await wait(timeouts.FOUR_SEC);
         await BrowseChannelsScreen.getChannelItem(channel.name).multiTap(2);
-        await ChannelScreen.closeScheduledMessageTooltip();
+        await ChannelScreen.dismissScheduledPostTooltip();
 
         // * Verify on newly joined channel screen
         await ChannelScreen.toBeVisible();

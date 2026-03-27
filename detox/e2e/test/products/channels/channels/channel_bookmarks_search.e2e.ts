@@ -76,19 +76,28 @@ describe('Channels - Channel Bookmarks Search', () => {
         channelT5614 = await createChannel();
 
         // ── Pre-create bookmarks ──────────────────────────────────────────────
-        const {bookmark: bDelete} = await ChannelBookmark.apiCreateChannelBookmarkLink(
+        const deleteResult = await ChannelBookmark.apiCreateChannelBookmarkLink(
             siteOneUrl, channelDelete.id, 'Delete Bookmark Test', 'https://mattermost.com/delete-bookmark',
         );
-        bookmarkDelete = bDelete;
+        if (!deleteResult.bookmark) {
+            throw new Error(`Failed to create delete bookmark: ${JSON.stringify(deleteResult)}`);
+        }
+        bookmarkDelete = deleteResult.bookmark;
 
-        await ChannelBookmark.apiCreateChannelBookmarkLink(
+        const searchResult = await ChannelBookmark.apiCreateChannelBookmarkLink(
             siteOneUrl, channelT5613.id, fileSearchTitle, 'https://example.com/file-bookmark',
         );
+        if (!searchResult.bookmark) {
+            throw new Error(`Failed to create search bookmark: ${JSON.stringify(searchResult)}`);
+        }
 
-        const {bookmark: bT5614} = await ChannelBookmark.apiCreateChannelBookmarkLink(
+        const deleteSearchResult = await ChannelBookmark.apiCreateChannelBookmarkLink(
             siteOneUrl, channelT5614.id, deleteSearchTitle, 'https://example.com/delete-bookmark',
         );
-        bookmarkT5614 = bT5614;
+        if (!deleteSearchResult.bookmark) {
+            throw new Error(`Failed to create delete-search bookmark: ${JSON.stringify(deleteSearchResult)}`);
+        }
+        bookmarkT5614 = deleteSearchResult.bookmark;
 
         // ── Single login + reload to sync all API-created data ────────────────
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);

@@ -91,6 +91,7 @@ describe('Channels - Archive and Archived Channels', () => {
 
         // # Tap Close Channel button to return to channel list, then open browse channels
         await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        await ChannelListScreen.toBeVisible();
         await BrowseChannelsScreen.open();
         await BrowseChannelsScreen.searchInput.replaceText(publicChannel.name);
 
@@ -150,6 +151,7 @@ describe('Channels - Archive and Archived Channels', () => {
 
         // # Tap Close Channel button to return to channel list, then open browse channels
         await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        await ChannelListScreen.toBeVisible();
         await BrowseChannelsScreen.open();
         await BrowseChannelsScreen.searchInput.replaceText(privateChannel.name);
 

@@ -92,8 +92,7 @@ describe('Channels - Create Direct Message', () => {
 
         // # Tap on start button
         await CreateDirectMessageScreen.startButton.tap();
-        await waitFor(ChannelScreen.scheduledPostTooltipCloseButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
-        await ChannelScreen.scheduledPostTooltipCloseButton.tap();
+        await ChannelScreen.dismissScheduledPostTooltip();
 
         // * Verify on direct message channel screen for the new user
         await ChannelScreen.toBeVisible();

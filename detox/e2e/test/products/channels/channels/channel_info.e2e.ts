@@ -22,7 +22,7 @@ import {
     ChannelSettingsScreen,
 } from '@support/ui/screen';
 import {timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 describe('Channels - Channel Info', () => {
     const serverOneDisplayName = 'Server 1';
@@ -60,7 +60,13 @@ describe('Channels - Channel Info', () => {
         await expect(element(by.text(`Channel header: ${testChannel.display_name.toLowerCase()}`))).toBeVisible();
         await expect(ChannelInfoScreen.favoriteAction).toBeVisible();
         await expect(ChannelInfoScreen.muteAction).toBeVisible();
-        await expect(ChannelInfoScreen.joinStartCallAction).toBeVisible();
+
+        // Note: joinStartCallAction only visible when Calls plugin is enabled on the server
+        try {
+            await waitFor(ChannelInfoScreen.joinStartCallAction).toBeVisible().withTimeout(timeouts.TWO_SEC);
+        } catch {
+            // Calls plugin not enabled — skip assertion
+        }
         await expect(ChannelInfoScreen.ignoreMentionsOptionToggledOff).toBeVisible();
         await ChannelInfoScreen.scrollView.scrollTo('bottom');
         await expect(ChannelInfoScreen.pinnedMessagesOption).toBeVisible();
