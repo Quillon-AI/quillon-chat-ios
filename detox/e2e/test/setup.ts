@@ -563,6 +563,7 @@ beforeAll(async () => {
         );
         await new Promise((resolve) => setTimeout(resolve, 2000 * loginAttempt));
     }
+
     // Ensure the server has an Enterprise license (required for agents, LDAP, etc.).
     // Only check on first launch — trial licenses persist across test files.
     if (isFirstLaunch) {
