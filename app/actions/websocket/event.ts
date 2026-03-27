@@ -3,6 +3,7 @@
 
 import {checkIsAgentsPluginEnabled} from '@agents/actions/remote/agents_status';
 import {handleAgentPostUpdate} from '@agents/actions/websocket';
+import {handleAgentsEvents} from '@agents/actions/websocket/events';
 
 import * as bookmark from '@actions/local/channel_bookmark';
 import {
@@ -314,6 +315,7 @@ export async function handleWebSocketEvent(serverUrl: string, msg: WebSocketMess
 
         // Agents
         case WebsocketEvents.AGENTS_POST_UPDATE:
+        case WebsocketEvents.AGENTS_TOOL_CALL_STATUS:
             handleAgentPostUpdate(msg);
             break;
 
@@ -345,4 +347,5 @@ export async function handleWebSocketEvent(serverUrl: string, msg: WebSocketMess
             break;
     }
     handlePlaybookEvents(serverUrl, msg);
+    handleAgentsEvents(serverUrl, msg);
 }
