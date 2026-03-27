@@ -152,6 +152,10 @@ describe('Agents - Tool Calls in Channels', () => {
     });
 
     it('should display tool call card with tool name for pending tool calls', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Create a tool call with a known name
         const toolCall = makeToolCall({name: 'search_documents'});
 
@@ -180,6 +184,10 @@ describe('Agents - Tool Calls in Channels', () => {
     });
 
     it('should show Accept and Reject buttons for pending tool calls when user is requester', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Create a pending tool call
         const toolCall = makeToolCall();
 
@@ -205,6 +213,10 @@ describe('Agents - Tool Calls in Channels', () => {
     });
 
     it('should not show approval buttons when user is not the requester', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Create a second user and add to the test channel
         const {user: otherUser} = await User.apiCreateUser(siteOneUrl, {prefix: 'other'});
         await Team.apiAddUserToTeam(siteOneUrl, otherUser.id, testTeam.id);
@@ -238,6 +250,10 @@ describe('Agents - Tool Calls in Channels', () => {
     });
 
     it('should display tool calls with success status and results', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Create a successful tool call with a result
         const toolCall = makeToolCall({
             name: 'fetch_data',
@@ -267,6 +283,10 @@ describe('Agents - Tool Calls in Channels', () => {
     });
 
     it('should display rejected status for rejected tool calls', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Create a rejected tool call
         const toolCall = makeToolCall({
             name: 'dangerous_action',
@@ -299,6 +319,10 @@ describe('Agents - Tool Calls in Channels', () => {
     });
 
     it('should show Share and Keep Private buttons during result approval phase', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Create a successful tool call (tool has executed)
         const toolCall = makeToolCall({
             name: 'web_search',
@@ -334,6 +358,10 @@ describe('Agents - Tool Calls in Channels', () => {
     });
 
     it('should display warning callout during result approval phase', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Create a successful tool call with result
         const toolCall = makeToolCall({
             name: 'code_search',
@@ -366,6 +394,10 @@ describe('Agents - Tool Calls in Channels', () => {
     });
 
     it('should show pending decisions counter for multiple pending tool calls', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Create multiple pending tool calls
         const toolCall1 = makeToolCall({name: 'search_web'});
         const toolCall2 = makeToolCall({name: 'read_file'});
@@ -395,6 +427,10 @@ describe('Agents - Tool Calls in Channels', () => {
     });
 
     it('should show tool arguments when expanded in a DM channel', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Get admin user info (the server API client is logged in as admin)
         const adminResponse = await client.get(`${siteOneUrl}/api/v4/users/me`);
         const adminUser = adminResponse.data;
@@ -444,6 +480,10 @@ describe('Agents - Tool Calls in Channels', () => {
     });
 
     it('should display mix of pending and completed tool calls', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Create a mix of tool calls in different states
         const pendingToolCall = makeToolCall({
             name: 'pending_action',

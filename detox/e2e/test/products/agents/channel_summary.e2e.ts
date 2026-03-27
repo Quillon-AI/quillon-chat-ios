@@ -75,6 +75,10 @@ describe('Agents - Channel Summary', () => {
     });
 
     it('should show Ask Agents option in public channel', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Open a channel screen
         await ChannelScreen.open(channelsCategory, testChannel.name);
 
@@ -91,6 +95,10 @@ describe('Agents - Channel Summary', () => {
     });
 
     it('should open summary sheet and show options', async () => {
+        if (!agentsEnabled) {
+            return;
+        }
+
         // # Open a channel screen
         await ChannelScreen.open(channelsCategory, testChannel.name);
 
