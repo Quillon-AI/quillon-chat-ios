@@ -108,15 +108,12 @@ describe('Agents - Tool Calls in Channels', () => {
     let agentsEnabled = false;
 
     beforeAll(async () => {
-        // # Ensure agents plugin is active; skip suite if not installed
-        const pluginStatus = await Plugin.apiGetPluginStatus(siteOneUrl, AgentsPlugin.id);
-        if (!pluginStatus.isInstalled) {
-            // eslint-disable-next-line no-console
-            console.warn(`Agents plugin (${AgentsPlugin.id}) is not installed — skipping suite`);
-            return;
-        }
+        // # Ensure agents plugin is installed and active (installs from Marketplace if needed)
+        const pluginStatus = await Plugin.apiEnsurePluginInstalled(siteOneUrl, AgentsPlugin.id);
         if (!pluginStatus.isActive) {
-            await Plugin.apiEnablePluginById(siteOneUrl, AgentsPlugin.id);
+            // eslint-disable-next-line no-console
+            console.warn(`Agents plugin (${AgentsPlugin.id}) could not be activated — skipping suite`);
+            return;
         }
         agentsEnabled = true;
 
