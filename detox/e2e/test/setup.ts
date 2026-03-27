@@ -438,29 +438,23 @@ export async function launchAppWithRetry(): Promise<void> {
     for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
         try {
             if (isFirstLaunch) {
-                // In CI, do a full clean install (delete: true) to guarantee a fresh app state.
-                // Locally, skip delete: the app binary is often a symlink into the simulator's
-                // bundle container — deleting the app destroys the symlink target, so the next
-                // launch can't find the binary. newInstance: true alone clears in-memory state.
-                const isCI = Boolean(process.env.CI);
-
-                // Pre-terminate the app before the first launch to prevent `xcrun simctl terminate`
-                // from hanging inside Detox's `device.launchApp({delete: true})`. Detox calls
-                // simctl terminate internally with no timeout, which can block for 240s+ on iOS
-                // simulators (known Xcode bug). By terminating with our own 15s timeout + SIGKILL
-                // fallback, we ensure Detox's launchApp finds the app already dead.
-                if (isCI && device.getPlatform() === 'ios') {
+                // Pre-terminate the iOS app before the first launch. Detox's internal
+                // `xcrun simctl terminate` can hang indefinitely on iOS simulators
+                // (known Xcode bug), burning the entire 240s Jest hook timeout.
+                // Our forceTerminateIosApp has a 15s timeout with SIGKILL fallback.
+                if (device.getPlatform() === 'ios') {
                     await forceTerminateIosApp('com.mattermost.rnbeta');
                 }
 
+                // Use newInstance (not delete: true) for first launch.
+                // delete: true triggers simctl terminate → uninstall → install, which
+                // is where the iOS simulator hang occurs. It's also unnecessary:
+                // - CI shards get fresh simulators with no leftover app data
+                // - ensureOnServerScreen() handles any residual logged-in state
+                // - Each test file creates fresh data via Setup.apiInit()
+                // newInstance: true restarts the process cleanly (~5s vs ~85s for delete).
                 await device.launchApp({
                     newInstance: true,
-
-                    // In CI: delete: true reinstalls the app, giving a clean state — no need for
-                    // resetAppState (which requires the app to already be installed). Locally:
-                    // resetAppState: true clears data without deleting the app binary (deleting
-                    // breaks the simulator symlink, causing subsequent launches to fail).
-                    ...(isCI ? {delete: true} : {resetAppState: true}),
                     permissions: {
                         notifications: 'YES',
                         camera: 'NO',
