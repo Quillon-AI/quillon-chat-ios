@@ -44,7 +44,6 @@
     "xml2js": "0.6.2"
   },
   "scripts": {
-    "e2e:android-inject-settings": "node inject-detox-settings.js",
     "e2e:android-create-emulator": "./create_android_emulator.sh",
     "e2e:android-build": "./scripts/run_detox.sh build -c android.emu.debug",
     "e2e:android-test": "./scripts/run_detox.sh test -c android.emu.debug --record-logs failing --take-screenshots failing",

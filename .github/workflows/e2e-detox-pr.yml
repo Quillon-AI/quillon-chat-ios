@@ -185,7 +185,6 @@ jobs:
           cd detox
           npm ci --prefer-offline --no-audit --no-fund
           npm install -g detox-cli
-          npm run e2e:android-inject-settings
           npm run e2e:android-build
 
       - name: Upload Android Build

@@ -129,7 +129,6 @@ detox/
 ├── .detoxrc.json                  # Detox device/app/config definitions
 ├── package.json                   # Separate npm package (own node_modules)
 ├── create_android_emulator.sh     # Creates and boots Android AVD for CI
-├── inject-detox-settings.js       # Injects Android test settings before emulator boot
 ├── e2e/
 │   ├── config.js                  # Jest config entry point for Detox
 │   ├── path_builder.js            # Artifact paths (screenshots/logs/videos)

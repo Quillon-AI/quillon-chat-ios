@@ -40,8 +40,8 @@
     "ios.ipad": {
       "type": "ios.simulator",
       "device": {
-        "type": "iPhone 17 Pro",
-        "os": "iOS 26.2"
+        "type": "iPad Pro 13-inch (M5)",
+        "os": "iOS 26.3"
       },
       "environment": {
         "MM_FEATUREFLAGS_InteractiveDialogAppsForm": "true"

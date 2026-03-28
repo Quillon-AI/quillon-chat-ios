@@ -19,8 +19,6 @@ navigate to the `detox` folder and run `npm install`
 To build the Detox Android app, navigate to the `detox` folder and run:
 
 ```sh
-npm run e2e:android-inject-settings
-
 npm run e2e:android-build
 ```
 
