@@ -563,18 +563,18 @@ export async function launchAppWithRetry(): Promise<void> {
                 isFirstLaunch = false;
             } else {
                 // For subsequent launches, restart the process without reinstalling.
-                // newInstance: true kills and restarts the process (~5s) so in-memory
-                // state is cleared. The app reads WatermelonDB on startup; after a
-                // successful logout the DB has no servers, so it shows server.screen.
+                // The app reads WatermelonDB on startup; after a successful logout the
+                // DB has no servers, so it shows server.screen.
                 // ensureOnServerScreen() below handles any remaining edge cases.
                 //
-                // Pre-terminate before device.launchApp({newInstance: true}) for the
-                // same reason as the first launch: Detox's internal simctl terminate
-                // has no timeout and will hang indefinitely if the app is in a zombie
-                // state. Our forceTerminateIosApp has a 15s timeout with pkill-9 +
-                // SpringBoard fallback. In the normal case (app cleanly running) it
-                // completes in ~1s; Detox's subsequent terminate returns immediately
-                // because the app is already gone.
+                // iOS: forceTerminateIosApp kills the running process via our own
+                // pkill-9 + optional SpringBoard restart (15s timeout). We then pass
+                // newInstance: false so Detox does NOT call simctl terminate — which
+                // hangs indefinitely on iOS 26.x (FBSOpenApplicationServiceErrorDomain
+                // code=4). The app is already gone by the time launchApp runs.
+                //
+                // Android: newInstance: true lets Detox kill and restart the process
+                // normally (~5s); no equivalent hang exists on Android.
                 if (device.getPlatform() === 'ios') {
                     await forceTerminateIosApp('com.mattermost.rnbeta');
                 }
