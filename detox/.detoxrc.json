@@ -100,9 +100,8 @@
   },
   "behavior": {
     "init": {
-      "reinstallApp": true,
-      "launchApp": true,
-      "resetSimulator": true
+      "reinstallApp": false,
+      "launchApp": false
     },
     "cleanup": {
       "shutdownDevice": true
