@@ -213,6 +213,7 @@ describe('Channels - Channel List', () => {
         const {team: testTeamTwo} = await Team.apiCreateTeam(siteOneUrl, {prefix: 'a'});
         await Team.apiAddUserToTeam(siteOneUrl, testUser.id, testTeamTwo.id);
         await device.reloadReactNative();
+        await ChannelListScreen.toBeVisible();
 
         // * Verify on first team and team sidebar item is selected and has correct display name abbreviation
         await expect(ChannelListScreen.headerTeamDisplayName).toHaveText(testTeam.display_name);

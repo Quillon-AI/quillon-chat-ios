@@ -50,9 +50,7 @@ class ManageChannelMembersScreen {
     };
 
     toBeVisible = async () => {
-        if (isIos()) {
-            await waitFor(this.manageMembersScreen).toExist().withTimeout(timeouts.TEN_SEC);
-        }
+        await waitFor(this.manageMembersScreen).toExist().withTimeout(timeouts.TEN_SEC);
 
         return this.manageMembersScreen;
     };
@@ -88,15 +86,17 @@ class ManageChannelMembersScreen {
             if (isIos()) {
                 await waitFor(this.tutorialHighlight).toExist().withTimeout(timeouts.HALF_MIN);
                 await this.tutorialSwipeLeft.tap();
-                await expect(this.tutorialHighlight).not.toExist();
             } else {
-                await wait(timeouts.ONE_SEC);
+                // On Android the tutorial is a native Modal. device.pressBack()
+                // dismisses a visible modal via onRequestClose, but if the modal
+                // is NOT showing it navigates back from the screen entirely.
+                // Guard by checking existence first.
+                await waitFor(this.tutorialHighlight).toExist().withTimeout(timeouts.TEN_SEC);
                 await device.pressBack();
-                await wait(timeouts.ONE_SEC);
             }
+            await waitFor(this.tutorialHighlight).not.toExist().withTimeout(timeouts.TEN_SEC);
         } catch {
-            // eslint-disable-next-line no-console
-            console.log('Tutorial element not visible, skipping action:');
+            // Tutorial may not appear if already dismissed in a previous run
         }
     };
 

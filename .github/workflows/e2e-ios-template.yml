@@ -313,7 +313,7 @@ jobs:
           # reinstallApp: false in .detoxrc.json means Detox never installs the app,
           # and launchApp({newInstance: true}) only launches — it does not install.
           # simctl install here is the only place the app binary enters the simulator.
-          APP_PATH=$(ls mobile-artifacts/*.app 2>/dev/null | head -1)
+          APP_PATH=$(ls -d mobile-artifacts/*.app 2>/dev/null | head -1)
           if [ -z "$APP_PATH" ]; then
             echo "❌ Error: No .app bundle found in mobile-artifacts/"
             ls -la mobile-artifacts/
@@ -474,6 +474,7 @@ jobs:
           path: detox/artifacts/
 
   generate-report:
+    if: always()
     runs-on: ubuntu-22.04
     needs:
       - generate-specs
@@ -526,12 +527,22 @@ jobs:
       - name: Calculate failures
         id: summary
         run: |
-          echo "FAILURES=$(cat detox/artifacts/summary.json | jq .stats.failures)" >> ${GITHUB_OUTPUT}
-          echo "PASSES=$(cat detox/artifacts/summary.json | jq .stats.passes)" >> ${GITHUB_OUTPUT}
-          echo "SKIPPED=$(cat detox/artifacts/summary.json | jq .stats.skipped)" >> ${GITHUB_OUTPUT}
-          echo "TOTAL=$(cat detox/artifacts/summary.json | jq .stats.tests)" >> ${GITHUB_OUTPUT}
-          echo "ERRORS=$(cat detox/artifacts/summary.json | jq .stats.errors)" >> ${GITHUB_OUTPUT}
-          echo "PERCENTAGE=$(cat detox/artifacts/summary.json | jq .stats.passPercent)" >> ${GITHUB_OUTPUT}
+          if [ -f detox/artifacts/summary.json ]; then
+            echo "FAILURES=$(cat detox/artifacts/summary.json | jq .stats.failures)" >> ${GITHUB_OUTPUT}
+            echo "PASSES=$(cat detox/artifacts/summary.json | jq .stats.passes)" >> ${GITHUB_OUTPUT}
+            echo "SKIPPED=$(cat detox/artifacts/summary.json | jq .stats.skipped)" >> ${GITHUB_OUTPUT}
+            echo "TOTAL=$(cat detox/artifacts/summary.json | jq .stats.tests)" >> ${GITHUB_OUTPUT}
+            echo "ERRORS=$(cat detox/artifacts/summary.json | jq .stats.errors)" >> ${GITHUB_OUTPUT}
+            echo "PERCENTAGE=$(cat detox/artifacts/summary.json | jq .stats.passPercent)" >> ${GITHUB_OUTPUT}
+          else
+            echo "⚠️ No summary.json found — all test machines likely failed before producing results"
+            echo "FAILURES=-1" >> ${GITHUB_OUTPUT}
+            echo "PASSES=0" >> ${GITHUB_OUTPUT}
+            echo "SKIPPED=0" >> ${GITHUB_OUTPUT}
+            echo "TOTAL=0" >> ${GITHUB_OUTPUT}
+            echo "ERRORS=0" >> ${GITHUB_OUTPUT}
+            echo "PERCENTAGE=0" >> ${GITHUB_OUTPUT}
+          fi
 
       - name: Set Target URL
         id: set-url
@@ -541,7 +552,10 @@ jobs:
       - name: Determine Status
         id: determine-status
         run: |
-          if [[ ${{ steps.summary.outputs.failures }} -gt 0 && "${{ inputs.testcase_failure_fatal }}" == "true" ]]; then
+          FAILURES="${{ steps.summary.outputs.FAILURES }}"
+          if [[ "$FAILURES" == "-1" ]]; then
+            echo "STATUS=failure" >> ${GITHUB_OUTPUT}
+          elif [[ "$FAILURES" -gt 0 && "${{ inputs.testcase_failure_fatal }}" == "true" ]]; then
             echo "STATUS=failure" >> ${GITHUB_OUTPUT}
           else
             echo "STATUS=success" >> ${GITHUB_OUTPUT}

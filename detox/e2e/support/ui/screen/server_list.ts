@@ -53,9 +53,7 @@ class ServerListScreen {
     };
 
     toBeVisible = async () => {
-        if (isIos()) {
-            await waitFor(this.serverListScreen).toExist().withTimeout(timeouts.TEN_SEC);
-        }
+        await waitFor(this.serverListScreen).toExist().withTimeout(timeouts.TEN_SEC);
 
         return this.serverListScreen;
     };
@@ -79,14 +77,21 @@ class ServerListScreen {
     };
 
     closeTutorial = async () => {
-        if (isIos()) {
-            await waitFor(this.tutorialHighlight).toExist().withTimeout(timeouts.TEN_SEC);
-            await this.tutorialSwipeLeft.tap();
-            await expect(this.tutorialHighlight).not.toExist();
-        } else {
-            await wait(timeouts.ONE_SEC);
-            await device.pressBack();
-            await wait(timeouts.ONE_SEC);
+        try {
+            if (isIos()) {
+                await waitFor(this.tutorialHighlight).toExist().withTimeout(timeouts.TEN_SEC);
+                await this.tutorialSwipeLeft.tap();
+            } else {
+                // On Android the tutorial is a native Modal. device.pressBack()
+                // dismisses a visible modal via onRequestClose, but if the modal
+                // is NOT showing it navigates back from the screen entirely.
+                // Guard by checking existence first.
+                await waitFor(this.tutorialHighlight).toExist().withTimeout(timeouts.TEN_SEC);
+                await device.pressBack();
+            }
+            await waitFor(this.tutorialHighlight).not.toExist().withTimeout(timeouts.TEN_SEC);
+        } catch {
+            // Tutorial may not appear if already dismissed in a previous run
         }
     };
 }

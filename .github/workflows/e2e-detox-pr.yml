@@ -272,8 +272,8 @@ jobs:
           repository_full_name: ${{ github.repository }}
           commit_sha: ${{ inputs.MOBILE_VERSION }}
           context: e2e/detox-ios-tests
-          description: Completed with ${{ needs.run-ios-tests.outputs.FAILURES }} failures
-          status: ${{ needs.run-ios-tests.outputs.STATUS }}
+          description: ${{ needs.run-ios-tests.outputs.FAILURES == '-1' && 'All test machines failed before producing results' || format('Completed with {0} failures', needs.run-ios-tests.outputs.FAILURES || '?') }}
+          status: ${{ needs.run-ios-tests.outputs.STATUS || 'failure' }}
           target_url: ${{ needs.run-ios-tests.outputs.TARGET_URL }}
 
   update-final-status-android:
@@ -289,8 +289,8 @@ jobs:
           repository_full_name: ${{ github.repository }}
           commit_sha: ${{ inputs.MOBILE_VERSION }}
           context: e2e/detox-android-tests
-          description: Completed with ${{ needs.run-android-tests.outputs.FAILURES }} failures
-          status: ${{ needs.run-android-tests.outputs.STATUS }}
+          description: ${{ needs.run-android-tests.outputs.FAILURES == '-1' && 'All test machines failed before producing results' || format('Completed with {0} failures', needs.run-android-tests.outputs.FAILURES || '?') }}
+          status: ${{ needs.run-android-tests.outputs.STATUS || 'failure' }}
           target_url: ${{ needs.run-android-tests.outputs.TARGET_URL }}
 
   run-ios-ipad-tests:
@@ -325,8 +325,8 @@ jobs:
           repository_full_name: ${{ github.repository }}
           commit_sha: ${{ inputs.MOBILE_VERSION }}
           context: e2e/detox-ipad-tests
-          description: Completed with ${{ needs.run-ios-ipad-tests.outputs.FAILURES }} failures
-          status: ${{ needs.run-ios-ipad-tests.outputs.STATUS }}
+          description: ${{ needs.run-ios-ipad-tests.outputs.FAILURES == '-1' && 'All test machines failed before producing results' || format('Completed with {0} failures', needs.run-ios-ipad-tests.outputs.FAILURES || '?') }}
+          status: ${{ needs.run-ios-ipad-tests.outputs.STATUS || 'failure' }}
           target_url: ${{ needs.run-ios-ipad-tests.outputs.TARGET_URL }}
 
   e2e-remove-matterwick-label:

@@ -201,6 +201,7 @@ describe('Smoke Test - Channels', () => {
         await Channel.apiAddUserToChannel(siteOneUrl, testUser.id, channel.id);
         await wait(timeouts.TWO_SEC);
         await device.reloadReactNative();
+        await ChannelListScreen.toBeVisible();
         await ChannelScreen.open(channelsCategory, channel.name);
         await ChannelInfoScreen.open();
         await ChannelInfoScreen.openChannelSettings();

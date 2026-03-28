@@ -59,6 +59,7 @@ describe('Channels - Manage Own Channel Membership', () => {
         const {channel} = await Channel.apiCreateChannel(siteOneUrl, {teamId: testTeam.id});
         await Channel.apiAddUserToChannel(siteOneUrl, testUser.id, channel.id);
         await device.reloadReactNative();
+        await ChannelListScreen.toBeVisible();
 
         // # Open the channel screen
         await ChannelScreen.open(channelsCategory, channel.name);
