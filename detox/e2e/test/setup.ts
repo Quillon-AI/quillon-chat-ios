@@ -382,32 +382,39 @@ async function forceTerminateIosApp(bundleId: string, timeoutMs = 15000): Promis
 
         // Fall back to SIGKILL on the app process directly.
         // bundleId is a compile-time constant (e.g. "com.mattermost.rnbeta"), not user input.
+        let pkillKilledProcess = false;
         try {
             execSync(`pkill -9 -f "${bundleId}"`, {stdio: 'pipe'});
 
             // Give the simulator a moment to clean up after the force-kill
             await new Promise((resolve) => setTimeout(resolve, 2000));
+            pkillKilledProcess = true;
             console.info('✅ iOS app force-killed via pkill');
         } catch {
             // pkill returns exit code 1 if no matching process — that's fine, app is already dead
             console.info('ℹ️ No matching app process found (app may already be terminated)');
         }
 
-        // After pkill -9, the simulator's launchd still holds a pending termination
-        // record for the killed process. Detox's subsequent simctl terminate (called
-        // internally by device.launchApp({newInstance: true})) then blocks waiting
-        // for acknowledgment from a dead process — causing multi-minute hangs and
+        // Only restart SpringBoard when pkill -9 actually killed a process.
+        // After pkill -9, launchd still holds a pending termination record for the
+        // killed process. Detox's subsequent simctl terminate (called internally by
+        // device.launchApp({newInstance: true})) then blocks waiting for acknowledgment
+        // from a dead process — causing multi-minute hangs and
         // FBSOpenApplicationServiceErrorDomain code=4 launch failures.
         // Restarting SpringBoard flushes launchd's app registry so the next
         // simctl terminate returns immediately.
-        try {
-            execSync('xcrun simctl spawn booted killall SpringBoard', {stdio: 'pipe'});
+        // Skipping when no process was killed avoids an unnecessary 8s delay and
+        // prevents destabilizing the simulator on fresh/first-launch runs.
+        if (pkillKilledProcess) {
+            try {
+                execSync('xcrun simctl spawn booted killall SpringBoard', {stdio: 'pipe'});
 
-            // SpringBoard takes ~8s to restart; wait before Detox tries to launch
-            await new Promise((resolve) => setTimeout(resolve, 8000));
-            console.info('✅ SpringBoard restarted to clear stale launchd app registration');
-        } catch {
-            console.info('ℹ️ Could not restart SpringBoard (non-fatal)');
+                // SpringBoard takes ~8s to restart; wait before Detox tries to launch
+                await new Promise((resolve) => setTimeout(resolve, 8000));
+                console.info('✅ SpringBoard restarted to clear stale launchd app registration');
+            } catch {
+                console.info('ℹ️ Could not restart SpringBoard (non-fatal)');
+            }
         }
     }
 }

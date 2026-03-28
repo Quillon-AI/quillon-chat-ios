@@ -309,6 +309,20 @@ jobs:
           # Wait for boot to complete
           xcrun simctl bootstatus "$SIMULATOR_ID"
 
+          # Install the app now while the simulator is fully booted.
+          # reinstallApp: false in .detoxrc.json means Detox never installs the app,
+          # and launchApp({newInstance: true}) only launches — it does not install.
+          # simctl install here is the only place the app binary enters the simulator.
+          APP_PATH=$(ls mobile-artifacts/*.app 2>/dev/null | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "❌ Error: No .app bundle found in mobile-artifacts/"
+            ls -la mobile-artifacts/
+            exit 1
+          fi
+          echo "Installing $APP_PATH in simulator $SIMULATOR_ID..."
+          xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
+          echo "✅ App installed: $APP_PATH"
+
           # Open Simulator.app in background to speed up UI rendering
           open -a Simulator --args -CurrentDeviceUDID "$SIMULATOR_ID"
 
