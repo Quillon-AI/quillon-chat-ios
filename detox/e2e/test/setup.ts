@@ -3,6 +3,8 @@
 /* eslint-disable no-await-in-loop, no-console */
 
 import {execSync, spawn} from 'child_process';
+import {existsSync, readdirSync} from 'fs';
+import {join, resolve as resolvePath} from 'path';
 
 import {ClaudePromptHandler} from '@support/pilot/ClaudePromptHandler';
 import {Plugin, System, User} from '@support/server_api';
@@ -357,6 +359,51 @@ async function dismissRedBoxIfVisible(): Promise<void> {
  * This prevents the global beforeAll from burning its entire 240s Jest timeout waiting
  * for a stuck simctl terminate, which was causing ~50% of iOS CI failures.
  */
+/**
+ * Ensure the app is installed on the booted iOS simulator.
+ * In CI the pre-boot step handles installation via `simctl install`.
+ * Locally: auto-installs from mobile-artifacts/ if available, otherwise
+ * throws a clear error telling the developer what to run.
+ */
+async function ensureIosAppInstalled(bundleId: string): Promise<void> {
+    if (process.env.CI) {
+        return; // pre-boot step already ran simctl install
+    }
+
+    try {
+        execSync(`xcrun simctl get_app_container booted "${bundleId}"`, {stdio: 'pipe'});
+        return; // already installed
+    } catch {
+        // not installed — fall through to auto-install attempt
+    }
+
+    // Look for a .app bundle in mobile-artifacts/ (relative to project root)
+    const projectRoot = resolvePath(__dirname, '../../..');
+    const artifactsDir = join(projectRoot, 'mobile-artifacts');
+    let appPath: string | undefined;
+
+    if (existsSync(artifactsDir)) {
+        const found = readdirSync(artifactsDir).find((f) => f.endsWith('.app'));
+        if (found) {
+            appPath = join(artifactsDir, found);
+        }
+    }
+
+    if (appPath) {
+        console.info(`ℹ️ App not on simulator — installing from ${appPath}`);
+        execSync(`xcrun simctl install booted "${appPath}"`, {stdio: 'inherit'});
+        console.info('✅ App installed successfully');
+        return;
+    }
+
+    throw new Error(
+        '\n\n❌ The Mattermost app is not installed on the iOS simulator and no .app was found in mobile-artifacts/.\n' +
+        'Run one of the following from the project root, then re-run the tests:\n' +
+        '  npm run ios\n' +
+        '  xcrun simctl install booted <path/to/Mattermost.app>\n',
+    );
+}
+
 async function forceTerminateIosApp(bundleId: string, timeoutMs = 15000): Promise<void> {
     // Try graceful terminate with a timeout
     try {
@@ -467,6 +514,7 @@ export async function launchAppWithRetry(): Promise<void> {
                 // (known Xcode bug), burning the entire 240s Jest hook timeout.
                 // Our forceTerminateIosApp has a 15s timeout with SIGKILL fallback.
                 if (device.getPlatform() === 'ios') {
+                    await ensureIosAppInstalled('com.mattermost.rnbeta');
                     await forceTerminateIosApp('com.mattermost.rnbeta');
                 }
 
