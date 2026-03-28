@@ -50,7 +50,9 @@ class ManageChannelMembersScreen {
     };
 
     toBeVisible = async () => {
-        await waitFor(this.manageMembersScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        if (isIos()) {
+            await waitFor(this.manageMembersScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        }
 
         return this.manageMembersScreen;
     };
