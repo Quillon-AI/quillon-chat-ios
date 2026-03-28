@@ -512,23 +512,16 @@ export async function launchAppWithRetry(): Promise<void> {
                 // Ensure the app is installed before the first launch.
                 // In CI the pre-boot step already ran simctl install; locally this
                 // auto-installs from mobile-artifacts/ or prompts the developer.
-                // No forceTerminateIosApp here — the app has never been launched by
-                // our test session yet, so there is no running process or zombie to
-                // worry about. Detox's own terminateApp (called inside launchApp)
-                // handles the normal case quickly.
                 if (device.getPlatform() === 'ios') {
                     await ensureIosAppInstalled('com.mattermost.rnbeta');
                 }
 
-                // Use newInstance (not delete: true) for first launch.
-                // delete: true triggers simctl terminate → uninstall → install, which
-                // is where the iOS simulator hang occurs. It's also unnecessary:
-                // - CI shards get fresh simulators with no leftover app data
-                // - ensureOnServerScreen() handles any residual logged-in state
-                // - Each test file creates fresh data via Setup.apiInit()
-                // newInstance: true restarts the process cleanly (~5s vs ~85s for delete).
+                // Do NOT use newInstance: true on first launch.
+                // newInstance triggers Detox's internal simctl terminate before launching,
+                // which hangs indefinitely on iOS simulators (known Xcode bug) and is the
+                // root cause of FBSOpenApplicationServiceErrorDomain code=4 failures.
+                // On first launch the app has never run, so there is nothing to terminate.
                 await device.launchApp({
-                    newInstance: true,
                     permissions: {
                         notifications: 'YES',
                         camera: 'NO',
