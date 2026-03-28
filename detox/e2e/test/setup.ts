@@ -392,6 +392,22 @@ async function forceTerminateIosApp(bundleId: string, timeoutMs = 15000): Promis
             // pkill returns exit code 1 if no matching process — that's fine, app is already dead
             console.info('ℹ️ No matching app process found (app may already be terminated)');
         }
+
+        // After pkill -9, the simulator's launchd still holds a pending termination
+        // record for the killed process. Detox's subsequent simctl terminate (called
+        // internally by device.launchApp({newInstance: true})) then blocks waiting
+        // for acknowledgment from a dead process — causing multi-minute hangs and
+        // FBSOpenApplicationServiceErrorDomain code=4 launch failures.
+        // Restarting SpringBoard flushes launchd's app registry so the next
+        // simctl terminate returns immediately.
+        try {
+            execSync('xcrun simctl spawn booted killall SpringBoard', {stdio: 'pipe'});
+            // SpringBoard takes ~8s to restart; wait before Detox tries to launch
+            await new Promise((resolve) => setTimeout(resolve, 8000));
+            console.info('✅ SpringBoard restarted to clear stale launchd app registration');
+        } catch {
+            console.info('ℹ️ Could not restart SpringBoard (non-fatal)');
+        }
     }
 }
 

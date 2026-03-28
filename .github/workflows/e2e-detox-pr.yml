@@ -49,6 +49,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   INTUNE_ENABLED: 'true'
   DETOX_AWS_S3_BUCKET: "mattermost-detox-report"
 
