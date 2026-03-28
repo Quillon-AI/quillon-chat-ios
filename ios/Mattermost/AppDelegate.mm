@@ -67,15 +67,12 @@ NSString* const NOTIFICATION_TEST_ACTION = @"test";
   
   // Clear keychain on first run in case of reinstallation
   if (![[NSUserDefaults standardUserDefaults] objectForKey:@"FirstRun"]) {
-    @try {
-      RNKeychainManager *keychain = [[RNKeychainManager alloc] init];
-      NSArray<NSString*> *servers = [keychain getAllServersForInternetPasswords];
-      [TurboLog writeWithLogLevel:TurboLogLevelInfo message:@[@"Servers", servers]];
-      for (NSString *server in servers) {
-        [keychain deleteCredentialsForServer:server withOptions:nil];
-      }
-    } @catch (NSException *exception) {
-      [TurboLog writeWithLogLevel:TurboLogLevelWarning message:@[@"Failed to clear keychain on first run", exception.reason ?: @"unknown"]];
+
+    RNKeychainManager *keychain = [[RNKeychainManager alloc] init];
+    NSArray<NSString*> *servers = [keychain getAllServersForInternetPasswords];
+    [TurboLog writeWithLogLevel:TurboLogLevelInfo message:@[@"Servers", servers]];
+    for (NSString *server in servers) {
+      [keychain deleteCredentialsForServer:server withOptions:nil];
     }
 
     [[NSUserDefaults standardUserDefaults] setValue:@YES forKey:@"FirstRun"];
