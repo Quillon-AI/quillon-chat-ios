@@ -588,9 +588,10 @@ async function initializeClaudePromptHandler(): Promise<void> {
 }
 
 beforeAll(async () => {
-    // Only do a full clean install (delete: true) for the very first test file per run.
-    // process.env persists across Jest test files in the same worker (maxWorkers: 1 in CI),
-    // so subsequent files use fast relaunch (~5s) instead of a full reinstall (~85s on iOS).
+    // Track whether this is the first test file in the worker process.
+    // process.env persists across Jest test files in the same worker (maxWorkers: 1 in CI).
+    // First launch: forceTerminateIosApp + launchApp({newInstance: true}) with permissions.
+    // Subsequent files: fast relaunch (~5s) — app is already installed by CI pre-boot step.
     isFirstLaunch = !process.env.DETOX_APP_INSTALLED;
     if (isFirstLaunch) {
         process.env.DETOX_APP_INSTALLED = 'true';
