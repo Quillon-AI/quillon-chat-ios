@@ -509,13 +509,15 @@ export async function launchAppWithRetry(): Promise<void> {
     for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
         try {
             if (isFirstLaunch) {
-                // Pre-terminate the iOS app before the first launch. Detox's internal
-                // `xcrun simctl terminate` can hang indefinitely on iOS simulators
-                // (known Xcode bug), burning the entire 240s Jest hook timeout.
-                // Our forceTerminateIosApp has a 15s timeout with SIGKILL fallback.
+                // Ensure the app is installed before the first launch.
+                // In CI the pre-boot step already ran simctl install; locally this
+                // auto-installs from mobile-artifacts/ or prompts the developer.
+                // No forceTerminateIosApp here — the app has never been launched by
+                // our test session yet, so there is no running process or zombie to
+                // worry about. Detox's own terminateApp (called inside launchApp)
+                // handles the normal case quickly.
                 if (device.getPlatform() === 'ios') {
                     await ensureIosAppInstalled('com.mattermost.rnbeta');
-                    await forceTerminateIosApp('com.mattermost.rnbeta');
                 }
 
                 // Use newInstance (not delete: true) for first launch.
