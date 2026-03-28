@@ -273,6 +273,7 @@ jobs:
           node -e "
             const {parseMaestroReport} = require('./utils/maestro_report');
             const summary = parseMaestroReport('../build/maestro-report.xml');
+            const fs = require('fs');
             if (summary) {
               const s = summary.stats;
               const output = [
@@ -283,11 +284,10 @@ jobs:
                 'SKIPPED=' + s.skipped,
                 'PERCENTAGE=' + s.passPercent,
               ];
-              const fs = require('fs');
               output.forEach(l => fs.appendFileSync(process.env.GITHUB_OUTPUT, l + '\n'));
             } else {
-              const fs = require('fs');
-              ['FAILURES=0','PASSES=0','TOTAL=0','ERRORS=0','SKIPPED=0','PERCENTAGE=0'].forEach(l => fs.appendFileSync(process.env.GITHUB_OUTPUT, l + '\n'));
+              console.log('No Maestro report found — marking as failure');
+              ['FAILURES=1','PASSES=0','TOTAL=0','ERRORS=1','SKIPPED=0','PERCENTAGE=0','NO_REPORT=true'].forEach(l => fs.appendFileSync(process.env.GITHUB_OUTPUT, l + '\n'));
             }
           "
 
@@ -530,6 +530,7 @@ jobs:
           node -e "
             const {parseMaestroReport} = require('./utils/maestro_report');
             const summary = parseMaestroReport('../build/maestro-report.xml');
+            const fs = require('fs');
             if (summary) {
               const s = summary.stats;
               const output = [
@@ -540,11 +541,10 @@ jobs:
                 'SKIPPED=' + s.skipped,
                 'PERCENTAGE=' + s.passPercent,
               ];
-              const fs = require('fs');
               output.forEach(l => fs.appendFileSync(process.env.GITHUB_OUTPUT, l + '\n'));
             } else {
-              const fs = require('fs');
-              ['FAILURES=0','PASSES=0','TOTAL=0','ERRORS=0','SKIPPED=0','PERCENTAGE=0'].forEach(l => fs.appendFileSync(process.env.GITHUB_OUTPUT, l + '\n'));
+              console.log('No Maestro report found — marking as failure');
+              ['FAILURES=1','PASSES=0','TOTAL=0','ERRORS=1','SKIPPED=0','PERCENTAGE=0','NO_REPORT=true'].forEach(l => fs.appendFileSync(process.env.GITHUB_OUTPUT, l + '\n'));
             }
           "
 

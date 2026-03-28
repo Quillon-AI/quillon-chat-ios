@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import {
     type LayoutChangeEvent,
+    Platform,
     type StyleProp,
     Text,
     View,
@@ -198,7 +199,7 @@ const FloatingInputContainer = ({
             style={styles.container}
         >
             <Pressable
-                accessible={false}
+                accessible={Platform.OS === 'ios' ? false : undefined}
                 onPress={handlePressOnContainer}
             >
                 <Animated.Text

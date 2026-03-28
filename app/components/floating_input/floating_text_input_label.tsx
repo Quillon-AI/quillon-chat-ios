@@ -157,7 +157,6 @@ const FloatingTextInput = forwardRef<FloatingTextInputRef, FloatingTextInputProp
                 ref={inputRef}
                 underlineColorAndroid='transparent'
                 testID={testID}
-                nativeID={testID}
                 keyboardAppearance={getKeyboardAppearanceFromTheme(theme)}
                 autoCorrect={!rawInput}
                 autoCapitalize={rawInput ? 'none' : undefined}
