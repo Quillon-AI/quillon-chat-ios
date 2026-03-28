@@ -323,6 +323,19 @@ jobs:
           xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
           echo "✅ App installed: $APP_PATH"
 
+          # Pre-warm: launch and terminate the app once to establish a clean
+          # SpringBoard registration. A fresh simctl install creates a
+          # "pending-install" record in launchd that causes the first
+          # simctl launch (called inside Detox's launchApp) to hang.
+          # After a proper launch→terminate cycle the app is in clean
+          # "terminated" state and subsequent launches work immediately.
+          # Metro does not need to be running; native process launch is enough.
+          echo "Pre-warming app (launch → terminate)..."
+          xcrun simctl launch "$SIMULATOR_ID" com.mattermost.rnbeta 2>/dev/null || true
+          sleep 5
+          xcrun simctl terminate "$SIMULATOR_ID" com.mattermost.rnbeta 2>/dev/null || true
+          echo "✅ App pre-warmed"
+
           # Open Simulator.app in background to speed up UI rendering
           open -a Simulator --args -CurrentDeviceUDID "$SIMULATOR_ID"
 

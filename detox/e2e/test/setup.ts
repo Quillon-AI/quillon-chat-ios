@@ -516,12 +516,13 @@ export async function launchAppWithRetry(): Promise<void> {
                     await ensureIosAppInstalled('com.mattermost.rnbeta');
                 }
 
-                // Do NOT use newInstance: true on first launch.
-                // newInstance triggers Detox's internal simctl terminate before launching,
-                // which hangs indefinitely on iOS simulators (known Xcode bug) and is the
-                // root cause of FBSOpenApplicationServiceErrorDomain code=4 failures.
-                // On first launch the app has never run, so there is nothing to terminate.
+                // Pass newInstance: false explicitly on first launch.
+                // Without it, Detox defaults newInstance = (this._processes[bundleId] == null),
+                // which is true on the first call — triggering simctl terminate that hangs
+                // indefinitely on iOS 26.x (FBSOpenApplicationServiceErrorDomain code=4).
+                // The app is freshly installed and not running, so nothing to terminate.
                 await device.launchApp({
+                    newInstance: false,
                     permissions: {
                         notifications: 'YES',
                         camera: 'NO',
@@ -578,7 +579,11 @@ export async function launchAppWithRetry(): Promise<void> {
                     await forceTerminateIosApp('com.mattermost.rnbeta');
                 }
                 await device.launchApp({
-                    newInstance: true,
+
+                    // iOS: forceTerminateIosApp above already killed the app; newInstance: false
+                    // skips Detox's internal simctl terminate, which hangs on iOS 26.x.
+                    // Android: newInstance: true lets Detox restart the process normally.
+                    newInstance: device.getPlatform() !== 'ios',
                     launchArgs: {
                         detoxPrintBusyIdleResources: 'YES',
                         detoxDebugVisibility: 'YES',
