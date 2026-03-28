@@ -393,13 +393,17 @@ jobs:
 
           cd detox
           npm run detox:config-gen
-          DETOX_CONFIG="${{ inputs.detox_config }}"
+          # Use read -ra to safely word-split space-separated spec paths without
+          # glob expansion or shell injection from the matrix value.
+          read -ra SPECS <<< "$MATRIX_SPECS"
           if [ "$DETOX_CONFIG" = "ios.ipad.debug" ]; then
-            npm run e2e:ios-ipad-test -- ${{ matrix.specs }}
+            npm run e2e:ios-ipad-test -- "${SPECS[@]}"
           else
-            npm run e2e:ios-test -- ${{ matrix.specs }}
+            npm run e2e:ios-test -- "${SPECS[@]}"
           fi
         env:
+          DETOX_CONFIG: ${{ inputs.detox_config }}
+          MATRIX_SPECS: ${{ matrix.specs }}
           DETOX_DISABLE_HIERARCHY_DUMP: "YES"
           DETOX_DISABLE_SCREENSHOT_TRACKING: "YES"
           DETOX_LOGLEVEL: "debug"
