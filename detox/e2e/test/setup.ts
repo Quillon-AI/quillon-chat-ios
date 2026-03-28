@@ -1,6 +1,6 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
-/* eslint-disable no-console */
+/* eslint-disable no-await-in-loop, no-console */
 
 import {execSync} from 'child_process';
 
@@ -16,7 +16,6 @@ async function loginAdmin(): Promise<void> {
     await System.apiCheckSystemHealth(siteOneUrl);
 
     const MAX_ATTEMPTS = 3;
-    // eslint-disable-next-line no-await-in-loop
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         const {error: loginError} = await User.apiAdminLogin(siteOneUrl);
         if (loginError) {
