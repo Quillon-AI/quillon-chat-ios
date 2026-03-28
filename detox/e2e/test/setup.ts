@@ -173,10 +173,16 @@ async function ensureOnServerScreen(maxWaitMs = 30000): Promise<void> {
                     withTimeout(timeouts.TEN_SEC);
             } catch (e) {
                 // Logout via account tab failed — last resort: relaunch to clear state.
+                // On iOS, device.launchApp({newInstance: true}) internally calls
+                // simctl terminate which hangs on iOS 26.x. Force-kill via launchd first,
+                // then launch with newInstance: false to bypass the Detox terminate path.
                 console.warn(
                     `⚠️ Logout via account tab failed (${(e as Error).message?.slice(0, 80)}), relaunching app`,
                 );
-                await device.launchApp({newInstance: true});
+                if (device.getPlatform() === 'ios') {
+                    await forceTerminateIosApp('com.mattermost.rnbeta');
+                }
+                await device.launchApp({newInstance: device.getPlatform() !== 'ios'});
                 await wait(timeouts.TWO_SEC);
             }
             continue;
@@ -352,14 +358,6 @@ async function dismissRedBoxIfVisible(): Promise<void> {
 }
 
 /**
- * Pre-terminate the iOS app with a timeout to work around `xcrun simctl terminate`
- * hanging indefinitely. If the graceful terminate doesn't complete within the timeout,
- * fall back to SIGKILL via `pkill -9` on the app process.
- *
- * This prevents the global beforeAll from burning its entire 240s Jest timeout waiting
- * for a stuck simctl terminate, which was causing ~50% of iOS CI failures.
- */
-/**
  * Ensure the app is installed on the booted iOS simulator.
  * In CI the pre-boot step handles installation via `simctl install`.
  * Locally: auto-installs from mobile-artifacts/ if available, otherwise
@@ -405,7 +403,8 @@ async function ensureIosAppInstalled(bundleId: string): Promise<void> {
 }
 
 async function forceTerminateIosApp(bundleId: string, timeoutMs = 15000): Promise<void> {
-    // Try graceful terminate with a timeout
+    // Fast path: try graceful simctl terminate (works in ~1s when app is in a clean state).
+    let terminated = false;
     try {
         await new Promise<void>((resolve, reject) => {
             const proc = spawn('xcrun', ['simctl', 'terminate', 'booted', bundleId], {stdio: 'pipe'});
@@ -413,7 +412,6 @@ async function forceTerminateIosApp(bundleId: string, timeoutMs = 15000): Promis
                 proc.kill('SIGKILL');
                 reject(new Error(`simctl terminate timed out after ${timeoutMs}ms`));
             }, timeoutMs);
-
             proc.on('close', () => {
                 clearTimeout(timer);
                 resolve();
@@ -423,45 +421,50 @@ async function forceTerminateIosApp(bundleId: string, timeoutMs = 15000): Promis
                 reject(err);
             });
         });
-        console.info('✅ iOS app terminated gracefully');
+        terminated = true;
+        console.info('✅ iOS app terminated via simctl terminate');
     } catch (e) {
-        console.warn(`⚠️ Graceful terminate failed (${(e as Error).message}), force-killing app process`);
+        console.warn(
+            `⚠️ simctl terminate timed out after ${timeoutMs}ms — falling back to launchd kill`,
+        );
+    }
 
-        // Fall back to SIGKILL on the app process directly.
-        // bundleId is a compile-time constant (e.g. "com.mattermost.rnbeta"), not user input.
-        let pkillKilledProcess = false;
+    if (!terminated) {
+        // Slow path: find the app's PID from inside the simulator's launchd namespace
+        // and kill it there. This is the only reliable way to kill a simulator app
+        // from the host when simctl terminate hangs.
+        //
+        // Why NOT pkill -f "${bundleId}" from the macOS host:
+        //   The simulator app process command line is the path to its binary,
+        //   e.g. ".../Mattermost.app/Mattermost". The bundle ID never appears in it.
+        //   pkill always exits 1 (no match) and silently does nothing.
+        //
+        // Why simctl spawn kill:
+        //   Sending the signal through the simulator's launchd namespace means launchd
+        //   receives the SIGCHLD, records the process death, and cleans up the service
+        //   entry. Subsequent simctl launch calls work immediately with no stale records.
+        //   No SpringBoard restart is needed.
         try {
-            execSync(`pkill -9 -f "${bundleId}"`, {stdio: 'pipe'});
+            const lcOutput = execSync('xcrun simctl spawn booted launchctl list', {stdio: 'pipe'}).toString();
+            const line = lcOutput.split('\n').find((l) => l.includes(bundleId));
+            if (line) {
+                const pidMatch = line.trim().match(/^(\d+)/);
+                if (pidMatch) {
+                    execSync(`xcrun simctl spawn booted kill -9 ${pidMatch[1]}`, {stdio: 'pipe'});
 
-            // Give the simulator a moment to clean up after the force-kill
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            pkillKilledProcess = true;
-            console.info('✅ iOS app force-killed via pkill');
-        } catch {
-            // pkill returns exit code 1 if no matching process — that's fine, app is already dead
-            console.info('ℹ️ No matching app process found (app may already be terminated)');
-        }
-
-        // Only restart SpringBoard when pkill -9 actually killed a process.
-        // After pkill -9, launchd still holds a pending termination record for the
-        // killed process. Detox's subsequent simctl terminate (called internally by
-        // device.launchApp({newInstance: true})) then blocks waiting for acknowledgment
-        // from a dead process — causing multi-minute hangs and
-        // FBSOpenApplicationServiceErrorDomain code=4 launch failures.
-        // Restarting SpringBoard flushes launchd's app registry so the next
-        // simctl terminate returns immediately.
-        // Skipping when no process was killed avoids an unnecessary 8s delay and
-        // prevents destabilizing the simulator on fresh/first-launch runs.
-        if (pkillKilledProcess) {
-            try {
-                execSync('xcrun simctl spawn booted killall SpringBoard', {stdio: 'pipe'});
-
-                // SpringBoard takes ~8s to restart; wait before Detox tries to launch
-                await new Promise((resolve) => setTimeout(resolve, 8000));
-                console.info('✅ SpringBoard restarted to clear stale launchd app registration');
-            } catch {
-                console.info('ℹ️ Could not restart SpringBoard (non-fatal)');
+                    // Give launchd a moment to process the SIGCHLD and clean up
+                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                    console.info(`✅ iOS app force-killed via launchd (PID ${pidMatch[1]})`);
+                } else {
+                    console.info('ℹ️ App found in launchctl but not running (PID is "-")');
+                }
+            } else {
+                console.info('ℹ️ App not found in launchctl list — already terminated');
             }
+        } catch (e) {
+            console.warn(
+                `⚠️ Could not kill app via launchctl: ${(e as Error).message?.slice(0, 80)}`,
+            );
         }
     }
 }
@@ -638,8 +641,9 @@ async function initializeClaudePromptHandler(): Promise<void> {
 beforeAll(async () => {
     // Track whether this is the first test file in the worker process.
     // process.env persists across Jest test files in the same worker (maxWorkers: 1 in CI).
-    // First launch: forceTerminateIosApp + launchApp({newInstance: true}) with permissions.
-    // Subsequent files: fast relaunch (~5s) — app is already installed by CI pre-boot step.
+    // First launch: launchApp({newInstance: false}) with permissions (no prior terminate needed).
+    // Subsequent files: forceTerminateIosApp + launchApp({newInstance: false}) for iOS;
+    //   launchApp({newInstance: true}) for Android.
     isFirstLaunch = !process.env.DETOX_APP_INSTALLED;
     if (isFirstLaunch) {
         process.env.DETOX_APP_INSTALLED = 'true';

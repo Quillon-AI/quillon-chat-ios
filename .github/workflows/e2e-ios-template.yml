@@ -323,17 +323,36 @@ jobs:
           xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
           echo "✅ App installed: $APP_PATH"
 
-          # Pre-warm: launch and terminate the app once to establish a clean
-          # SpringBoard registration. A fresh simctl install creates a
-          # "pending-install" record in launchd that causes the first
-          # simctl launch (called inside Detox's launchApp) to hang.
-          # After a proper launch→terminate cycle the app is in clean
-          # "terminated" state and subsequent launches work immediately.
-          # Metro does not need to be running; native process launch is enough.
-          echo "Pre-warming app (launch → terminate)..."
-          xcrun simctl launch "$SIMULATOR_ID" com.mattermost.rnbeta 2>/dev/null || true
-          sleep 5
-          xcrun simctl terminate "$SIMULATOR_ID" com.mattermost.rnbeta 2>/dev/null || true
+          # Pre-warm: launch the app once to create its data container and establish a
+          # clean SpringBoard registration. A fresh simctl install creates a
+          # "pending-install" record in launchd; without a launch→kill cycle, the first
+          # Detox launchApp call hangs waiting for that record to settle.
+          # The app will crash immediately without Metro — that is expected and fine;
+          # launchd creates the data container before the JS engine starts.
+          #
+          # Both simctl launch and simctl terminate can hang on iOS 26.x — the same bug
+          # we work around in setup.ts. Protect each command:
+          #   - simctl launch: backgrounded with a hard sleep+kill timeout.
+          #   - kill: use simctl spawn launchctl to kill inside the simulator's launchd
+          #     namespace instead of simctl terminate. launchd then sees the SIGCHLD,
+          #     cleans up the service record, and leaves no stale state.
+          echo "Pre-warming app to create data container..."
+          xcrun simctl launch "$SIMULATOR_ID" com.mattermost.rnbeta 2>/dev/null &
+          PREWARM_LAUNCH_PID=$!
+          sleep 8
+          kill "$PREWARM_LAUNCH_PID" 2>/dev/null || true
+          wait "$PREWARM_LAUNCH_PID" 2>/dev/null || true
+
+          # Kill via launchd (reliable — simctl terminate can hang on iOS 26.x)
+          APP_PID=$(xcrun simctl spawn "$SIMULATOR_ID" launchctl list 2>/dev/null | \
+            grep "com.mattermost.rnbeta" | awk '{print $1}' | grep -E '^[0-9]+$' || true)
+          if [ -n "$APP_PID" ]; then
+            xcrun simctl spawn "$SIMULATOR_ID" kill -9 "$APP_PID" 2>/dev/null || true
+            sleep 1
+            echo "✅ App pre-warm: killed via launchd (PID $APP_PID)"
+          else
+            echo "ℹ️ App pre-warm: not in launchctl (crashed before registering — data container still created)"
+          fi
           echo "✅ App pre-warmed"
 
           # Open Simulator.app in background to speed up UI rendering
