@@ -654,7 +654,11 @@ jobs:
     runs-on: ubuntu-22.04
     needs:
       - unified-report
-    if: always() && inputs.pr_number != ''
+    # IMPORTANT: !cancelled() prevents label removal when the workflow is cancelled
+    # (e.g. by concurrency cancel-in-progress). Without this, Matterwick sees the
+    # label removed and deletes the test servers while the replacement run is still
+    # using them.
+    if: always() && !cancelled() && inputs.pr_number != ''
     steps:
       - name: e2e/remove-label-from-pr
         uses: actions/github-script@e7aeb8c663f696059ebb5f9ab1425ed2ef511bdb # v7.0.1
