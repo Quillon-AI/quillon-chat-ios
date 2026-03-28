@@ -402,6 +402,7 @@ async function forceTerminateIosApp(bundleId: string, timeoutMs = 15000): Promis
         // simctl terminate returns immediately.
         try {
             execSync('xcrun simctl spawn booted killall SpringBoard', {stdio: 'pipe'});
+
             // SpringBoard takes ~8s to restart; wait before Detox tries to launch
             await new Promise((resolve) => setTimeout(resolve, 8000));
             console.info('✅ SpringBoard restarted to clear stale launchd app registration');
@@ -515,6 +516,17 @@ export async function launchAppWithRetry(): Promise<void> {
                 // state is cleared. The app reads WatermelonDB on startup; after a
                 // successful logout the DB has no servers, so it shows server.screen.
                 // ensureOnServerScreen() below handles any remaining edge cases.
+                //
+                // Pre-terminate before device.launchApp({newInstance: true}) for the
+                // same reason as the first launch: Detox's internal simctl terminate
+                // has no timeout and will hang indefinitely if the app is in a zombie
+                // state. Our forceTerminateIosApp has a 15s timeout with pkill-9 +
+                // SpringBoard fallback. In the normal case (app cleanly running) it
+                // completes in ~1s; Detox's subsequent terminate returns immediately
+                // because the app is already gone.
+                if (device.getPlatform() === 'ios') {
+                    await forceTerminateIosApp('com.mattermost.rnbeta');
+                }
                 await device.launchApp({
                     newInstance: true,
                     launchArgs: {
