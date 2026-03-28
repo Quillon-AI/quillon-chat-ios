@@ -104,7 +104,7 @@
       "launchApp": false
     },
     "cleanup": {
-      "shutdownDevice": true
+      "shutdownDevice": false
     }
   },
   "session": {

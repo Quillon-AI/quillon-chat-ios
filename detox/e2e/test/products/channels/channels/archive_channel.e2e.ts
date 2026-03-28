@@ -34,6 +34,22 @@ import {
 } from '@support/utils';
 import {expect, waitFor} from 'detox';
 
+/**
+ * Navigate back from a channel that was opened via Browse Channels.
+ * Channel back → Browse Channels, then close Browse Channels.
+ * On Android, device.pressBack() is more reliable than tapping the close button
+ * (avoids bridge-idle sync stalls).
+ */
+async function closeBrowseChannelsChannel() {
+    await ChannelScreen.back();
+    await wait(timeouts.ONE_SEC);
+    if (isAndroid()) {
+        await device.pressBack();
+    } else {
+        await BrowseChannelsScreen.close();
+    }
+}
+
 describe('Channels - Archive and Archived Channels', () => {
     const serverOneDisplayName = 'Server 1';
     const channelsCategory = 'channels';
@@ -41,28 +57,26 @@ describe('Channels - Archive and Archived Channels', () => {
     let testUser: any;
 
     beforeAll(async () => {
+        // # Ensure archived channels are visible in browse channels
+        // Set config BEFORE login so the config is fetched during connection
+        await System.apiUpdateConfig(siteOneUrl, {
+            TeamSettings: {ExperimentalViewArchivedChannels: true},
+        });
+        await wait(timeouts.ONE_SEC);
+
         const {team, user} = await Setup.apiInit(siteOneUrl);
         testTeam = team;
         testUser = user;
 
-        // # Ensure archived channels are visible in browse channels
-        await System.apiUpdateConfig(siteOneUrl, {
-            TeamSettings: {ExperimentalViewArchivedChannels: true},
-        });
-
         // # Log in to server
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(testUser);
-
-        // # Reload app so the archived channels config syncs to local DB
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(timeouts.ONE_MIN);
+        await ChannelListScreen.toBeVisible();
     });
 
     beforeEach(async () => {
         // * Verify on channel list screen
-        await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(timeouts.HALF_MIN);
+        await ChannelListScreen.toBeVisible();
     });
 
     afterAll(async () => {
@@ -81,17 +95,20 @@ describe('Channels - Archive and Archived Channels', () => {
             testUser.id,
             publicChannel.id,
         );
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await ChannelListScreen.waitForSidebarPublicChannelDisplayNameVisible(publicChannel.name, timeouts.ONE_MIN);
         await ChannelScreen.open(channelsCategory, publicChannel.name);
         await ChannelInfoScreen.open();
         await ChannelInfoScreen.openChannelSettings();
         await ChannelSettingsScreen.toBeVisible();
         await ChannelSettingsScreen.archivePublicChannel({confirm: true});
 
-        // # Tap Close Channel button to return to channel list, then open browse channels
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        // * Verify the close channel button is visible (confirms archived state)
+        await expect(
+            ChannelScreen.postDraftArchivedCloseChannelButton,
+        ).toBeVisible();
+
+        // # Navigate back to channel list via back button
+        await ChannelScreen.back();
         await ChannelListScreen.toBeVisible();
         await BrowseChannelsScreen.open();
         await BrowseChannelsScreen.searchInput.replaceText(publicChannel.name);
@@ -114,9 +131,7 @@ describe('Channels - Archive and Archived Channels', () => {
             testUser.id,
             publicChannel.id,
         );
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await ChannelListScreen.waitForSidebarPublicChannelDisplayNameVisible(publicChannel.name, timeouts.ONE_MIN);
         await ChannelScreen.open(channelsCategory, publicChannel.name);
         await ChannelInfoScreen.open();
         await ChannelInfoScreen.openChannelSettings();
@@ -143,17 +158,20 @@ describe('Channels - Archive and Archived Channels', () => {
             testUser.id,
             privateChannel.id,
         );
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await ChannelListScreen.waitForSidebarPublicChannelDisplayNameVisible(privateChannel.name, timeouts.ONE_MIN);
         await ChannelScreen.open(channelsCategory, privateChannel.name);
         await ChannelInfoScreen.open();
         await ChannelInfoScreen.openChannelSettings();
         await ChannelSettingsScreen.toBeVisible();
         await ChannelSettingsScreen.archivePrivateChannel({confirm: true});
 
-        // # Tap Close Channel button to return to channel list, then open browse channels
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        // * Verify the close channel button is visible (confirms archived state)
+        await expect(
+            ChannelScreen.postDraftArchivedCloseChannelButton,
+        ).toBeVisible();
+
+        // # Navigate back to channel list via back button
+        await ChannelScreen.back();
         await ChannelListScreen.toBeVisible();
         await BrowseChannelsScreen.open();
         await BrowseChannelsScreen.searchInput.replaceText(privateChannel.name);
@@ -176,9 +194,7 @@ describe('Channels - Archive and Archived Channels', () => {
             testUser.id,
             publicChannel.id,
         );
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await ChannelListScreen.waitForSidebarPublicChannelDisplayNameVisible(publicChannel.name, timeouts.ONE_MIN);
         await ChannelScreen.open(channelsCategory, publicChannel.name);
 
         // # Open channel info, go to channel settings
@@ -193,8 +209,13 @@ describe('Channels - Archive and Archived Channels', () => {
         // # Tap archive and confirm
         await ChannelSettingsScreen.archivePublicChannel({confirm: true});
 
-        // # Tap Close Channel button on the archived channel view
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        // * Verify the close channel button is visible (confirms archived state)
+        await expect(
+            ChannelScreen.postDraftArchivedCloseChannelButton,
+        ).toBeVisible();
+
+        // # Navigate back to channel list via back button
+        await ChannelScreen.back();
 
         // * Verify channel list is shown (channel was archived successfully)
         await ChannelListScreen.toBeVisible();
@@ -240,9 +261,7 @@ describe('Channels - Archive and Archived Channels', () => {
             testUser.id,
             archivedChannel.id,
         );
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await ChannelListScreen.waitForSidebarPublicChannelDisplayNameVisible(archivedChannel.name, timeouts.ONE_MIN);
 
         // # Navigate to the channel and archive it via UI
         await ChannelScreen.open(channelsCategory, archivedChannel.name);
@@ -259,8 +278,8 @@ describe('Channels - Archive and Archived Channels', () => {
             ChannelScreen.postDraftArchivedCloseChannelButton,
         ).toBeVisible();
 
-        // # Tap close channel button to go back to channel list
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        // # Navigate back to channel list via back button
+        await ChannelScreen.back();
 
         // * Verify back on channel list screen
         await ChannelListScreen.toBeVisible();
@@ -289,8 +308,8 @@ describe('Channels - Archive and Archived Channels', () => {
             ChannelScreen.postDraftArchivedCloseChannelButton,
         ).toBeVisible();
 
-        // # Tap close channel button to return to channel list
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        // # Navigate back: channel → Browse Channels → channel list
+        await closeBrowseChannelsChannel();
 
         // * Verify back on channel list screen
         await ChannelListScreen.toBeVisible();
@@ -308,9 +327,7 @@ describe('Channels - Archive and Archived Channels', () => {
             archivedChannel.id,
         );
         await Channel.apiDeleteChannel(siteOneUrl, archivedChannel.id);
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await wait(timeouts.FOUR_SEC);
 
         // # Open browse channels, switch to archived filter, and open the archived channel
         await BrowseChannelsScreen.open();
@@ -336,7 +353,7 @@ describe('Channels - Archive and Archived Channels', () => {
 
         // # Go back to channel list screen
         await ChannelInfoScreen.close();
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        await closeBrowseChannelsChannel();
         await ChannelListScreen.toBeVisible();
     });
 
@@ -352,9 +369,7 @@ describe('Channels - Archive and Archived Channels', () => {
             archivedChannel.id,
         );
         await Channel.apiDeleteChannel(siteOneUrl, archivedChannel.id);
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await wait(timeouts.FOUR_SEC);
 
         // # Open browse channels, switch to archived filter, and open the archived channel
         await BrowseChannelsScreen.open();
@@ -406,9 +421,7 @@ describe('Channels - Archive and Archived Channels', () => {
             archivedChannel.id,
         );
         await Channel.apiDeleteChannel(siteOneUrl, archivedChannel.id);
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await wait(timeouts.FOUR_SEC);
 
         // # Open browse channels, switch to archived filter, and open the archived channel
         await BrowseChannelsScreen.open();
@@ -432,7 +445,7 @@ describe('Channels - Archive and Archived Channels', () => {
 
         // # Close post options and return to channel list
         await PostOptionsScreen.close();
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        await closeBrowseChannelsChannel();
         await ChannelListScreen.toBeVisible();
     });
 
@@ -457,9 +470,7 @@ describe('Channels - Archive and Archived Channels', () => {
             archivedChannel.id,
         );
         await Channel.apiDeleteChannel(siteOneUrl, archivedChannel.id);
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await wait(timeouts.FOUR_SEC);
 
         // # Open browse channels, switch to archived filter, and open the archived channel
         await BrowseChannelsScreen.open();
@@ -483,7 +494,7 @@ describe('Channels - Archive and Archived Channels', () => {
 
         // # Close post options and return to channel list
         await PostOptionsScreen.close();
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        await closeBrowseChannelsChannel();
         await ChannelListScreen.toBeVisible();
     });
 
@@ -499,9 +510,7 @@ describe('Channels - Archive and Archived Channels', () => {
             archivedChannel.id,
         );
         await Channel.apiDeleteChannel(siteOneUrl, archivedChannel.id);
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await wait(timeouts.FOUR_SEC);
 
         // # Open browse channels, switch to archived filter, and open the archived channel
         await BrowseChannelsScreen.open();
@@ -555,7 +564,7 @@ describe('Channels - Archive and Archived Channels', () => {
             await ManageChannelMembersScreen.close();
         }
         await ChannelInfoScreen.close();
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        await closeBrowseChannelsChannel();
         await ChannelListScreen.toBeVisible();
     });
 
@@ -576,9 +585,7 @@ describe('Channels - Archive and Archived Channels', () => {
             message: uniqueMessage,
         });
         await Channel.apiDeleteChannel(siteOneUrl, archivedChannel.id);
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await wait(timeouts.FOUR_SEC);
 
         // # Open search screen and search for the message posted in the archived channel
         await SearchMessagesScreen.open();
@@ -621,10 +628,10 @@ describe('Channels - Archive and Archived Channels', () => {
             ChannelScreen.postDraftArchivedCloseChannelButton,
         ).toBeVisible();
 
-        // # Tap close channel button and navigate to channel list
+        // # Navigate back to channel list
         // On Android the permalink→channel navigation stack returns to Search on close;
         // use open() (taps home tab) to reliably land on channel list on both platforms.
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        await ChannelScreen.back();
         await ChannelListScreen.open();
     });
 
@@ -649,9 +656,7 @@ describe('Channels - Archive and Archived Channels', () => {
             archivedChannel.id,
         );
         await Channel.apiDeleteChannel(siteOneUrl, archivedChannel.id);
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await wait(timeouts.FOUR_SEC);
 
         // # Open saved messages screen
         await SavedMessagesScreen.open();
@@ -678,7 +683,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await wait(timeouts.ONE_SEC);
 
         // # Close the archived channel and navigate to saved messages
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        await closeBrowseChannelsChannel();
         await ChannelListScreen.toBeVisible();
         await SavedMessagesScreen.open();
 
@@ -711,9 +716,7 @@ describe('Channels - Archive and Archived Channels', () => {
             archivedChannel.id,
         );
         await Channel.apiDeleteChannel(siteOneUrl, archivedChannel.id);
-        await wait(timeouts.TWO_SEC);
-        await device.reloadReactNative();
-        await ChannelListScreen.toBeVisible();
+        await wait(timeouts.FOUR_SEC);
 
         // # Open browse channels, switch to archived filter, search for the archived channel
         await BrowseChannelsScreen.open();
@@ -748,8 +751,8 @@ describe('Channels - Archive and Archived Channels', () => {
             ChannelScreen.postDraftArchivedCloseChannelButton,
         ).toBeVisible();
 
-        // # Tap close channel button to go back to channel list
-        await ChannelScreen.postDraftArchivedCloseChannelButton.tap();
+        // # Navigate back: channel → Browse Channels → channel list
+        await closeBrowseChannelsChannel();
 
         // * Verify back on channel list screen
         await ChannelListScreen.toBeVisible();

@@ -6,7 +6,7 @@ import {
     TeamSidebar,
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
-import {timeouts, wait} from '@support/utils';
+import {isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ChannelListScreen {
@@ -126,7 +126,11 @@ class ChannelListScreen {
     };
 
     toBeVisible = async () => {
-        await waitFor(this.channelListScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        if (isIos()) {
+            await waitFor(this.channelListScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        } else {
+            await waitForElementToBeVisible(this.channelListScreen, timeouts.TEN_SEC);
+        }
 
         return this.channelListScreen;
     };

@@ -34,6 +34,7 @@ class Alert {
 
         return isAndroid() ? element(by.text(title)) : element(by.label(title)).atIndex(0);
     };
+    logoutNotCompleteTitle = isAndroid() ? element(by.text('Logout not complete')) : element(by.label('Logout not complete')).atIndex(0);
     unarchivePrivateChannelTitle = isAndroid() ? element(by.text('Unarchive Private Channel')) : element(by.label('Unarchive Private Channel')).atIndex(0);
     unarchivePublicChannelTitle = isAndroid() ? element(by.text('Unarchive Public Channel')) : element(by.label('Unarchive Public Channel')).atIndex(0);
 
@@ -58,6 +59,7 @@ class Alert {
     removeButton3 = isAndroid() ? element(by.text('REMOVE')) : element(by.label('Remove')).atIndex(3);
     yesButton = isAndroid() ? element(by.text('YES')) : element(by.label('Yes')).atIndex(0);
     yesButton2 = isAndroid() ? element(by.text('YES')) : element(by.label('Yes')).atIndex(1);
+    continueAnywayButton = isAndroid() ? element(by.text('CONTINUE ANYWAY')) : element(by.label('Continue Anyway')).atIndex(0);
     sendButton = isAndroid() ? element(by.text('SEND')) : element(by.label('Send')).atIndex(1);
 }
 

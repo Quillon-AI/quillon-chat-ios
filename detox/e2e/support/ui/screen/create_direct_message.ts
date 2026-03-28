@@ -3,7 +3,7 @@
 
 import {ProfilePicture} from '@support/ui/component';
 import {ChannelListScreen} from '@support/ui/screen';
-import {isIos, timeouts, wait} from '@support/utils';
+import {isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect} from 'detox';
 
 class CreateDirectMessageScreen {
@@ -67,6 +67,8 @@ class CreateDirectMessageScreen {
     toBeVisible = async () => {
         if (isIos()) {
             await waitFor(this.createDirectMessageScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        } else {
+            await waitForElementToBeVisible(this.createDirectMessageScreen, timeouts.TEN_SEC);
         }
 
         return this.createDirectMessageScreen;
@@ -92,11 +94,7 @@ class CreateDirectMessageScreen {
                 await waitFor(this.tutorialHighlight).toExist().withTimeout(timeouts.TEN_SEC);
                 await this.tutorialSwipeLeft.tap();
             } else {
-                // On Android the tutorial is a native Modal. device.pressBack()
-                // dismisses a visible modal via onRequestClose, but if the modal
-                // is NOT showing it navigates back from the screen entirely.
-                // Guard by checking existence first.
-                await waitFor(this.tutorialHighlight).toExist().withTimeout(timeouts.TEN_SEC);
+                await waitForElementToBeVisible(this.tutorialHighlight, timeouts.TEN_SEC);
                 await device.pressBack();
             }
             await waitFor(this.tutorialHighlight).not.toExist().withTimeout(timeouts.TEN_SEC);

@@ -7,7 +7,7 @@ import {
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
 import {timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 class AccountScreen {
     testID = {
@@ -135,6 +135,17 @@ class AccountScreen {
             await expect(Alert.logoutTitle(serverDisplayName)).toBeVisible();
         }
         await Alert.logoutButton.tap();
+
+        // Handle "Logout not complete" dialog that appears when the server is
+        // unreachable (offline, slow network). Tap "Continue Anyway" to force
+        // the logout to complete instead of leaving the app in a stuck state.
+        try {
+            await waitFor(Alert.logoutNotCompleteTitle).toBeVisible().withTimeout(timeouts.FIVE_SEC);
+            await Alert.continueAnywayButton.tap();
+        } catch {
+            // Dialog didn't appear — normal logout completed successfully
+        }
+
         await waitFor(this.accountScreen).not.toBeVisible().withTimeout(timeouts.TEN_SEC);
     };
 }

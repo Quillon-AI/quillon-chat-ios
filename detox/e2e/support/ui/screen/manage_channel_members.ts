@@ -3,7 +3,7 @@
 
 import {Alert, ProfilePicture} from '@support/ui/component';
 import {ChannelInfoScreen} from '@support/ui/screen';
-import {isIos, timeouts, wait} from '@support/utils';
+import {isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ManageChannelMembersScreen {
@@ -52,6 +52,8 @@ class ManageChannelMembersScreen {
     toBeVisible = async () => {
         if (isIos()) {
             await waitFor(this.manageMembersScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        } else {
+            await waitForElementToBeVisible(this.manageMembersScreen, timeouts.TEN_SEC);
         }
 
         return this.manageMembersScreen;
@@ -89,11 +91,7 @@ class ManageChannelMembersScreen {
                 await waitFor(this.tutorialHighlight).toExist().withTimeout(timeouts.HALF_MIN);
                 await this.tutorialSwipeLeft.tap();
             } else {
-                // On Android the tutorial is a native Modal. device.pressBack()
-                // dismisses a visible modal via onRequestClose, but if the modal
-                // is NOT showing it navigates back from the screen entirely.
-                // Guard by checking existence first.
-                await waitFor(this.tutorialHighlight).toExist().withTimeout(timeouts.TEN_SEC);
+                await waitForElementToBeVisible(this.tutorialHighlight, timeouts.HALF_MIN);
                 await device.pressBack();
             }
             await waitFor(this.tutorialHighlight).not.toExist().withTimeout(timeouts.TEN_SEC);
