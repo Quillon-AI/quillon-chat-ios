@@ -684,6 +684,7 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5612_1 - should show scroll indicator when bookmarks exceed visible limit', async () => {
+        if (!bookmarksAvailable) return;
         const channelHeaderBookmarksList = by.id('channel_header.bookmarks.list');
         const firstBookmarkMatcher = by.text('Scroll Bookmark 1');
         const lastBookmarkMatcher = by.text('Scroll Bookmark 12');

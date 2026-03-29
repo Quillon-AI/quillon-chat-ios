@@ -110,8 +110,5 @@
   "session": {
     "debugSynchronization": 20000,
     "autoStart": true
-  },
-  "visibility": {
-    "threshold": 50
   }
 }
