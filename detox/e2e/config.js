@@ -11,7 +11,7 @@ module.exports = {
     maxWorkers: process.env.CI ? 1 : maxWorkers,
     testSequencer: './custom_sequencer.js',
     testTimeout: process.env.LOW_BANDWIDTH_MODE === 'true' ? 300000 : 240000,
-    forceExit: !!process.env.CI,
+    forceExit: Boolean(process.env.CI),
     rootDir: '.',
     testMatch: ['<rootDir>/test/**/*.e2e.ts'],
     transform: {
