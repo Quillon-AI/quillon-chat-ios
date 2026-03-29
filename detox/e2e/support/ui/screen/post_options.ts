@@ -77,11 +77,11 @@ class PostOptionsScreen {
         await expect(deleteButton).toBeVisible();
         if (confirm) {
             await deleteButton.tap();
-            await wait(timeouts.ONE_SEC);
+            await wait(timeouts.TWO_SEC);
             await expect(this.postOptionsScreen).not.toExist();
         } else {
             await cancelButton.tap();
-            await wait(timeouts.ONE_SEC);
+            await wait(timeouts.TWO_SEC);
             await expect(this.postOptionsScreen).toExist();
             await this.close();
         }

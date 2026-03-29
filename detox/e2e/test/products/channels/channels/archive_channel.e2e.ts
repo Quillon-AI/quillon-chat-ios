@@ -296,6 +296,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.open();
         await ChannelDropdownMenuScreen.open();
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
+        await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
 
         // * Verify archived channel appears in the list
@@ -342,6 +343,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.dismissScheduledPostTooltip();
         await ChannelDropdownMenuScreen.open();
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
+        await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
@@ -384,6 +386,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.dismissScheduledPostTooltip();
         await ChannelDropdownMenuScreen.open();
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
+        await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
@@ -436,6 +439,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.dismissScheduledPostTooltip();
         await ChannelDropdownMenuScreen.open();
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
+        await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
@@ -485,6 +489,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.dismissScheduledPostTooltip();
         await ChannelDropdownMenuScreen.open();
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
+        await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
@@ -525,6 +530,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.dismissScheduledPostTooltip();
         await ChannelDropdownMenuScreen.open();
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
+        await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
@@ -676,6 +682,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.dismissScheduledPostTooltip();
         await ChannelDropdownMenuScreen.open();
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
+        await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
@@ -734,6 +741,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await expect(BrowseChannelsScreen.channelDropdown).toBeVisible();
         await ChannelDropdownMenuScreen.open();
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
+        await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
 
         // * Verify archived channel appears in the list

@@ -131,11 +131,11 @@ class ChannelInfoScreen {
         await expect(leaveButton).toBeVisible();
         if (confirm) {
             await leaveButton.tap();
-            await wait(timeouts.ONE_SEC);
+            await wait(timeouts.TWO_SEC);
             await expect(this.channelInfoScreen).not.toExist();
         } else {
             await cancelButton.tap();
-            await wait(timeouts.ONE_SEC);
+            await wait(timeouts.TWO_SEC);
             await expect(this.channelInfoScreen).toExist();
         }
     };

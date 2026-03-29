@@ -39,6 +39,9 @@ class PermalinkScreen {
         await waitFor(this.jumpToRecentMessagesButton).toExist().withTimeout(timeouts.TEN_SEC);
         await this.jumpToRecentMessagesButton.tap();
         await expect(this.permalinkScreen).not.toBeVisible();
+
+        // Wait for dimming overlay to clear on iOS 26 (liquid glass)
+        await wait(timeouts.ONE_SEC);
     };
 
     hasPostMessage = async (postId: string, postMessage: string) => {

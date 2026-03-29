@@ -50,11 +50,11 @@ class ChannelSettingsScreen {
         await expect(yesButton).toBeVisible();
         if (confirm) {
             await yesButton.tap();
-            await wait(timeouts.ONE_SEC);
+            await wait(timeouts.TWO_SEC);
             await expect(this.channelSettingsScreen).not.toExist();
         } else {
             await noButton.tap();
-            await wait(timeouts.ONE_SEC);
+            await wait(timeouts.TWO_SEC);
             await expect(this.channelSettingsScreen).toExist();
         }
     };
@@ -84,13 +84,14 @@ class ChannelSettingsScreen {
         await expect(yesButton2).toBeVisible();
         if (confirm) {
             await yesButton2.tap();
+            await wait(timeouts.ONE_SEC);
             await expect(channelNowPrivateTitle(channelDisplayName)).toBeVisible();
             await okButton.tap();
-            await wait(timeouts.ONE_SEC);
+            await wait(timeouts.TWO_SEC);
             await expect(this.channelSettingsScreen).toExist();
         } else {
             await noButton2.tap();
-            await wait(timeouts.ONE_SEC);
+            await wait(timeouts.TWO_SEC);
             await expect(this.channelSettingsScreen).toExist();
         }
     };
@@ -108,11 +109,11 @@ class ChannelSettingsScreen {
         await expect(yesButton).toBeVisible();
         if (confirm) {
             await yesButton.tap();
-            await wait(timeouts.ONE_SEC);
+            await wait(timeouts.TWO_SEC);
             await expect(this.channelSettingsScreen).not.toExist();
         } else {
             await noButton.tap();
-            await wait(timeouts.ONE_SEC);
+            await wait(timeouts.TWO_SEC);
             await expect(this.channelSettingsScreen).toExist();
         }
     };

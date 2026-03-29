@@ -101,6 +101,7 @@ describe('Messaging - At-Mention', () => {
 
         // # Tap on confirm button
         await Alert.confirmButton.tap();
+        await wait(timeouts.TWO_SEC);
 
         // * Verify @all is posted
         const {post: atAllPost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
@@ -116,6 +117,7 @@ describe('Messaging - At-Mention', () => {
 
         // # Tap on confirm button
         await Alert.confirmButton.tap();
+        await wait(timeouts.TWO_SEC);
 
         // * Verify @channel is posted
         const {post: atChannelPost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
@@ -131,6 +133,7 @@ describe('Messaging - At-Mention', () => {
 
         // # Tap on confirm button
         await Alert.confirmButton.tap();
+        await wait(timeouts.TWO_SEC);
 
         // * Verify @here is posted
         const {post: atHerePost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);

@@ -238,7 +238,7 @@ describe('Server Login - Server List', () => {
         // # Tap on remove button and go back to server list screen
         await waitFor(Alert.removeButton1).toBeVisible().withTimeout(timeouts.HALF_MIN);
         await Alert.removeButton1.tap();
-        await wait(timeouts.ONE_SEC);
+        await wait(timeouts.TWO_SEC);
         await ServerListScreen.open();
         if (isIos()) {
             await ServerListScreen.serverListTitle.swipe('up');
@@ -279,6 +279,7 @@ describe('Server Login - Server List', () => {
         // # Tap on logout button
         await waitFor(Alert.logoutButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await Alert.logoutButton.tap();
+        await wait(timeouts.TWO_SEC);
 
         // * Verify third server is logged out
         await ServerListScreen.getServerItemInactive(serverThreeDisplayName).swipe('left', 'slow');
@@ -352,6 +353,7 @@ describe('Server Login - Server List', () => {
         await wait(timeouts.FOUR_SEC);
         await waitFor(Alert.logoutButton).toBeVisible().withTimeout(timeouts.HALF_MIN);
         await Alert.logoutButton.tap();
+        await wait(timeouts.TWO_SEC);
         await ServerListScreen.getServerItemActive(serverOneDisplayName).tap();
     });
 });

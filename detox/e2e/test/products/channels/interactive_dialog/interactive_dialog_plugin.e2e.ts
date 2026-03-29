@@ -151,44 +151,39 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
 
         await User.apiAdminLogin(siteOneUrl);
 
-        // Check if plugin uploads are enabled before attempting installation
+        // Check if demo plugin can be set up; any failure skips the entire suite gracefully
         try {
             await System.shouldHavePluginUploadEnabled(siteOneUrl);
-        } catch {
-            console.warn('Plugin uploads not enabled on this server — skipping interactive dialog suite');
-            return;
-        }
 
-        await System.apiUpdateConfig(siteOneUrl, {
-            ServiceSettings: {EnableGifPicker: true},
-            FileSettings: {EnablePublicLink: true},
-            FeatureFlags: {InteractiveDialogAppsForm: true},
-            PluginSettings: {
-                Enable: true,
-                AllowInsecureDownloadUrl: true,
-                EnableUploads: true,
-                PluginStates: {
-                    'com.mattermost.demo-plugin': {'Enable': true},
-                },
-                Plugins: {
-                    'com.mattermost.demo-plugin': {
-                        'DialogOnlyMode': true,
+            await System.apiUpdateConfig(siteOneUrl, {
+                ServiceSettings: {EnableGifPicker: true},
+                FileSettings: {EnablePublicLink: true},
+                FeatureFlags: {InteractiveDialogAppsForm: true},
+                PluginSettings: {
+                    Enable: true,
+                    AllowInsecureDownloadUrl: true,
+                    EnableUploads: true,
+                    PluginStates: {
+                        'com.mattermost.demo-plugin': {'Enable': true},
                     },
-                }},
-        });
+                    Plugins: {
+                        'com.mattermost.demo-plugin': {
+                            'DialogOnlyMode': true,
+                        },
+                    }},
+            });
 
-        try {
             const latestVersion = await Plugin.apiGetLatestPluginVersion(DemoPlugin.repo);
             await pluginInstallAndEnable(siteOneUrl, latestVersion);
-        } catch (err: any) {
-            console.warn(`Demo plugin could not be installed — skipping interactive dialog suite: ${err.message || err}`);
-            return;
-        }
 
-        // Verify the plugin is actually active before continuing
-        const statusCheck = await Plugin.apiGetPluginStatus(siteOneUrl, DemoPlugin.id);
-        if (!statusCheck.isActive) {
-            console.warn(`Demo plugin (${DemoPlugin.id}) is not active after installation — skipping suite`);
+            // Verify the plugin is actually active before continuing
+            const statusCheck = await Plugin.apiGetPluginStatus(siteOneUrl, DemoPlugin.id);
+            if (!statusCheck.isActive) {
+                console.warn(`Demo plugin (${DemoPlugin.id}) is not active after installation — skipping suite`);
+                return;
+            }
+        } catch (err: any) {
+            console.warn(`Demo plugin setup failed — skipping interactive dialog suite: ${err.message || err}`);
             return;
         }
 

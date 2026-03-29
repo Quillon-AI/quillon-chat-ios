@@ -139,6 +139,9 @@ describe('Threads - Follow and Unfollow Thread', () => {
         await PostOptionsScreen.followingThreadOption.tap();
         await wait(timeouts.TWO_SEC);
 
+        // * Verify post options are dismissed (wait for dimming overlay to clear on iOS 26)
+        await waitFor(PostOptionsScreen.postOptionsScreen).not.toBeVisible().withTimeout(timeouts.FOUR_SEC);
+
         // * Verify thread is not followed by user via post footer
         const {postListPostItemFooterFollowButton, postListPostItemFooterFollowingButton} = ChannelScreen.getPostListPostItem(parentPost.id, parentMessage);
         await waitFor(postListPostItemFooterFollowButton).toBeVisible().withTimeout(timeouts.TWO_SEC);
@@ -152,6 +155,9 @@ describe('Threads - Follow and Unfollow Thread', () => {
         // # Tap on follow thread option
         await PostOptionsScreen.followThreadOption.tap();
         await wait(timeouts.TWO_SEC);
+
+        // * Verify post options are dismissed (wait for dimming overlay to clear on iOS 26)
+        await waitFor(PostOptionsScreen.postOptionsScreen).not.toBeVisible().withTimeout(timeouts.FOUR_SEC);
 
         // * Verify thread is followed by user via post footer
         await waitFor(postListPostItemFooterFollowingButton).toBeVisible().withTimeout(timeouts.TWO_SEC);

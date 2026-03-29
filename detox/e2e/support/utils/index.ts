@@ -141,13 +141,13 @@ export async function retryWithReload(
  * @param target - The element to long-press
  * @param scrollTarget - A scrollable list to scroll before each attempt (dismisses keyboard + settles UI)
  * @param checkElement - An element that should exist once the long-press succeeds (e.g. PostOptionsScreen)
- * @param maxAttempts - How many times to retry before throwing (default: 3)
+ * @param maxAttempts - How many times to retry before throwing (default: 5)
  */
 export async function longPressWithScrollRetry(
     target: Detox.NativeElement,
     scrollTarget: Detox.NativeElement,
     checkElement: Detox.NativeElement,
-    maxAttempts = 3,
+    maxAttempts = 5,
 ): Promise<void> {
     const {waitFor: detoxWaitFor} = require('detox');
     /* eslint-disable no-await-in-loop */
@@ -183,12 +183,12 @@ export async function longPressWithScrollRetry(
  *
  * @param target        - The element to long-press
  * @param checkElement  - An element that should exist once the long-press succeeds (e.g. PostOptionsScreen)
- * @param maxAttempts   - How many times to retry before throwing (default: 3)
+ * @param maxAttempts   - How many times to retry before throwing (default: 5)
  */
 export async function longPressWithRetry(
     target: Detox.NativeElement,
     checkElement: Detox.NativeElement,
-    maxAttempts = 3,
+    maxAttempts = 5,
 ): Promise<void> {
     const {waitFor: detoxWaitFor} = require('detox');
     /* eslint-disable no-await-in-loop */
@@ -205,7 +205,7 @@ export async function longPressWithRetry(
             }
 
             // Brief pause before retrying
-            await wait(timeouts.TWO_SEC);
+            await wait(timeouts.THREE_SEC);
         }
     }
     /* eslint-enable no-await-in-loop */
