@@ -31,6 +31,7 @@
     "jest-cli": "29.7.0",
     "jest-junit": "16.0.0",
     "jest-stare": "2.5.2",
+    "patch-package": "8.0.0",
     "junit-report-merger": "7.0.0",
     "moment-timezone": "0.5.46",
     "recursive-readdir": "2.2.3",
@@ -61,7 +62,8 @@
     "lint": "eslint --ignore-pattern node_modules --quiet .",
     "e2e:save-report": "node save_report.js",
     "start:webhook": "node webhook_server.js",
-    "tsc": "NODE_OPTIONS=--max_old_space_size=12000 tsc --noEmit"
+    "tsc": "NODE_OPTIONS=--max_old_space_size=12000 tsc --noEmit",
+    "postinstall": "npx patch-package"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0"
