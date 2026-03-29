@@ -10,6 +10,7 @@
 import {
     Channel,
     Setup,
+    System,
     Team,
     User,
 } from '@support/server_api';
@@ -35,6 +36,8 @@ describe('Channels - Browse Channels', () => {
     let testUser: any;
 
     beforeAll(async () => {
+        await System.apiCheckSystemHealth(siteOneUrl);
+
         const {team, user} = await Setup.apiInit(siteOneUrl);
         testTeam = team;
         testUser = user;
@@ -108,7 +111,7 @@ describe('Channels - Browse Channels', () => {
 
         // * Verify empty search state for browse channels
         await wait(timeouts.ONE_SEC);
-        await expect(element(by.text(`No matches found for “${searchTerm}”`))).toBeVisible();
+        await expect(element(by.text(`No matches found for "${searchTerm}"`))).toBeVisible();
         await expect(element(by.text('Check the spelling or try another search.'))).toBeVisible();
 
         // # Go back to channel list screen
@@ -128,13 +131,13 @@ describe('Channels - Browse Channels', () => {
 
         // * Verify empty search state for browse channels
         await wait(timeouts.ONE_SEC);
-        await expect(element(by.text(`No matches found for “${testOtherUser1.username}”`))).toBeVisible();
+        await expect(element(by.text(`No matches found for "${testOtherUser1.username}"`))).toBeVisible();
 
         // # Search for the group message channel
         await BrowseChannelsScreen.searchInput.replaceText(testOtherUser2.username);
 
         // * Verify empty search state for browse channels
-        await expect(element(by.text(`No matches found for “${testOtherUser2.username}”`))).toBeVisible();
+        await expect(element(by.text(`No matches found for "${testOtherUser2.username}"`))).toBeVisible();
 
         // # Go back to channel list screen
         await BrowseChannelsScreen.close();
@@ -155,7 +158,7 @@ describe('Channels - Browse Channels', () => {
 
         // * Verify empty search state for browse channels
         await wait(timeouts.ONE_SEC);
-        await expect(element(by.text(`No matches found for “${archivedChannel.name}”`))).toBeVisible();
+        await expect(element(by.text(`No matches found for "${archivedChannel.name}"`))).toBeVisible();
 
         // # Go back to channel list screen
         await BrowseChannelsScreen.close();

@@ -23,6 +23,7 @@ import {
 } from '@support/ui/screen';
 import {
     getRandomId,
+    longPressWithRetry,
     timeouts,
     wait,
 } from '@support/utils';
@@ -37,7 +38,10 @@ describe('Messaging - Message Permalink Preview', () => {
     let testOtherUser: any;
 
     const copyLinkFromPost = async (postItem: any) => {
-        await postItem.longPress();
+        // Use longPressWithRetry to handle keyboard-dismiss animation blocking hit-testing.
+        // A bare longPress can fire without effect during the gesture-responder window
+        // that immediately follows typing/sending a message.
+        await longPressWithRetry(postItem, PostOptionsScreen.postOptionsScreen);
         await PostOptionsScreen.toBeVisible();
         await PostOptionsScreen.copyLinkOption.tap();
         await wait(timeouts.FOUR_SEC);

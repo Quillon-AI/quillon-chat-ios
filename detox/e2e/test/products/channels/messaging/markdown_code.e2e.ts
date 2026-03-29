@@ -27,7 +27,7 @@ import {expect} from 'detox';
 describe('Messaging - Markdown Code', () => {
     const serverOneDisplayName = 'Server 1';
     const channelsCategory = 'channels';
-    let testChannel: any;
+    let testChannel: {id: string; name: string};
 
     beforeAll(async () => {
         const {channel, user} = await Setup.apiInit(siteOneUrl);
@@ -52,7 +52,6 @@ describe('Messaging - Markdown Code', () => {
         // # Open a channel screen and post a markdown code block
         const line1 = 'let x = 10;';
         const line2 = 'let y = 20;';
-        // eslint-disable-next-line no-template-curly-in-string
         const line3 = 'console.log(`sum: ${x + y}`);';
         const message = `${line1}\n${line2}\n${line3}`;
         const markdownCodeBlock = `\`\`\`\n${message}\n\`\`\``;
@@ -62,7 +61,7 @@ describe('Messaging - Markdown Code', () => {
         // * Verify markdown code block is displayed
         const {post} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
         const {postListPostItemCodeBlock} = ChannelScreen.getPostListPostItem(post.id);
-        await waitFor(postListPostItemCodeBlock).toBeVisible().whileElement(by.id(ChannelScreen.postList.testID.flatList)).scroll(50, 'down');
+        await waitFor(postListPostItemCodeBlock).toExist().withTimeout(10000);
         await expect(postListPostItemCodeBlock).toBeVisible();
 
         // # Go back to channel list screen
@@ -79,7 +78,7 @@ describe('Messaging - Markdown Code', () => {
         // * Verify markdown html is displayed
         const {post} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
         const {postListPostItemCodeBlock} = ChannelScreen.getPostListPostItem(post.id);
-        await waitFor(postListPostItemCodeBlock).toBeVisible().whileElement(by.id(ChannelScreen.postList.testID.flatList)).scroll(50, 'down');
+        await waitFor(postListPostItemCodeBlock).toExist().withTimeout(10000);
         await expect(postListPostItemCodeBlock).toBeVisible();
 
         // # Go back to channel list screen

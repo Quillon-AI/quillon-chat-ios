@@ -47,8 +47,10 @@ class ServerScreen {
     usernameInput = element(by.id(this.testID.usernameInput));
 
     toBeVisible = async () => {
-        // Android CI emulators can be slow after fresh install — use a longer timeout.
-        const timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC;
+        // iOS 26.2 on macos-15 CI runners takes longer than 10s to present the
+        // server screen after cold launch. Use HALF_MIN for both platforms so the
+        // first-launch case never races with OS-level app registration delays.
+        const timeout = timeouts.HALF_MIN;
         await waitFor(this.serverScreen).toExist().withTimeout(timeout);
         await waitFor(this.serverUrlInput).toExist().withTimeout(timeout);
 

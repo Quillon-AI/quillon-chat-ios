@@ -138,6 +138,10 @@ export async function retryWithReload(
  * even after a fixed wait. This helper retries the gesture (with a fresh scroll to settle
  * the UI) so tests are self-healing regardless of animation timing.
  *
+ * On iOS 26.2 the gesture responder system takes longer to become available after keyboard
+ * dismiss animations complete. Use FIVE_SEC wait (up from THREE_SEC) and a smaller scroll
+ * distance (50px vs 100px) to avoid over-scrolling past the target post.
+ *
  * @param target - The element to long-press
  * @param scrollTarget - A scrollable list to scroll before each attempt (dismisses keyboard + settles UI)
  * @param checkElement - An element that should exist once the long-press succeeds (e.g. PostOptionsScreen)
@@ -152,14 +156,18 @@ export async function longPressWithScrollRetry(
     const {waitFor: detoxWaitFor} = require('detox');
     /* eslint-disable no-await-in-loop */
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        // Scroll to settle the UI and dismiss any keyboard. Ignore if the list cannot scroll
-        // (e.g. only a few posts that fit on screen without overflow).
+        // Scroll a small amount to settle the UI and dismiss any keyboard.
+        // 50px is enough to trigger gesture-responder re-registration without
+        // scrolling past the target post. Ignore if the list cannot scroll.
         try {
-            await scrollTarget.scroll(100, 'down', 0.5, 0.5);
+            await scrollTarget.scroll(50, 'down', 0.5, 0.5);
         } catch {
             // List is already at scroll boundary — proceed with longPress anyway
         }
-        await wait(timeouts.THREE_SEC);
+
+        // On iOS 26.2 the gesture responder takes longer to become available
+        // after keyboard dismiss animations. Use FIVE_SEC wait (up from THREE_SEC).
+        await wait(timeouts.FIVE_SEC);
         await target.longPress(timeouts.FIVE_SEC);
         try {
             await detoxWaitFor(checkElement).toExist().withTimeout(timeouts.HALF_MIN);

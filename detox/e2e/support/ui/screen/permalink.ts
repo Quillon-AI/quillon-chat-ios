@@ -40,8 +40,10 @@ class PermalinkScreen {
         await this.jumpToRecentMessagesButton.tap();
         await expect(this.permalinkScreen).not.toBeVisible();
 
-        // Wait for dimming overlay to clear on iOS 26 (liquid glass)
-        await wait(timeouts.ONE_SEC);
+        // iOS 26.2 liquid-glass dimming overlay takes longer than 1s to clear
+        // after the permalink screen dismisses. Use FOUR_SEC to ensure the
+        // channel_list.screen transition completes before the next assertion.
+        await wait(timeouts.FOUR_SEC);
     };
 
     hasPostMessage = async (postId: string, postMessage: string) => {

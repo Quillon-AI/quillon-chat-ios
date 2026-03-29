@@ -29,6 +29,9 @@ describe('Account - Settings - Auto-Responder Notification Settings', () => {
     let testUser: any;
 
     beforeAll(async () => {
+        // Fast-fail if server is unreachable — avoids a 240 s hook timeout
+        await System.apiCheckSystemHealth(siteOneUrl);
+
         const {user} = await Setup.apiInit(siteOneUrl);
         testUser = user;
 

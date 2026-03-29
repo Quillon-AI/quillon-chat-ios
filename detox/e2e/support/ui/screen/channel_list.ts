@@ -6,7 +6,7 @@ import {
     TeamSidebar,
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
-import {isAndroid, timeouts, wait} from '@support/utils';
+import {timeouts, wait} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ChannelListScreen {
@@ -126,11 +126,13 @@ class ChannelListScreen {
     };
 
     toBeVisible = async () => {
-        // Android CI emulators are slower to settle after navigation transitions.
+        // iOS 26.2 on macos-15 CI runners takes longer than 10s to settle the channel
+        // list screen after login navigation (React Native bridge + Metro warm-up).
+        // Android CI emulators are also slow — use HALF_MIN for both so we never race.
         // Use toExist() (not toBeVisible()) because Android edge-to-edge rendering
         // can cause the channel list screen to exist but not meet the 50% visibility
         // threshold, which cascades into every subsequent test in the suite.
-        const timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC;
+        const timeout = timeouts.HALF_MIN;
         await waitFor(this.channelListScreen).toExist().withTimeout(timeout);
 
         return this.channelListScreen;
