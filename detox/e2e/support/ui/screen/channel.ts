@@ -213,16 +213,9 @@ class ChannelScreen {
         const {postListPostItem} = this.getPostListPostItem(postId, text);
         await waitFor(postListPostItem).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
-        // On Android, dismiss the keyboard before longPress by tapping the post list.
-        // The FlatList's interactive keyboard dismiss gesture competes with longPress.
-        // We tap the list instead of device.pressBack() because pressBack() navigates
-        // away when no keyboard is open (e.g., archived channels).
+        // On Android, wait for UI to settle after channel navigation or posting.
+        // The longPressWithScrollRetry (5 attempts, 3s delay) handles the rest.
         if (isAndroid()) {
-            try {
-                await this.postList.getFlatList().tap({x: 5, y: 5});
-            } catch {
-                // Ignore — list may not be tappable at that coordinate
-            }
             await wait(timeouts.TWO_SEC);
         }
 

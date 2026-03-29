@@ -105,14 +105,9 @@ class ThreadScreen {
         // Poll for the post to become visible without waiting for idle bridge
         await waitForElementToBeVisible(postListPostItem, timeouts.TEN_SEC);
 
-        // On Android, dismiss keyboard by tapping the post list (not pressBack,
-        // which navigates away when no keyboard is open).
+        // On Android, wait for UI to settle before longPress.
+        // The longPressWithScrollRetry (5 attempts, 3s delay) handles the rest.
         if (isAndroid()) {
-            try {
-                await this.postList.getFlatList().tap({x: 5, y: 5});
-            } catch {
-                // Ignore — list may not be tappable at that coordinate
-            }
             await wait(timeouts.TWO_SEC);
         }
 
