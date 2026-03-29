@@ -112,6 +112,6 @@
     "autoStart": true
   },
   "visibility": {
-    "threshold": 75
+    "threshold": 50
   }
 }
