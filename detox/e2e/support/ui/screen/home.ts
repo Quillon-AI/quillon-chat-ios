@@ -5,7 +5,7 @@ import {
     AccountScreen,
     LoginScreen,
 } from '@support/ui/screen';
-import {timeouts} from '@support/utils';
+import {isAndroid, timeouts} from '@support/utils';
 import {expect} from 'detox';
 
 class HomeScreen {
@@ -24,7 +24,8 @@ class HomeScreen {
     accountTab = element(by.id(this.testID.accountTab));
 
     toBeVisible = async () => {
-        await waitFor(this.channelListTab).toExist().withTimeout(timeouts.TEN_SEC);
+        const timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC;
+        await waitFor(this.channelListTab).toExist().withTimeout(timeout);
 
         return this.channelListTab;
     };

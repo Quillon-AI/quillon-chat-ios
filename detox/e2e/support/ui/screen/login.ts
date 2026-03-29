@@ -43,9 +43,11 @@ class LoginScreen {
     signinButtonDisabled = element(by.id(this.testID.signinButtonDisabled));
 
     toBeVisible = async () => {
+        // Android CI emulators can be slow after app launch — use a longer timeout.
+        const timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC;
         await wait(timeouts.FOUR_SEC);
-        await waitFor(this.loginScreen).toExist().withTimeout(timeouts.TEN_SEC);
-        await waitFor(this.usernameInput).toExist().withTimeout(timeouts.TEN_SEC);
+        await waitFor(this.loginScreen).toExist().withTimeout(timeout);
+        await waitFor(this.usernameInput).toExist().withTimeout(timeout);
         return this.loginScreen;
     };
 

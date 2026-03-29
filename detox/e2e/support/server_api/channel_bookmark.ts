@@ -79,10 +79,28 @@ export const apiDeleteChannelBookmark = async (baseUrl: string, channelId: strin
     }
 };
 
+/**
+ * Check whether the bookmarks API is available on the server.
+ * Hits GET /api/v4/channels/{channelId}/bookmarks and treats a 404
+ * (route not found) as "not available". Any other response (including
+ * an empty list) means the API exists.
+ * @param {string} baseUrl - the base server URL
+ * @param {string} channelId - a channel ID to probe
+ * @return {boolean} true when the bookmarks endpoint is reachable
+ */
+export const apiIsBookmarksAvailable = async (baseUrl: string, channelId: string): Promise<boolean> => {
+    const result = await apiGetChannelBookmarks(baseUrl, channelId);
+    if (result.error && result.status === 404) {
+        return false;
+    }
+    return true;
+};
+
 export const ChannelBookmark = {
     apiCreateChannelBookmarkLink,
     apiGetChannelBookmarks,
     apiDeleteChannelBookmark,
+    apiIsBookmarksAvailable,
 };
 
 export default ChannelBookmark;

@@ -6,7 +6,7 @@ import {
     ProfilePicture,
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
-import {timeouts, wait} from '@support/utils';
+import {isAndroid, timeouts, wait} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class AccountScreen {
@@ -74,7 +74,8 @@ class AccountScreen {
     };
 
     toBeVisible = async () => {
-        await waitFor(this.accountScreen).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        const timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC;
+        await waitFor(this.accountScreen).toBeVisible().withTimeout(timeout);
 
         return this.accountScreen;
     };

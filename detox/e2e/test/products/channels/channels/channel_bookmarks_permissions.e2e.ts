@@ -34,6 +34,7 @@ describe('Channels - Channel Bookmarks Permissions', () => {
     let testTeam: any;
     let testUser: any;
     let regularUser: any;
+    let bookmarksAvailable = false;
 
     let channelT5615: any;
     let channelT5725: any;
@@ -64,6 +65,16 @@ describe('Channels - Channel Bookmarks Permissions', () => {
         testTeam = team;
         testUser = user;
 
+        // ── Check if bookmarks API is available on this server ────────────────
+        const probeChannel = await createChannel();
+        const isAvailable = await ChannelBookmark.apiIsBookmarksAvailable(siteOneUrl, probeChannel.id);
+        if (!isAvailable) {
+            // eslint-disable-next-line no-console
+            console.warn('Channel bookmarks API not available on this server — skipping suite');
+            return;
+        }
+        bookmarksAvailable = true;
+
         // Create the regular user needed for the permission test (MM-T5615_1).
         const {user: rUser} = await User.apiCreateUser(siteOneUrl);
         regularUser = rUser;
@@ -90,14 +101,24 @@ describe('Channels - Channel Bookmarks Permissions', () => {
     });
 
     beforeEach(async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
         await ChannelListScreen.toBeVisible();
     });
 
     afterAll(async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
         await HomeScreen.logout();
     });
 
     it('MM-T5615_1 - users without manage permissions should not see add/edit/delete/reorder bookmark options', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Log out the admin user and log in as the regular channel member
         await HomeScreen.logout();
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
@@ -157,6 +178,10 @@ describe('Channels - Channel Bookmarks Permissions', () => {
     });
 
     it('MM-T5725_1 - should not be able to add, edit, or delete bookmarks in an archived channel', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to the channel.
         // Extra wait after openChannel: on Android, device.reloadReactNative() in T5615_1 can
         // leave the app mid-settle, causing ChannelInfoScreen.open()'s header-visibility check

@@ -9,7 +9,7 @@ import {
     HomeScreen,
     PostOptionsScreen,
 } from '@support/ui/screen';
-import {timeouts, wait, waitForElementToBeVisible} from '@support/utils';
+import {isAndroid, longPressWithRetry, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect} from 'detox';
 
 class SearchMessagesScreen {
@@ -73,7 +73,8 @@ class SearchMessagesScreen {
 
     toBeVisible = async () => {
         await wait(timeouts.ONE_SEC);
-        await waitFor(this.searchMessagesScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        const timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC;
+        await waitFor(this.searchMessagesScreen).toExist().withTimeout(timeout);
 
         return this.searchMessagesScreen;
     };
@@ -101,9 +102,8 @@ class SearchMessagesScreen {
         // Poll for the post to become visible without waiting for idle bridge
         await waitForElementToBeVisible(postListPostItem, timeouts.TEN_SEC);
 
-        // # Open post options
-        await postListPostItem.longPress(timeouts.TWO_SEC);
-        await PostOptionsScreen.toBeVisible();
+        // # Open post options (with retry — longPress can fail on Android during animations)
+        await longPressWithRetry(postListPostItem, PostOptionsScreen.postOptionsScreen);
         await wait(timeouts.TWO_SEC);
     };
 

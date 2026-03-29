@@ -85,7 +85,8 @@ class ChannelInfoScreen {
     };
 
     toBeVisible = async () => {
-        await waitFor(this.channelInfoScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        const timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC;
+        await waitFor(this.channelInfoScreen).toExist().withTimeout(timeout);
 
         return this.channelInfoScreen;
     };

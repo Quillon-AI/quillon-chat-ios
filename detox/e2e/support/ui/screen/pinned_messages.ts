@@ -6,7 +6,7 @@ import {
     ChannelInfoScreen,
     PostOptionsScreen,
 } from '@support/ui/screen';
-import {timeouts, wait, waitForElementToBeVisible} from '@support/utils';
+import {isAndroid, longPressWithRetry, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect} from 'detox';
 
 class PinnedMessagesScreen {
@@ -38,7 +38,8 @@ class PinnedMessagesScreen {
     };
 
     toBeVisible = async () => {
-        await waitFor(this.pinnedMessagesScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        const timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC;
+        await waitFor(this.pinnedMessagesScreen).toExist().withTimeout(timeout);
 
         return this.pinnedMessagesScreen;
     };
@@ -70,9 +71,8 @@ class PinnedMessagesScreen {
         }
         await wait(timeouts.ONE_SEC);
 
-        // # Open post options
-        await postListPostItem.longPress(timeouts.TWO_SEC);
-        await PostOptionsScreen.toBeVisible();
+        // # Open post options (with retry — longPress can fail on Android during animations)
+        await longPressWithRetry(postListPostItem, PostOptionsScreen.postOptionsScreen);
         await wait(timeouts.TWO_SEC);
     };
 

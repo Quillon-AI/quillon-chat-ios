@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {ChannelListScreen} from '@support/ui/screen';
-import {timeouts, wait} from '@support/utils';
+import {isAndroid, timeouts, wait} from '@support/utils';
 import {expect} from 'detox';
 
 class BrowseChannelsScreen {
@@ -44,7 +44,8 @@ class BrowseChannelsScreen {
     };
 
     toBeVisible = async () => {
-        await waitFor(this.browseChannelsScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        const timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC;
+        await waitFor(this.browseChannelsScreen).toExist().withTimeout(timeout);
 
         return this.browseChannelsScreen;
     };

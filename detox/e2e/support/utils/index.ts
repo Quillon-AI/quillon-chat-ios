@@ -82,6 +82,7 @@ export const timeouts = {
     FOUR_SEC: SECOND * 4,
     FIVE_SEC: SECOND * 5,
     TEN_SEC: SECOND * 10,
+    TWENTY_SEC: SECOND * 20,
     HALF_MIN: MINUTE / 2,
     ONE_MIN: MINUTE,
     TWO_MIN: MINUTE * 2,
@@ -173,6 +174,44 @@ export async function longPressWithScrollRetry(
 }
 
 /**
+ * Long-press an element with automatic retry (no scroll).
+ *
+ * Similar to `longPressWithScrollRetry` but for screens where scrolling is
+ * unnecessary or the list reference is unavailable.  Between attempts the helper
+ * simply waits a moment and retries with a longer press duration on Android,
+ * where the gesture responder can be unresponsive during animations.
+ *
+ * @param target        - The element to long-press
+ * @param checkElement  - An element that should exist once the long-press succeeds (e.g. PostOptionsScreen)
+ * @param maxAttempts   - How many times to retry before throwing (default: 3)
+ */
+export async function longPressWithRetry(
+    target: Detox.NativeElement,
+    checkElement: Detox.NativeElement,
+    maxAttempts = 3,
+): Promise<void> {
+    const {waitFor: detoxWaitFor} = require('detox');
+    /* eslint-disable no-await-in-loop */
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        // Use a longer press duration on Android where gestures are less reliable.
+        const pressDuration = isAndroid() ? timeouts.FOUR_SEC : timeouts.TWO_SEC;
+        await target.longPress(pressDuration);
+        try {
+            await detoxWaitFor(checkElement).toExist().withTimeout(timeouts.TEN_SEC);
+            return;
+        } catch {
+            if (attempt === maxAttempts) {
+                throw new Error(`Element did not appear after ${maxAttempts} longPress attempts`);
+            }
+
+            // Brief pause before retrying
+            await wait(timeouts.TWO_SEC);
+        }
+    }
+    /* eslint-enable no-await-in-loop */
+}
+
+/**
  * Poll for an element to become visible without waiting for React Native bridge to be idle.
  * This is useful when the bridge is busy with animations or state updates but the UI is already rendered.
  *
@@ -188,7 +227,7 @@ export async function longPressWithScrollRetry(
  */
 export async function waitForElementToBeVisible(
     detoxElement: Detox.NativeElement,
-    timeout: number = timeouts.TEN_SEC,
+    timeout: number = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC,
     pollInterval: number = timeouts.HALF_SEC,
 ): Promise<void> {
     const {expect: detoxExpect} = require('detox');

@@ -9,7 +9,7 @@ import {
     HomeScreen,
     PostOptionsScreen,
 } from '@support/ui/screen';
-import {timeouts, wait, waitForElementToBeVisible} from '@support/utils';
+import {isAndroid, longPressWithRetry, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect} from 'detox';
 
 class RecentMentionsScreen {
@@ -45,7 +45,8 @@ class RecentMentionsScreen {
     };
 
     toBeVisible = async () => {
-        await waitFor(this.recentMentionsScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        const timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC;
+        await waitFor(this.recentMentionsScreen).toExist().withTimeout(timeout);
 
         return this.recentMentionsScreen;
     };
@@ -88,9 +89,8 @@ class RecentMentionsScreen {
         await waitFor(longPressTarget).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await wait(timeouts.ONE_SEC);
 
-        // # Open post options
-        await longPressTarget.longPress(timeouts.TWO_SEC);
-        await PostOptionsScreen.toBeVisible();
+        // # Open post options (with retry — longPress can fail on Android during animations)
+        await longPressWithRetry(longPressTarget, PostOptionsScreen.postOptionsScreen);
         await wait(timeouts.TWO_SEC);
     };
 

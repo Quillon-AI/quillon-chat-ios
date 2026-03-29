@@ -337,21 +337,46 @@ jobs:
           #     namespace instead of simctl terminate. launchd then sees the SIGCHLD,
           #     cleans up the service record, and leaves no stale state.
           echo "Pre-warming app to create data container..."
-          xcrun simctl launch "$SIMULATOR_ID" com.mattermost.rnbeta 2>/dev/null &
-          PREWARM_LAUNCH_PID=$!
-          sleep 8
-          kill "$PREWARM_LAUNCH_PID" 2>/dev/null || true
-          wait "$PREWARM_LAUNCH_PID" 2>/dev/null || true
 
-          # Kill via launchd (reliable — simctl terminate can hang on iOS 26.x)
-          APP_PID=$(xcrun simctl spawn "$SIMULATOR_ID" launchctl list 2>/dev/null | \
-            grep "com.mattermost.rnbeta" | awk '{print $1}' | grep -E '^[0-9]+$' || true)
-          if [ -n "$APP_PID" ]; then
-            xcrun simctl spawn "$SIMULATOR_ID" kill -9 "$APP_PID" 2>/dev/null || true
-            sleep 1
-            echo "✅ App pre-warm: killed via launchd (PID $APP_PID)"
-          else
-            echo "ℹ️ App pre-warm: not in launchctl (crashed before registering — data container still created)"
+          # Pre-warm function: launch app briefly to create its data container.
+          # iPad simulators on iOS 26.x can take 10-15s to fully register the app.
+          prewarm_app() {
+            local attempt=$1
+            local sleep_time=$2
+            echo "Pre-warm attempt $attempt (waiting ${sleep_time}s)..."
+            xcrun simctl launch "$SIMULATOR_ID" com.mattermost.rnbeta 2>/dev/null &
+            local LAUNCH_PID=$!
+            sleep "$sleep_time"
+            kill "$LAUNCH_PID" 2>/dev/null || true
+            wait "$LAUNCH_PID" 2>/dev/null || true
+
+            # Kill via launchd (reliable — simctl terminate can hang on iOS 26.x)
+            local APP_PID
+            APP_PID=$(xcrun simctl spawn "$SIMULATOR_ID" launchctl list 2>/dev/null | \
+              grep "com.mattermost.rnbeta" | awk '{print $1}' | grep -E '^[0-9]+$' || true)
+            if [ -n "$APP_PID" ]; then
+              xcrun simctl spawn "$SIMULATOR_ID" kill -9 "$APP_PID" 2>/dev/null || true
+              sleep 1
+              echo "  Killed app via launchd (PID $APP_PID)"
+            fi
+
+            # Verify data container was created
+            if xcrun simctl get_app_container "$SIMULATOR_ID" com.mattermost.rnbeta data 2>/dev/null; then
+              echo "  ✅ Data container verified"
+              return 0
+            else
+              echo "  ⚠️ Data container not found"
+              return 1
+            fi
+          }
+
+          # First attempt with 15s wait
+          if ! prewarm_app 1 15; then
+            echo "Retrying pre-warm with longer timeout..."
+            # Second attempt with 25s wait
+            if ! prewarm_app 2 25; then
+              echo "⚠️ Pre-warm failed after 2 attempts — tests may fail at launch"
+            fi
           fi
           echo "✅ App pre-warmed"
 
@@ -392,6 +417,7 @@ jobs:
           echo "✅ Simulator is healthy and ready"
 
       - name: Start Metro Bundler and Run Detox E2E Tests
+        timeout-minutes: 60
         continue-on-error: true # We want to run all the tests
         run: |
           # Start Metro bundler in background
@@ -460,19 +486,26 @@ jobs:
 
       - name: Cleanup Simulator State
         if: always()
+        timeout-minutes: 2
         run: |
           echo "Cleaning up simulator state after tests..."
 
-          # Stop Metro bundler if still running
-          if [ ! -z "$METRO_PID" ]; then
-            echo "Stopping Metro bundler (PID: $METRO_PID)..."
-            kill -9 "$METRO_PID" 2>/dev/null || true
+          # Kill the entire Metro process tree, not just the top-level PID.
+          # `kill -9 $PID` only kills the npm wrapper; the actual Metro Node.js
+          # workers and watchman stay alive. GitHub Actions waits ~10 min for
+          # orphaned processes to die, causing the cleanup step to hang.
+          if [ -n "$METRO_PID" ]; then
+            echo "Stopping Metro bundler (PID: $METRO_PID) and child processes..."
+            kill -9 -"$METRO_PID" 2>/dev/null || true
+            pkill -9 -f "react-native.*start" 2>/dev/null || true
+            pkill -9 -f "metro" 2>/dev/null || true
+            sleep 1
           fi
 
-          # Terminate app gracefully
-          if [ ! -z "$SIMULATOR_ID" ]; then
+          # Terminate app with a timeout — simctl terminate can hang on iOS 26.x
+          if [ -n "$SIMULATOR_ID" ]; then
             echo "Terminating app on simulator..."
-            xcrun simctl terminate "$SIMULATOR_ID" com.mattermost.rnbeta 2>/dev/null || true
+            timeout 10 xcrun simctl terminate "$SIMULATOR_ID" com.mattermost.rnbeta 2>/dev/null || true
             sleep 2
           fi
 

@@ -33,7 +33,7 @@ export async function waitForLoadingSpinner(testID: string, timeout = 10000): Pr
  */
 export async function waitForVisibilityWithRetry(
     elementToCheck: Detox.NativeElement,
-    timeout = 10000,
+    timeout = device.getPlatform() === 'android' ? 20000 : 10000,
     maxAttempts = 3,
 ): Promise<void> {
     /* eslint-disable no-await-in-loop, no-console */

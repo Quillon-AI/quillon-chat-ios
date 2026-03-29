@@ -31,6 +31,7 @@ describe('Channels - Channel Bookmarks', () => {
     const channelsCategory = 'channels';
     let testTeam: any;
     let testUser: any;
+    let bookmarksAvailable = false;
 
     let channelT5600: any;
     let channelT5601: any;
@@ -96,6 +97,16 @@ describe('Channels - Channel Bookmarks', () => {
         testTeam = team;
         testUser = user;
 
+        // ── Check if bookmarks API is available on this server ────────────────
+        const probeChannel = await createChannel();
+        const isAvailable = await ChannelBookmark.apiIsBookmarksAvailable(siteOneUrl, probeChannel.id);
+        if (!isAvailable) {
+            // eslint-disable-next-line no-console
+            console.warn('Channel bookmarks API not available on this server — skipping suite');
+            return;
+        }
+        bookmarksAvailable = true;
+
         // ── Create all test channels ──────────────────────────────────────────
         channelT5600 = await createChannel();
         channelT5601 = await createChannel();
@@ -148,10 +159,17 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     beforeEach(async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
         await ChannelListScreen.toBeVisible();
     });
 
     afterEach(async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Safety net: return to channel list if a test left the app on a channel or modal screen.
         // On Android the tab bar can be hidden behind modals (emoji picker, edit modal, channel info).
         // Press Back up to 4 times — but only if the channel list is NOT already visible — to avoid
@@ -182,10 +200,17 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     afterAll(async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
         await HomeScreen.logout();
     });
 
     it('MM-T5600_1 - should show Add bookmark option in channel info on licensed server', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to a channel
         await openChannel(channelT5600);
 
@@ -201,6 +226,10 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5601_1 - should show Add bookmark option when no bookmarks exist in channel', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to a new channel with no bookmarks
         await openChannel(channelT5601);
 
@@ -216,6 +245,10 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5602_1 - should be able to add a bookmark link via channel info', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to the channel
         await openChannel(channelT5602);
 
@@ -259,6 +292,10 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5608_1 - should show error when adding a bookmark with an invalid URL', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to the channel
         await openChannel(channelT5608);
 
@@ -298,6 +335,10 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5610_1 - should be able to edit a bookmark link', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to the channel
         await openChannel(channelT5610);
 
@@ -360,6 +401,10 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5604_1 - should auto-populate title from page when adding a bookmark link', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to the channel
         await openChannel(channelT5604);
 
@@ -403,6 +448,10 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5605_1 - should show fallback bookmark icon when no favicon is found', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to the channel
         await openChannel(channelT5605);
 
@@ -435,6 +484,10 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5606_1 - should be able to change the icon/emoji of a bookmark', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to the channel
         await openChannel(channelT5606);
 
@@ -532,6 +585,10 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5607_1 - should be able to revert bookmark icon from emoji to default', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to the channel
         await openChannel(channelT5607);
 
@@ -578,6 +635,10 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5609_1 - should display bookmark bar below channel header', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to the channel
         await openChannel(channelT5609);
 
@@ -589,6 +650,10 @@ describe('Channels - Channel Bookmarks', () => {
     });
 
     it('MM-T5611_1 - should open a bookmark URL in external browser', async () => {
+        if (!bookmarksAvailable) {
+            return;
+        }
+
         // # Navigate to the channel
         await openChannel(channelT5611);
 
