@@ -213,9 +213,12 @@ class ChannelScreen {
         const {postListPostItem} = this.getPostListPostItem(postId, text);
         await waitFor(postListPostItem).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
-        // On Android, channel navigation animations can leave the gesture responder
-        // temporarily unresponsive even after the post is visible. Wait for UI to settle.
+        // On Android, explicitly dismiss the keyboard before longPress. The FlatList's
+        // interactive keyboard dismiss gesture competes with TouchableHighlight's longPress,
+        // and removeClippedSubviews can cause stale touch targets after scroll-based dismiss.
+        // pressBack() is the most reliable keyboard dismiss on Android.
         if (isAndroid()) {
+            await device.pressBack();
             await wait(timeouts.TWO_SEC);
         }
 
@@ -225,8 +228,6 @@ class ChannelScreen {
             ? element(by.text(text).withAncestor(by.id(`${this.testID.channelScreenPrefix}post_list.post.${postId}`)))
             : postListPostItem;
 
-        // Retry longPress with scroll: keyboard dismiss animation can leave the gesture
-        // responder temporarily unresponsive after posting a message.
         await longPressWithScrollRetry(
             longPressTarget,
             this.postList.getFlatList(),

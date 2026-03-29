@@ -105,14 +105,19 @@ class ThreadScreen {
         // Poll for the post to become visible without waiting for idle bridge
         await waitForElementToBeVisible(postListPostItem, timeouts.TEN_SEC);
 
+        // On Android, dismiss keyboard before longPress — the FlatList's interactive
+        // keyboard dismiss gesture competes with TouchableHighlight's longPress.
+        if (isAndroid()) {
+            await device.pressBack();
+            await wait(timeouts.TWO_SEC);
+        }
+
         // On Android, long-press on the inner text element — more reliable than the
         // compound-matched post container, which can silently swallow the gesture.
         const longPressTarget = isAndroid()
             ? element(by.text(text).withAncestor(by.id(`${this.testID.threadScreenPrefix}post_list.post.${postId}`)))
             : postListPostItem;
 
-        // Retry longPress with scroll: keyboard dismiss animation can leave the gesture
-        // responder temporarily unresponsive after posting a message.
         await longPressWithScrollRetry(
             longPressTarget,
             this.postList.getFlatList(),
