@@ -50,7 +50,7 @@
     "android.emulator": {
       "type": "android.emulator",
       "device": {
-        "avdName": "detox_pixel_8_api_35"
+        "avdName": "detox_pixel_8_api_34"
       },
       "environment": {
         "MM_FEATUREFLAGS_InteractiveDialogAppsForm": "true"

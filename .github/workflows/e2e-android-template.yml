@@ -70,7 +70,7 @@ on:
         description: "Android API level"
         required: false
         type: string
-        default: "35"
+        default: "34"
     outputs:
       STATUS:
         value: ${{ jobs.generate-report.outputs.STATUS }}
@@ -244,7 +244,7 @@ jobs:
         run: |
           for attempt in 1 2 3; do
             echo "SDK install attempt $attempt..."
-            yes | sdkmanager --install "platform-tools" "emulator" "platforms;android-35" "system-images;android-35;google_apis;x86_64" && break
+            yes | sdkmanager --install "platform-tools" "emulator" "platforms;android-34" "system-images;android-34;google_apis;x86_64" && break
             echo "Attempt $attempt failed, retrying..."
             sleep 10
           done
