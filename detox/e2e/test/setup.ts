@@ -5,7 +5,7 @@
 import {execSync} from 'child_process';
 
 import {ClaudePromptHandler} from '@support/pilot/ClaudePromptHandler';
-import {Plugin, System, User} from '@support/server_api';
+import {System, User} from '@support/server_api';
 import {siteOneUrl} from '@support/test_config';
 
 const BUNDLE_ID = 'com.mattermost.rnbeta';
@@ -111,7 +111,7 @@ beforeAll(async () => {
         console.warn('Claude init failed:', e);
     }
 
-    // Admin login for test data setup + disable interfering plugins
+    // Admin login — populates the cookie jar for this file's apiInit() calls.
+    // Server config + plugin cleanup already done once in global_setup.js.
     await loginAdmin();
-    await Plugin.apiDisableNonPrepackagedPlugins(siteOneUrl);
 });
