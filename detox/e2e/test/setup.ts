@@ -10,6 +10,69 @@ import {siteOneUrl} from '@support/test_config';
 
 const BUNDLE_ID = 'com.mattermost.rnbeta';
 
+// ─── iOS app state reset ─────────────────────────────────────────────────────
+// On iOS, `device.launchApp({ delete: true })` triggers a full uninstall +
+// reinstall cycle. This is notoriously fragile on CI — Detox frequently loses
+// its WebSocket connection to the app during the reinstall, especially on
+// resource-constrained macOS-15 runners (3 cores, 7 GB RAM) with iOS 26.x
+// simulators.  The failure mode: `server.screen` never appears within 60 s.
+//
+// Fix: clear the app's data container via simctl + clear keychain, then
+// relaunch with `newInstance: true`.  The app binary stays installed (matching
+// the CI pre-boot step), so Detox never drops its connection.
+
+function getSimulatorId(): string {
+    // Detox exposes the allocated device UDID via an internal API.
+    // Fallback to the CI-provided env var set during pre-boot.
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const udid = (device as any)._deviceId || (device as any).id || process.env.SIMULATOR_ID || '';
+        return typeof udid === 'string' ? udid : '';
+    } catch {
+        return process.env.SIMULATOR_ID || '';
+    }
+}
+
+function clearIOSAppData(): void {
+    const simId = getSimulatorId();
+    if (!simId) {
+        console.warn('[clearIOSAppData] No simulator ID — skipping data wipe');
+        return;
+    }
+
+    // 1. Terminate the app if running (simctl terminate can hang on iOS 26.x — timeout it)
+    try {
+        execSync(`timeout 10 xcrun simctl terminate "${simId}" ${BUNDLE_ID}`, {stdio: 'pipe'});
+    } catch {
+        // App might not be running — that's fine
+    }
+
+    // 2. Find the app's data container and delete its contents.
+    //    This wipes databases, caches, preferences — equivalent to a fresh install
+    //    but without touching the app binary.
+    try {
+        const dataContainer = execSync(
+            `xcrun simctl get_app_container "${simId}" ${BUNDLE_ID} data 2>/dev/null`,
+            {encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']},
+        ).trim();
+
+        if (dataContainer) {
+            // Remove all contents of Documents, Library, tmp (but keep the container dir)
+            execSync(`find "${dataContainer}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +`, {stdio: 'pipe'});
+            console.info(`[clearIOSAppData] Cleared data container: ${dataContainer}`);
+        }
+    } catch {
+        console.warn('[clearIOSAppData] Could not clear data container (app may not be installed yet)');
+    }
+
+    // 3. Clear the keychain (removes stored auth tokens, certificates)
+    try {
+        execSync(`xcrun simctl keychain "${simId}" reset`, {stdio: 'pipe'});
+    } catch {
+        // Older simctl versions may not support keychain reset — non-fatal
+    }
+}
+
 // ─── Admin API login ─────────────────────────────────────────────────────────
 
 async function loginAdmin(): Promise<void> {
@@ -86,29 +149,34 @@ beforeAll(async () => {
             launchArgs,
         });
     } else {
-        // Subsequent files: delete + reinstall for clean state (wipes DB, Keychain, caches).
-        // The delete path is fragile on CI — Detox occasionally loses connection to the
-        // app after uninstall/reinstall (especially on iPad simulators).  Retry up to 2
-        // additional times, falling back to newInstance on the last attempt.
+        // Subsequent files: reset app state and relaunch.
+        //
+        // IMPORTANT: We intentionally avoid `delete: true` on iOS. That flag
+        // triggers uninstall → reinstall → launch, which frequently breaks the
+        // Detox WebSocket connection on CI (macOS-15 runners with 3 cores / 7 GB
+        // RAM + iOS 26.x simulators). ~30% of shards fail with "server.screen
+        // never appeared within 60 s" because the reinstall race kills the
+        // connection.
+        //
+        // Instead we:
+        //   iOS:     Clear the data container + keychain via simctl, then
+        //            relaunch with newInstance:true.  The app binary stays
+        //            installed (matching the CI pre-boot), Detox never drops
+        //            its connection.
+        //   Android: Already handled above — `adb shell pm clear` at line 69
+        //            wipes data without uninstalling.
+        if (device.getPlatform() === 'ios') {
+            clearIOSAppData();
+        }
+
         const MAX_LAUNCH_ATTEMPTS = 3;
         for (let attempt = 1; attempt <= MAX_LAUNCH_ATTEMPTS; attempt++) {
             try {
-                if (attempt < MAX_LAUNCH_ATTEMPTS) {
-                    await device.launchApp({
-                        delete: true,
-                        permissions: launchPermissions,
-                        launchArgs,
-                    });
-                } else {
-                    // Last resort: skip delete, just relaunch fresh instance.
-                    // State may not be perfectly clean but the connection will survive.
-                    console.warn('⚠️ delete:true failed twice, falling back to newInstance:true');
-                    await device.launchApp({
-                        newInstance: true,
-                        permissions: launchPermissions,
-                        launchArgs,
-                    });
-                }
+                await device.launchApp({
+                    newInstance: true,
+                    permissions: launchPermissions,
+                    launchArgs,
+                });
                 break; // success
             } catch (launchError) {
                 if (attempt === MAX_LAUNCH_ATTEMPTS) {
@@ -124,9 +192,43 @@ beforeAll(async () => {
 
     // Wait for the React Native bundle to fully load and the server screen to render.
     // CI simulators/emulators can take 30-60s after fresh install for ART compilation,
-    // JS bundle parsing, and initial render. 60s for both platforms.
+    // JS bundle parsing, and initial render.
+    //
+    // If the first attempt times out (common on slow CI runners), try one recovery
+    // cycle: kill → relaunch → wait again.  This catches the case where the app
+    // silently crashed during launch or the RN bridge didn't initialise.
     const appReadyTimeout = 60000;
-    await waitFor(element(by.id('server.screen'))).toExist().withTimeout(appReadyTimeout);
+    try {
+        await waitFor(element(by.id('server.screen'))).toExist().withTimeout(appReadyTimeout);
+    } catch (waitError) {
+        console.warn('⚠️ server.screen did not appear within 60 s — attempting recovery relaunch...');
+
+        // Kill and relaunch the app one more time
+        try {
+            await device.terminateApp();
+        } catch {
+            // terminateApp can hang on iOS 26.x — not fatal
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        await device.launchApp({
+            newInstance: true,
+            permissions: {notifications: 'YES', camera: 'NO', medialibrary: 'NO', photos: 'NO'} as const,
+            launchArgs: {detoxDisableSynchronization: 'YES'},
+        });
+
+        // Second attempt with longer timeout
+        try {
+            await waitFor(element(by.id('server.screen'))).toExist().withTimeout(appReadyTimeout);
+            console.info('✅ Recovery relaunch succeeded');
+        } catch {
+            // Re-throw the original error with context
+            throw new Error(
+                'server.screen did not appear after recovery relaunch. ' +
+                `Original error: ${String(waitError).slice(0, 300)}`,
+            );
+        }
+    }
 
     console.info('✅ App launched');
 
