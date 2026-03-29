@@ -62,11 +62,6 @@ function clearIOSAppData(): void {
         return;
     }
 
-    // #region agent log
-    console.log(`[debug:2a0143] clearIOSAppData START simId=${simId}`);
-
-    // #endregion
-
     // 1. Kill the app process directly via its PID inside the simulator.
     //    `simctl terminate` and Detox's terminateApp() can both hang on iOS 26.x.
     //    The launchd PID approach is instantaneous and cannot hang.
@@ -76,17 +71,8 @@ function clearIOSAppData(): void {
             {encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']},
         ).trim();
 
-        // #region agent log
-        console.log(`[debug:2a0143] clearIOSAppData appPid=${appPid || 'none'}`);
-
-        // #endregion
         if (appPid) {
             execSync(`xcrun simctl spawn "${simId}" kill -9 "${appPid}"`, {stdio: 'pipe'});
-
-            // #region agent log
-            console.log(`[debug:2a0143] clearIOSAppData killed PID ${appPid}`);
-
-            // #endregion
         }
     } catch {
         // App might not be running — that's fine
@@ -199,11 +185,6 @@ beforeAll(async () => {
         await waitFor(element(by.id('server.screen'))).toExist().withTimeout(APP_READY_TIMEOUT);
     }
 
-    // #region agent log
-    console.log(`[debug:2a0143] beforeAll isFirstFile=${isFirstFile} platform=${device.getPlatform()}`);
-
-    // #endregion
-
     if (isFirstFile) {
         process.env.DETOX_SETUP_DONE = 'true';
     } else if (device.getPlatform() === 'ios') {
@@ -218,27 +199,14 @@ beforeAll(async () => {
     // ensures we abort quickly enough for the next attempt to fit within 240s.
     const MAX_LAUNCH_ATTEMPTS = 3;
     for (let attempt = 1; attempt <= MAX_LAUNCH_ATTEMPTS; attempt++) {
-        // #region agent log
-        console.log(`[debug:2a0143] launch attempt=${attempt}/${MAX_LAUNCH_ATTEMPTS} isFirstFile=${isFirstFile}`);
-
-        // #endregion
         try {
             await withTimeout(
                 launchAndVerify(),
                 PER_ATTEMPT_MS,
                 `launch attempt ${attempt}`,
             );
-
-            // #region agent log
-            console.log(`[debug:2a0143] launch attempt=${attempt} SUCCESS`);
-
-            // #endregion
             break;
         } catch (launchError) {
-            // #region agent log
-            console.log(`[debug:2a0143] launch attempt=${attempt} FAILED: ${String(launchError).slice(0, 200)}`);
-
-            // #endregion
             console.warn(
                 `⚠️ Launch attempt ${attempt}/${MAX_LAUNCH_ATTEMPTS} failed:`,
                 String(launchError).slice(0, 300),

@@ -167,11 +167,6 @@ async function serverSetup() {
     http.globalAgent.options.family = 4;
     https.globalAgent.options.family = 4;
 
-    // #region agent log
-    process.stdout.write(`[debug:2a0143] serverSetup START url=${SITE_URL}\n`);
-
-    // #endregion
-
     // 1. Health check — retry on transient 5xx / network errors
     const ping = await retryAxios(
         () => axios.get(`${SITE_URL}/api/v4/system/ping?get_server_status=true`),

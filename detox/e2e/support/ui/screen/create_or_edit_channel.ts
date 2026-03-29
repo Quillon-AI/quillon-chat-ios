@@ -7,7 +7,7 @@ import {
     ChannelListScreen,
     ChannelSettingsScreen,
 } from '@support/ui/screen';
-import {timeouts} from '@support/utils';
+import {isIos, timeouts} from '@support/utils';
 import {expect} from 'detox';
 
 class CreateOrEditChannelScreen {
@@ -50,6 +50,20 @@ class CreateOrEditChannelScreen {
     };
 
     openCreateChannel = async () => {
+        // Dismiss any lingering iOS system alert (e.g. "Save Password?") that may
+        // block taps on the channel list header. On iOS 26.x the alert can appear
+        // after the login flow's own dismissal attempt has timed out.
+        if (isIos()) {
+            try {
+                await waitFor(element(by.text('Not Now'))).toBeVisible().withTimeout(3000);
+                await element(by.text('Not Now')).tap();
+
+                console.log('[debug:2a0143] openCreateChannel dismissed lingering system alert'); // eslint-disable-line no-console
+            } catch {
+                // No system alert — proceed normally
+            }
+        }
+
         // # Open create channel screen
         await ChannelListScreen.headerPlusButton.tap();
         await ChannelListScreen.createNewChannelItem.tap();

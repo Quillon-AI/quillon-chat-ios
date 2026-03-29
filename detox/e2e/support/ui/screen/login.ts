@@ -67,12 +67,29 @@ class LoginScreen {
         if (isAndroid()) {
             return;
         }
-        try {
-            await waitFor(element(by.text('Not Now'))).toBeVisible().withTimeout(3000);
-            await element(by.text('Not Now')).tap();
-        } catch {
-            // No "Save Password?" dialog visible
+
+        // iOS "Save Password?" system dialog can take several seconds to appear
+        // after sign-in, especially on iOS 26.x CI simulators. Try twice with a
+        // generous timeout to avoid leaving the alert on screen.
+        for (let round = 0; round < 2; round++) {
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await waitFor(element(by.text('Not Now'))).toBeVisible().withTimeout(round === 0 ? 5000 : 3000);
+                // eslint-disable-next-line no-await-in-loop
+                await element(by.text('Not Now')).tap();
+
+                // #region agent log
+                console.log(`[debug:2a0143] dismissSavePassword tapped "Not Now" on round=${round}`); // eslint-disable-line no-console
+                // #endregion
+                return;
+            } catch {
+                // Dialog may not have appeared yet or uses different button text
+            }
         }
+
+        // #region agent log
+        console.log('[debug:2a0143] dismissSavePassword no "Not Now" found after 2 rounds'); // eslint-disable-line no-console
+        // #endregion
     };
 
     loginWithRetryIfStuck = async (user: any = {}) => {
@@ -143,8 +160,14 @@ class LoginScreen {
                 await this.loginFormInfoText.tap();
                 // eslint-disable-next-line no-await-in-loop
                 await this.signinButton.tap();
+
+                console.log('[debug:2a0143] loginAsAdmin signinButton tapped, calling dismissSavePassword'); // eslint-disable-line no-console
+
                 // eslint-disable-next-line no-await-in-loop
                 await this.dismissSavePasswordIfVisible();
+
+                console.log('[debug:2a0143] loginAsAdmin dismissSavePassword returned, waiting for channelList'); // eslint-disable-line no-console
+
                 // eslint-disable-next-line no-await-in-loop
                 await waitFor(ChannelListScreen.channelListScreen).toBeVisible().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
                 return;

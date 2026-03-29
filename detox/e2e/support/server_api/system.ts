@@ -27,7 +27,18 @@ import {apiUploadFile, getResponseFromError} from './common';
  * @param {string} baseUrl - the base server URL
  */
 export const apiCheckSystemHealth = async (baseUrl: string): Promise<any> => {
-    const {data} = await apiPingServerStatus(baseUrl);
+    const result = await apiPingServerStatus(baseUrl);
+
+    // apiPingServerStatus returns {data} on success, {error, status} on failure.
+    // Guard against the error path so callers get a descriptive error, not a TypeError.
+    if (!result || result.error || !result.data) {
+        const detail = result?.error
+            ? JSON.stringify(result.error)
+            : 'No response from server';
+        throw new Error(`apiCheckSystemHealth: server at "${baseUrl}" is not healthy. ${detail}`);
+    }
+
+    const {data} = result;
     jestExpect(data.status).toEqual('OK');
     jestExpect(data.database_status).toEqual('OK');
     jestExpect(data.filestore_status).toEqual('OK');
