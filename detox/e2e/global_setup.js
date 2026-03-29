@@ -140,23 +140,56 @@ const PREPACKAGED_PLUGINS = new Set([
     'zoom',
 ]);
 
+async function retryAxios(fn, {retries = 4, delayMs = 3000, label = 'request'} = {}) {
+    let lastErr;
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            return await fn(); // eslint-disable-line no-await-in-loop
+        } catch (err) {
+            lastErr = err;
+            const status = err.response?.status;
+            const retriable = !status || status >= 500;
+            if (attempt === retries || !retriable) {
+                throw err;
+            }
+            const wait = delayMs * attempt;
+            process.stderr.write(
+                `[globalSetup] ⚠️ ${label} attempt ${attempt} failed (${err.message}), retrying in ${wait}ms…\n`,
+            );
+            await new Promise((r) => setTimeout(r, wait)); // eslint-disable-line no-await-in-loop
+        }
+    }
+    throw lastErr;
+}
+
 async function serverSetup() {
     // Force IPv4 to avoid IPv6 connection timeouts in CI
     http.globalAgent.options.family = 4;
     https.globalAgent.options.family = 4;
 
-    // 1. Health check
-    const ping = await axios.get(`${SITE_URL}/api/v4/system/ping?get_server_status=true`);
+    // #region agent log
+    process.stdout.write(`[debug:2a0143] serverSetup START url=${SITE_URL}\n`);
+
+    // #endregion
+
+    // 1. Health check — retry on transient 5xx / network errors
+    const ping = await retryAxios(
+        () => axios.get(`${SITE_URL}/api/v4/system/ping?get_server_status=true`),
+        {label: 'health check'},
+    );
     if (ping.data.status !== 'OK') {
         throw new Error(`Server health check failed: ${JSON.stringify(ping.data)}`);
     }
     process.stdout.write('[globalSetup] ✅ Server health check passed\n');
 
     // 2. Admin login — get Bearer token for subsequent API calls
-    const login = await axios.post(`${SITE_URL}/api/v4/users/login`, {
-        login_id: ADMIN_USERNAME,
-        password: ADMIN_PASSWORD,
-    });
+    const login = await retryAxios(
+        () => axios.post(`${SITE_URL}/api/v4/users/login`, {
+            login_id: ADMIN_USERNAME,
+            password: ADMIN_PASSWORD,
+        }),
+        {label: 'admin login'},
+    );
     const token = login.headers.token;
     if (!token) {
         throw new Error('Admin login did not return a token');

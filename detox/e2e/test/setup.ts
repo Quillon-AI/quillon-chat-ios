@@ -10,6 +10,28 @@ import {siteOneUrl} from '@support/test_config';
 
 const BUNDLE_ID = 'com.mattermost.rnbeta';
 
+// Cap how long a single device.launchApp() + waitFor(server.screen) attempt can
+// take. Without this, a hung launch eats the entire 240s Jest beforeAll timeout
+// and retries never get a chance.
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(
+            () => reject(new Error(`[${label}] timed out after ${ms / 1000}s`)),
+            ms,
+        );
+        promise.then(
+            (v) => {
+                clearTimeout(timer);
+                resolve(v);
+            },
+            (e) => {
+                clearTimeout(timer);
+                reject(e);
+            },
+        );
+    });
+}
+
 // ─── iOS app state reset ─────────────────────────────────────────────────────
 // On iOS, `device.launchApp({ delete: true })` triggers a full uninstall +
 // reinstall cycle. This is notoriously fragile on CI — Detox frequently loses
@@ -40,9 +62,32 @@ function clearIOSAppData(): void {
         return;
     }
 
-    // 1. Terminate the app if running (simctl terminate can hang on iOS 26.x — timeout it)
+    // #region agent log
+    console.log(`[debug:2a0143] clearIOSAppData START simId=${simId}`);
+
+    // #endregion
+
+    // 1. Kill the app process directly via its PID inside the simulator.
+    //    `simctl terminate` and Detox's terminateApp() can both hang on iOS 26.x.
+    //    The launchd PID approach is instantaneous and cannot hang.
     try {
-        execSync(`timeout 10 xcrun simctl terminate "${simId}" ${BUNDLE_ID}`, {stdio: 'pipe'});
+        const appPid = execSync(
+            `xcrun simctl spawn "${simId}" launchctl list 2>/dev/null | grep "${BUNDLE_ID}" | awk '{print $1}' | grep -E '^[0-9]+$' || true`,
+            {encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']},
+        ).trim();
+
+        // #region agent log
+        console.log(`[debug:2a0143] clearIOSAppData appPid=${appPid || 'none'}`);
+
+        // #endregion
+        if (appPid) {
+            execSync(`xcrun simctl spawn "${simId}" kill -9 "${appPid}"`, {stdio: 'pipe'});
+
+            // #region agent log
+            console.log(`[debug:2a0143] clearIOSAppData killed PID ${appPid}`);
+
+            // #endregion
+        }
     } catch {
         // App might not be running — that's fine
     }
@@ -139,94 +184,75 @@ beforeAll(async () => {
     const launchPermissions = {notifications: 'YES', camera: 'NO', medialibrary: 'NO', photos: 'NO'} as const;
     const launchArgs = {detoxDisableSynchronization: 'YES'};
 
-    if (isFirstFile) {
-        process.env.DETOX_SETUP_DONE = 'true';
+    // Each launch-and-verify cycle is bounded so a hung device.launchApp() or
+    // waitFor(server.screen) can't eat the entire 240s Jest hook timeout.
+    const PER_ATTEMPT_MS = 55_000;
+    const APP_READY_TIMEOUT = 30_000;
 
-        // First file: app is freshly installed by Detox or CI pre-boot step.
+    async function launchAndVerify(): Promise<void> {
         await device.launchApp({
             newInstance: true,
             permissions: launchPermissions,
             launchArgs,
         });
-    } else {
-        // Subsequent files: reset app state and relaunch.
-        //
-        // IMPORTANT: We intentionally avoid `delete: true` on iOS. That flag
-        // triggers uninstall → reinstall → launch, which frequently breaks the
-        // Detox WebSocket connection on CI (macOS-15 runners with 3 cores / 7 GB
-        // RAM + iOS 26.x simulators). ~30% of shards fail with "server.screen
-        // never appeared within 60 s" because the reinstall race kills the
-        // connection.
-        //
-        // Instead we:
-        //   iOS:     Clear the data container + keychain via simctl, then
-        //            relaunch with newInstance:true.  The app binary stays
-        //            installed (matching the CI pre-boot), Detox never drops
-        //            its connection.
-        //   Android: Already handled above — `adb shell pm clear` at line 69
-        //            wipes data without uninstalling.
-        if (device.getPlatform() === 'ios') {
-            clearIOSAppData();
-        }
-
-        const MAX_LAUNCH_ATTEMPTS = 3;
-        for (let attempt = 1; attempt <= MAX_LAUNCH_ATTEMPTS; attempt++) {
-            try {
-                await device.launchApp({
-                    newInstance: true,
-                    permissions: launchPermissions,
-                    launchArgs,
-                });
-                break; // success
-            } catch (launchError) {
-                if (attempt === MAX_LAUNCH_ATTEMPTS) {
-                    throw launchError;
-                }
-                console.warn(`⚠️ device.launchApp attempt ${attempt} failed, retrying in 3s...`, String(launchError).slice(0, 200));
-                await new Promise((resolve) => setTimeout(resolve, 3000));
-            }
-        }
+        grantAndroidNotificationPermission();
+        await waitFor(element(by.id('server.screen'))).toExist().withTimeout(APP_READY_TIMEOUT);
     }
 
-    grantAndroidNotificationPermission();
+    // #region agent log
+    console.log(`[debug:2a0143] beforeAll isFirstFile=${isFirstFile} platform=${device.getPlatform()}`);
 
-    // Wait for the React Native bundle to fully load and the server screen to render.
-    // CI simulators/emulators can take 30-60s after fresh install for ART compilation,
-    // JS bundle parsing, and initial render.
-    //
-    // If the first attempt times out (common on slow CI runners), try one recovery
-    // cycle: kill → relaunch → wait again.  This catches the case where the app
-    // silently crashed during launch or the RN bridge didn't initialise.
-    const appReadyTimeout = 60000;
-    try {
-        await waitFor(element(by.id('server.screen'))).toExist().withTimeout(appReadyTimeout);
-    } catch (waitError) {
-        console.warn('⚠️ server.screen did not appear within 60 s — attempting recovery relaunch...');
+    // #endregion
 
-        // Kill and relaunch the app one more time
+    if (isFirstFile) {
+        process.env.DETOX_SETUP_DONE = 'true';
+    } else if (device.getPlatform() === 'ios') {
+        // Subsequent files on iOS: clear data without uninstalling the binary.
+        // Avoids the fragile delete:true uninstall→reinstall cycle that breaks
+        // the Detox WebSocket on resource-constrained CI runners + iOS 26.x.
+        clearIOSAppData();
+    }
+
+    // Retry loop with per-attempt timeout. On iOS CI, device.launchApp({newInstance:true})
+    // can hang when Detox's internal terminateApp() stalls on iOS 26.x. The timeout
+    // ensures we abort quickly enough for the next attempt to fit within 240s.
+    const MAX_LAUNCH_ATTEMPTS = 3;
+    for (let attempt = 1; attempt <= MAX_LAUNCH_ATTEMPTS; attempt++) {
+        // #region agent log
+        console.log(`[debug:2a0143] launch attempt=${attempt}/${MAX_LAUNCH_ATTEMPTS} isFirstFile=${isFirstFile}`);
+
+        // #endregion
         try {
-            await device.terminateApp();
-        } catch {
-            // terminateApp can hang on iOS 26.x — not fatal
-        }
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        await device.launchApp({
-            newInstance: true,
-            permissions: {notifications: 'YES', camera: 'NO', medialibrary: 'NO', photos: 'NO'} as const,
-            launchArgs: {detoxDisableSynchronization: 'YES'},
-        });
-
-        // Second attempt with longer timeout
-        try {
-            await waitFor(element(by.id('server.screen'))).toExist().withTimeout(appReadyTimeout);
-            console.info('✅ Recovery relaunch succeeded');
-        } catch {
-            // Re-throw the original error with context
-            throw new Error(
-                'server.screen did not appear after recovery relaunch. ' +
-                `Original error: ${String(waitError).slice(0, 300)}`,
+            await withTimeout(
+                launchAndVerify(),
+                PER_ATTEMPT_MS,
+                `launch attempt ${attempt}`,
             );
+
+            // #region agent log
+            console.log(`[debug:2a0143] launch attempt=${attempt} SUCCESS`);
+
+            // #endregion
+            break;
+        } catch (launchError) {
+            // #region agent log
+            console.log(`[debug:2a0143] launch attempt=${attempt} FAILED: ${String(launchError).slice(0, 200)}`);
+
+            // #endregion
+            console.warn(
+                `⚠️ Launch attempt ${attempt}/${MAX_LAUNCH_ATTEMPTS} failed:`,
+                String(launchError).slice(0, 300),
+            );
+            if (attempt === MAX_LAUNCH_ATTEMPTS) {
+                throw launchError;
+            }
+
+            // Between attempts: kill the app process directly (not via
+            // device.terminateApp() which can hang on iOS 26.x).
+            if (device.getPlatform() === 'ios') {
+                clearIOSAppData();
+            }
+            await new Promise((resolve) => setTimeout(resolve, 3000));
         }
     }
 
