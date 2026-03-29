@@ -65,7 +65,9 @@ class CreateDirectMessageScreen {
     };
 
     toBeVisible = async () => {
-        await waitFor(this.createDirectMessageScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        // Android emulators are slow to animate the DM bottom sheet — use HALF_MIN
+        // so the screen has enough time to appear on resource-constrained CI runners.
+        await waitFor(this.createDirectMessageScreen).toExist().withTimeout(timeouts.HALF_MIN);
 
         return this.createDirectMessageScreen;
     };
@@ -75,7 +77,6 @@ class CreateDirectMessageScreen {
         await ChannelListScreen.headerPlusButton.tap();
         await wait(timeouts.ONE_SEC);
         await ChannelListScreen.openDirectMessageItem.tap();
-        await wait(timeouts.FOUR_SEC);
         return this.toBeVisible();
     };
 

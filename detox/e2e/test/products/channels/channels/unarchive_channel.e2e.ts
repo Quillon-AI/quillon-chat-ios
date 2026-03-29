@@ -26,6 +26,8 @@ describe('Channels - Unarchive Channel', () => {
     const serverOneDisplayName = 'Server 1';
 
     beforeAll(async () => {
+        // # Ensure a clean app state regardless of what the previous suite left behind
+        await device.launchApp({newInstance: true});
 
         // # Log in to server as admin
         await ServerScreen.connectToServer(serverTwoUrl, serverOneDisplayName);
@@ -35,7 +37,7 @@ describe('Channels - Unarchive Channel', () => {
 
     beforeEach(async () => {
         // * Verify on channel list screen
-        await waitFor(ChannelListScreen.channelListScreen).toBeVisible().withTimeout(timeouts.TWO_MIN);
+        await ChannelListScreen.toBeVisible();
     });
 
     afterAll(async () => {

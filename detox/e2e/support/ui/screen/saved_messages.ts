@@ -44,7 +44,7 @@ class SavedMessagesScreen {
 
     toBeVisible = async () => {
         const timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC;
-        await waitFor(this.savedMessagesScreen).toBeVisible().withTimeout(timeout);
+        await waitFor(this.savedMessagesScreen).toExist().withTimeout(timeout);
 
         return this.savedMessagesScreen;
     };

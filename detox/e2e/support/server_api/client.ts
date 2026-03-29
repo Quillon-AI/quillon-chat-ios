@@ -79,6 +79,27 @@ baseClient.interceptors.response.use(
     },
 );
 
+// Add response interceptor to retry on transient 5xx server errors (502, 503, 504).
+// During beforeAll API calls a single 502 from Cloudflare/the server would otherwise
+// cause the whole test suite to fail. Exponential backoff: 1s, 2s, 4s.
+baseClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const config = error.config;
+        const status = error.response?.status;
+        const isTransient = status === 502 || status === 503 || status === 504;
+
+        if (isTransient && (config._5xxRetries ?? 0) < 3) {
+            config._5xxRetries = (config._5xxRetries ?? 0) + 1;
+            const delay = config._5xxRetries * 1000;
+            console.warn(`[client] ${status} from server — retry ${config._5xxRetries}/3 in ${delay}ms`); // eslint-disable-line no-console
+            await new Promise((r) => setTimeout(r, delay)); // eslint-disable-line no-promise-executor-return
+            return baseClient(config);
+        }
+        return Promise.reject(error);
+    },
+);
+
 /**
  * Remove all cookies from the jar.
  * Call before login to prevent stale session/CSRF tokens from interfering.

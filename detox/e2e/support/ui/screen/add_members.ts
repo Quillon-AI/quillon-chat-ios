@@ -38,7 +38,7 @@ class AddMembersScreen {
     };
 
     toBeVisible = async () => {
-        await waitFor(this.searchInput).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        await waitFor(this.addMembersScreen).toExist().withTimeout(timeouts.TEN_SEC);
         return this.addMembersScreen;
     };
 

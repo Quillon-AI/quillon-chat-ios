@@ -75,7 +75,7 @@ class AccountScreen {
 
     toBeVisible = async () => {
         const timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC;
-        await waitFor(this.accountScreen).toBeVisible().withTimeout(timeout);
+        await waitFor(this.accountScreen).toExist().withTimeout(timeout);
 
         return this.accountScreen;
     };

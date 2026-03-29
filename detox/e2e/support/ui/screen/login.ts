@@ -45,7 +45,6 @@ class LoginScreen {
     toBeVisible = async () => {
         // Android CI emulators can be slow after app launch — use a longer timeout.
         const timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC;
-        await wait(timeouts.FOUR_SEC);
         await waitFor(this.loginScreen).toExist().withTimeout(timeout);
         await waitFor(this.usernameInput).toExist().withTimeout(timeout);
         return this.loginScreen;
@@ -78,18 +77,12 @@ class LoginScreen {
                 // eslint-disable-next-line no-await-in-loop
                 await element(by.text('Not Now')).tap();
 
-                // #region agent log
-                console.log(`[debug:2a0143] dismissSavePassword tapped "Not Now" on round=${round}`); // eslint-disable-line no-console
-                // #endregion
                 return;
             } catch {
                 // Dialog may not have appeared yet or uses different button text
             }
         }
 
-        // #region agent log
-        console.log('[debug:2a0143] dismissSavePassword no "Not Now" found after 2 rounds'); // eslint-disable-line no-console
-        // #endregion
     };
 
     loginWithRetryIfStuck = async (user: any = {}) => {
@@ -104,7 +97,7 @@ class LoginScreen {
         // Dismiss iOS "Save Password?" system dialog if it appears after login
         await this.dismissSavePasswordIfVisible();
 
-        await waitFor(ChannelListScreen.channelListScreen).toBeVisible().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
+        await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
     };
 
     login = async (user: any = {}) => {
@@ -161,15 +154,11 @@ class LoginScreen {
                 // eslint-disable-next-line no-await-in-loop
                 await this.signinButton.tap();
 
-                console.log('[debug:2a0143] loginAsAdmin signinButton tapped, calling dismissSavePassword'); // eslint-disable-line no-console
-
                 // eslint-disable-next-line no-await-in-loop
                 await this.dismissSavePasswordIfVisible();
 
-                console.log('[debug:2a0143] loginAsAdmin dismissSavePassword returned, waiting for channelList'); // eslint-disable-line no-console
-
                 // eslint-disable-next-line no-await-in-loop
-                await waitFor(ChannelListScreen.channelListScreen).toBeVisible().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
+                await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
                 return;
             } catch (error) {
                 lastError = error;

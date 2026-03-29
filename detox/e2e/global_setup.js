@@ -24,7 +24,7 @@
  * Android / non-macOS: no-op — emulators are not cloned per-run.
  */
 
-const {execSync} = require('child_process');
+const {execFileSync, execSync} = require('child_process');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
@@ -106,7 +106,9 @@ function shutdownZombieSimulators() {
         }
 
         try {
-            execSync(`xcrun simctl shutdown ${udid}`, {stdio: 'pipe'});
+            // Use execFileSync (not execSync) so udid is passed as an argument,
+            // never interpolated into a shell string — eliminates any injection risk.
+            execFileSync('xcrun', ['simctl', 'shutdown', udid], {stdio: 'pipe'});
             process.stdout.write(`[globalSetup] Shut down zombie Detox simulator: ${sim.name} (${udid})\n`);
         } catch {
             process.stderr.write(`[globalSetup] Could not shut down ${udid} — continuing\n`);
@@ -163,6 +165,15 @@ async function retryAxios(fn, {retries = 4, delayMs = 3000, label = 'request'} =
 }
 
 async function serverSetup() {
+    // Stagger shard startup: shard N waits N*1500ms so shards don't all hammer
+    // the server simultaneously. With 20 shards this spreads load across 30s.
+    // Only applies in CI (CI_NODE_INDEX is set by the test matrix).
+    const nodeIndex = parseInt(process.env.CI_NODE_INDEX || '0', 10);
+    if (nodeIndex > 0) {
+        process.stdout.write(`[globalSetup] Shard ${nodeIndex}: staggering startup by ${nodeIndex * 1500}ms\n`);
+        await new Promise((r) => setTimeout(r, nodeIndex * 1500)); // eslint-disable-line no-promise-executor-return
+    }
+
     // Force IPv4 to avoid IPv6 connection timeouts in CI
     http.globalAgent.options.family = 4;
     https.globalAgent.options.family = 4;

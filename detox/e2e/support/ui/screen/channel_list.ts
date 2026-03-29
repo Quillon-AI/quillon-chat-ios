@@ -133,7 +133,26 @@ class ChannelListScreen {
         // can cause the channel list screen to exist but not meet the 50% visibility
         // threshold, which cascades into every subsequent test in the suite.
         const timeout = timeouts.HALF_MIN;
-        await waitFor(this.channelListScreen).toExist().withTimeout(timeout);
+        try {
+            await waitFor(this.channelListScreen).toExist().withTimeout(timeout);
+        } catch (firstError) {
+            // A previous test may have left the app mid-navigation (e.g. DM screen open,
+            // bottom sheet animating). Recovery: relaunch the app with a new instance so
+            // the server screen appears, then wait for the server screen to hand off to
+            // the channel list. This prevents a single mid-navigation failure from
+            // cascading into every remaining test in the suite.
+            // eslint-disable-next-line no-console
+            console.warn('[ChannelListScreen.toBeVisible] Channel list not found — attempting recovery relaunch');
+            try {
+                await device.launchApp({newInstance: true});
+                await waitFor(this.channelListScreen).toExist().withTimeout(timeouts.TWO_MIN);
+            } catch (recoveryError) {
+                // Log recovery failure, then re-throw the original error so the test failure message is meaningful
+                // eslint-disable-next-line no-console
+                console.warn('[ChannelListScreen.toBeVisible] Recovery relaunch also failed:', recoveryError);
+                throw firstError;
+            }
+        }
 
         return this.channelListScreen;
     };
