@@ -611,8 +611,14 @@ export const KeyboardAwarePostDraftContainer = ({
                     contentInset: bottomInset,
                     onScroll,
                     postInputContainerHeight,
-                    onTouchMove: handleTouchMove,
-                    onTouchEnd: handleTouchEnd,
+
+                    // Only attach touch handlers when the emoji picker is visible.
+                    // On Android, registering onTouchMove/onTouchEnd on the FlatList's
+                    // native view causes it to participate in touch interception, which
+                    // can cancel a child TouchableHighlight's longPress gesture — even
+                    // though handleTouchMove early-returns when the picker is closed.
+                    onTouchMove: showInputAccessoryView ? handleTouchMove : undefined,
+                    onTouchEnd: showInputAccessoryView ? handleTouchEnd : undefined,
                 })}
             </View>
             <Animated.View
