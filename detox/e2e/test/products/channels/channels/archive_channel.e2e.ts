@@ -43,11 +43,7 @@ import {expect, waitFor} from 'detox';
 async function closeBrowseChannelsChannel() {
     await ChannelScreen.back();
     await wait(timeouts.ONE_SEC);
-    if (isAndroid()) {
-        await device.pressBack();
-    } else {
-        await BrowseChannelsScreen.close();
-    }
+    await BrowseChannelsScreen.closeButton.tap();
 }
 
 describe('Channels - Archive and Archived Channels', () => {
