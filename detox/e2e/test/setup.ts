@@ -95,9 +95,9 @@ beforeAll(async () => {
     grantAndroidNotificationPermission();
 
     // Wait for the React Native bundle to fully load and the server screen to render.
-    // On Android CI, ART compilation + JS bundle parsing can take 30-60s on slow emulators.
-    // Without this gate, test files' ServerScreen.toBeVisible() (10s timeout) fail prematurely.
-    const appReadyTimeout = device.getPlatform() === 'android' ? 60000 : 30000;
+    // CI simulators/emulators can take 30-60s after fresh install for ART compilation,
+    // JS bundle parsing, and initial render. 60s for both platforms.
+    const appReadyTimeout = 60000;
     await waitFor(element(by.id('server.screen'))).toExist().withTimeout(appReadyTimeout);
 
     console.info('✅ App launched');
