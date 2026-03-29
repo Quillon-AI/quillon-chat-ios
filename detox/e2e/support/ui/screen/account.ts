@@ -81,6 +81,16 @@ class AccountScreen {
     };
 
     open = async () => {
+        // Dismiss any lingering "Logout not complete" dialog left over from a
+        // previous test's logout. This can happen on both platforms when the
+        // server was unreachable and the handler in logout() didn't dismiss it.
+        try {
+            await waitFor(Alert.logoutNotCompleteTitle).toBeVisible().withTimeout(timeouts.TWO_SEC);
+            console.log('[debug:2a0143] AccountScreen.open dismissed lingering "Logout not complete" dialog'); // eslint-disable-line no-console
+            await Alert.continueAnywayButton.tap();
+            await wait(timeouts.HALF_SEC);
+        } catch { /* not present */ }
+
         // Dismiss iOS native dialogs whose backdrop UIView covers the full screen and
         // blocks all hit-tests — these appear after login on iOS 26+ (iPad and iPhone).
         if (device.getPlatform() === 'ios') {
@@ -140,8 +150,10 @@ class AccountScreen {
         // Handle "Logout not complete" dialog that appears when the server is
         // unreachable (offline, slow network). Tap "Continue Anyway" to force
         // the logout to complete instead of leaving the app in a stuck state.
+        // Use TEN_SEC because CI environments can be slow to show this dialog.
         try {
-            await waitFor(Alert.logoutNotCompleteTitle).toBeVisible().withTimeout(timeouts.FIVE_SEC);
+            await waitFor(Alert.logoutNotCompleteTitle).toBeVisible().withTimeout(timeouts.TEN_SEC);
+            console.log('[debug:2a0143] AccountScreen.logout dismissed "Logout not complete" dialog'); // eslint-disable-line no-console
             await Alert.continueAnywayButton.tap();
         } catch {
             // Dialog didn't appear — normal logout completed successfully
