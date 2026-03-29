@@ -340,15 +340,35 @@ jobs:
     # (e.g. by concurrency cancel-in-progress). Without this, Matterwick sees the
     # label removed and deletes the test servers while the replacement run is still
     # using them.
-    if: always() && !cancelled() && inputs.pr_number != ''
+    if: always() && !cancelled()
     steps:
       - name: e2e/remove-label-from-pr
         uses: actions/github-script@e7aeb8c663f696059ebb5f9ab1425ed2ef511bdb # v7.0.1
         continue-on-error: true # Label might have been removed manually
         with:
           script: |
-            const prNumber = parseInt(process.env.PR_NUMBER);
-            if (!prNumber) return;
+            // Use pr_number input if provided, otherwise look up from branch
+            let prNumber = parseInt(process.env.PR_NUMBER);
+            if (!prNumber) {
+              const branch = process.env.BRANCH;
+              if (branch) {
+                const {data: prs} = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  head: `${context.repo.owner}:${branch}`,
+                  state: 'open',
+                  per_page: 1,
+                });
+                if (prs.length > 0) {
+                  prNumber = prs[0].number;
+                }
+              }
+            }
+            if (!prNumber) {
+              console.log('No PR found — skipping label removal');
+              return;
+            }
+            console.log(`Removing E2E labels from PR #${prNumber}`);
             const labels = ['E2E/Run', 'E2E/Run-iOS', 'E2E/Run-Android'];
             for (const label of labels) {
               try {
@@ -364,3 +384,4 @@ jobs:
             }
         env:
           PR_NUMBER: ${{ inputs.pr_number }}
+          BRANCH: ${{ github.ref_name }}
