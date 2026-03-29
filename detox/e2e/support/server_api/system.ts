@@ -88,21 +88,8 @@ export const apiGetConfig = async (baseUrl: string): Promise<any> => {
  */
 export const apiUpdateConfig = async (baseUrl: string, newConfig: any): Promise<any> => {
     try {
-        // Get current config first
-        const {config: currentConfig} = await apiGetConfig(baseUrl);
-
-        // Simple deep merge - replace matching properties
-        const mergedConfig = {...currentConfig};
-        Object.keys(newConfig).forEach((section) => {
-            if (typeof newConfig[section] === 'object' && newConfig[section] !== null) {
-                mergedConfig[section] = {...mergedConfig[section], ...newConfig[section]};
-            } else {
-                mergedConfig[section] = newConfig[section];
-            }
-        });
-
-        // Send the merged config
-        const response = await client.put(`${baseUrl}/api/v4/config`, mergedConfig);
+        // Use config/patch endpoint for partial updates — no need to GET+merge+PUT the full config
+        const response = await client.put(`${baseUrl}/api/v4/config/patch`, newConfig);
         return {config: response.data};
     } catch (err) {
         return getResponseFromError(err);

@@ -6,7 +6,7 @@ import {
     TeamSidebar,
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
-import {isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
+import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ChannelListScreen {
@@ -126,10 +126,12 @@ class ChannelListScreen {
     };
 
     toBeVisible = async () => {
+        // Android CI emulators are slower to settle after navigation transitions.
+        const timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC;
         if (isIos()) {
-            await waitFor(this.channelListScreen).toExist().withTimeout(timeouts.TEN_SEC);
+            await waitFor(this.channelListScreen).toExist().withTimeout(timeout);
         } else {
-            await waitForElementToBeVisible(this.channelListScreen, timeouts.TEN_SEC);
+            await waitForElementToBeVisible(this.channelListScreen, timeout);
         }
 
         return this.channelListScreen;

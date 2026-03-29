@@ -453,7 +453,7 @@ jobs:
           MATRIX_SPECS: ${{ matrix.specs }}
           DETOX_DISABLE_HIERARCHY_DUMP: "YES"
           DETOX_DISABLE_SCREENSHOT_TRACKING: "YES"
-          DETOX_LOGLEVEL: "debug"
+          DETOX_LOGLEVEL: "info"
           DETOX_DEVICE_TYPE: ${{ env.DEVICE_NAME }}
           DETOX_OS_VERSION: ${{ env.DEVICE_OS_VERSION }}
           LOW_BANDWIDTH_MODE: ${{ inputs.low_bandwidth_mode }}

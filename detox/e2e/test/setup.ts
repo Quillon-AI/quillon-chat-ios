@@ -58,6 +58,20 @@ function grantAndroidNotificationPermission(): void {
 // Responsibilities: launch app with clean state, admin login, plugin cleanup.
 
 beforeAll(async () => {
+    // On Android, explicitly clear app data before every launch. Two reasons:
+    // 1) The first-file path (newInstance, no delete) can inherit stale state
+    //    from a previous CI run or pre-boot step.
+    // 2) Detox's delete:true on subsequent files occasionally fails to fully
+    //    clear data on CI emulators (observed: app shows channel list instead
+    //    of server screen after delete:true).
+    if (device.getPlatform() === 'android') {
+        try {
+            execSync(`adb shell pm clear ${BUNDLE_ID}`, {stdio: 'pipe'});
+        } catch {
+            // Package might not be installed yet on first run
+        }
+    }
+
     const isFirstFile = !process.env.DETOX_SETUP_DONE;
 
     if (isFirstFile) {
@@ -79,6 +93,13 @@ beforeAll(async () => {
     }
 
     grantAndroidNotificationPermission();
+
+    // Wait for the React Native bundle to fully load and the server screen to render.
+    // On Android CI, ART compilation + JS bundle parsing can take 30-60s on slow emulators.
+    // Without this gate, test files' ServerScreen.toBeVisible() (10s timeout) fail prematurely.
+    const appReadyTimeout = device.getPlatform() === 'android' ? 60000 : 30000;
+    await waitFor(element(by.id('server.screen'))).toExist().withTimeout(appReadyTimeout);
+
     console.info('✅ App launched');
 
     // Initialize Claude AI prompt handler if available

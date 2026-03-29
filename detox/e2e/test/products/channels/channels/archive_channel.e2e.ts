@@ -38,12 +38,24 @@ import {expect, waitFor} from 'detox';
  * Navigate back from a channel that was opened via Browse Channels.
  * Channel back → Browse Channels, then close Browse Channels.
  * On Android, device.pressBack() is more reliable than tapping the close button
- * (avoids bridge-idle sync stalls).
+ * (avoids bridge-idle sync stalls and modal-stack differences).
  */
 async function closeBrowseChannelsChannel() {
     await ChannelScreen.back();
     await wait(timeouts.ONE_SEC);
-    await BrowseChannelsScreen.closeButton.tap();
+    if (isAndroid()) {
+        // On Android the modal stack can collapse differently — use pressBack
+        // which reliably dismisses the current screen regardless of stack depth.
+        try {
+            await waitFor(BrowseChannelsScreen.closeButton).toExist().withTimeout(timeouts.FOUR_SEC);
+            await BrowseChannelsScreen.closeButton.tap();
+        } catch {
+            // Browse Channels was already dismissed when Channel.back() popped the stack
+            await device.pressBack();
+        }
+    } else {
+        await BrowseChannelsScreen.closeButton.tap();
+    }
 }
 
 describe('Channels - Archive and Archived Channels', () => {

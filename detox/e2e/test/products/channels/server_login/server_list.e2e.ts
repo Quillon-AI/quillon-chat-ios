@@ -31,7 +31,7 @@ import {
     ServerListScreen,
 } from '@support/ui/screen';
 import {isAndroid, isIos, timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 describe('Server Login - Server List', () => {
     const serverOneDisplayName = 'Server 1';
@@ -44,7 +44,7 @@ describe('Server Login - Server List', () => {
     beforeAll(async () => {
         // # Log in to the first server
         ({user: serverOneUser} = await Setup.apiInit(siteOneUrl));
-        await expect(ServerScreen.headerTitleConnectToServer).toBeVisible();
+        await waitFor(ServerScreen.headerTitleConnectToServer).toBeVisible().withTimeout(timeouts.HALF_MIN);
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(serverOneUser);
     });

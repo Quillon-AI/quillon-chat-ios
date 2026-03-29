@@ -26,8 +26,12 @@
 
 const {execSync} = require('child_process');
 const fs = require('fs');
+const http = require('http');
+const https = require('https');
 const os = require('os');
 const path = require('path');
+
+const axios = require('axios');
 
 const DEVICE_REGISTRY_PATH = path.join(
     os.homedir(),
@@ -103,16 +107,94 @@ function shutdownZombieSimulators() {
 
         try {
             execSync(`xcrun simctl shutdown ${udid}`, {stdio: 'pipe'});
-            // eslint-disable-next-line no-console
             process.stdout.write(`[globalSetup] Shut down zombie Detox simulator: ${sim.name} (${udid})\n`);
         } catch {
-            // eslint-disable-next-line no-console
             process.stderr.write(`[globalSetup] Could not shut down ${udid} — continuing\n`);
         }
     }
 }
 
+// ─── One-time server setup ──────────────────────────────────────────────────
+// Runs once before any test files load. Uses raw axios (no TS, no Detox device).
+// Ensures the test server is healthy, configured for CI, and has plugins cleaned up.
+
+const SITE_URL = process.env.SITE_1_URL || 'http://localhost:8065';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'sysadmin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Sys@dmin-sample1';
+
+// Prepackaged plugins that should NOT be disabled
+const PREPACKAGED_PLUGINS = new Set([
+    'antivirus',
+    'mattermost-autolink',
+    'com.mattermost.aws-sns',
+    'com.mattermost.plugin-channel-export',
+    'com.mattermost.custom-attributes',
+    'github',
+    'com.github.manland.mattermost-plugin-gitlab',
+    'com.mattermost.plugin-incident-management',
+    'jenkins',
+    'jira',
+    'com.mattermost.calls',
+    'com.mattermost.nps',
+    'com.mattermost.welcomebot',
+    'zoom',
+]);
+
+async function serverSetup() {
+    // Force IPv4 to avoid IPv6 connection timeouts in CI
+    http.globalAgent.options.family = 4;
+    https.globalAgent.options.family = 4;
+
+    // 1. Health check
+    const ping = await axios.get(`${SITE_URL}/api/v4/system/ping?get_server_status=true`);
+    if (ping.data.status !== 'OK') {
+        throw new Error(`Server health check failed: ${JSON.stringify(ping.data)}`);
+    }
+    process.stdout.write('[globalSetup] ✅ Server health check passed\n');
+
+    // 2. Admin login — get Bearer token for subsequent API calls
+    const login = await axios.post(`${SITE_URL}/api/v4/users/login`, {
+        login_id: ADMIN_USERNAME,
+        password: ADMIN_PASSWORD,
+    });
+    const token = login.headers.token;
+    if (!token) {
+        throw new Error('Admin login did not return a token');
+    }
+    const headers = {Authorization: `Bearer ${token}`};
+    process.stdout.write('[globalSetup] ✅ Admin login successful\n');
+
+    // 3. Patch server config for CI (long session, high rate limits)
+    try {
+        await axios.put(`${SITE_URL}/api/v4/config/patch`, {
+            ServiceSettings: {SessionLengthWebInHours: 4320},
+            RateLimitSettings: {PerSec: 10000, MaxBurst: 999999},
+        }, {headers});
+        process.stdout.write('[globalSetup] ✅ Server configured for CI\n');
+    } catch (err) {
+        // Non-fatal: env-var-locked settings may reject the patch
+        process.stderr.write(`[globalSetup] ⚠️ Could not patch server config: ${err.message}\n`);
+    }
+
+    // 4. Disable non-prepackaged plugins
+    const plugins = await axios.get(`${SITE_URL}/api/v4/plugins`, {headers});
+    const active = plugins.data?.active || [];
+    const toDisable = active.filter(
+        (plugin) => !PREPACKAGED_PLUGINS.has(plugin.id) && plugin.id !== 'com.mattermost.demo-plugin',
+    );
+    await Promise.all(toDisable.map((plugin) => {
+        process.stdout.write(`[globalSetup] Disabling plugin: ${plugin.id}\n`);
+        return axios.post(
+            `${SITE_URL}/api/v4/plugins/${encodeURIComponent(plugin.id)}/disable`,
+            null,
+            {headers},
+        );
+    }));
+    process.stdout.write('[globalSetup] ✅ Plugin cleanup done\n');
+}
+
 module.exports = async () => {
     shutdownZombieSimulators();
+    await serverSetup();
     return require('detox/runners/jest/globalSetup')();
 };

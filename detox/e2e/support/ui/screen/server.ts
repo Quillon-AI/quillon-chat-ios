@@ -47,9 +47,10 @@ class ServerScreen {
     usernameInput = element(by.id(this.testID.usernameInput));
 
     toBeVisible = async () => {
-        await waitFor(this.serverScreen).toExist().withTimeout(timeouts.TEN_SEC);
-
-        await waitFor(this.serverUrlInput).toExist().withTimeout(timeouts.TEN_SEC);
+        // Android CI emulators can be slow after fresh install — use a longer timeout.
+        const timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC;
+        await waitFor(this.serverScreen).toExist().withTimeout(timeout);
+        await waitFor(this.serverUrlInput).toExist().withTimeout(timeout);
 
         return this.serverScreen;
     };
