@@ -119,6 +119,9 @@ describe('Messaging - Message Delete', () => {
         const {postListPostItem: replyPostListPostItem} = ThreadScreen.getPostListPostItem(replyPost.id, replyMessage);
         await waitFor(replyPostListPostItem).toExist().withTimeout(timeouts.FOUR_SEC);
 
+        // # Wait for the thread UI to settle after posting the reply
+        await wait(timeouts.TWO_SEC);
+
         // # While in thread view, long press the parent post (top post), select Delete and confirm
         await ThreadScreen.openPostOptionsFor(parentPost.id, message);
         await PostOptionsScreen.deletePost({confirm: true});

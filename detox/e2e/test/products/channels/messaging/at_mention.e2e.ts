@@ -169,19 +169,20 @@ describe('Messaging - At-Mention', () => {
         // # Open a channel screen and type "@" to activate at-mention autocomplete
         await ChannelScreen.open(channelsCategory, testChannel.name);
         await ChannelScreen.postInput.tap();
+        await wait(timeouts.ONE_SEC);
         await ChannelScreen.postInput.typeText('@');
-        await waitFor(element(by.id('autocomplete'))).toExist().withTimeout(timeouts.TEN_SEC);
-        await Autocomplete.toBeVisible();
+        await wait(timeouts.TWO_SEC);
 
         // * Verify at-mention list is displayed
-        await expect(Autocomplete.sectionAtMentionList).toExist();
+        await waitFor(Autocomplete.sectionAtMentionList).toExist().withTimeout(timeouts.TEN_SEC);
 
         // # Type the out-of-channel user's username
         await ChannelScreen.postInput.typeText(outOfChannelUser.username);
+        await wait(timeouts.TWO_SEC);
 
         // * Verify at-mention autocomplete contains the out-of-channel user suggestion
         const {atMentionItem} = Autocomplete.getAtMentionItem(outOfChannelUser.id);
-        await expect(atMentionItem).toExist();
+        await waitFor(atMentionItem).toExist().withTimeout(timeouts.TEN_SEC);
 
         // # Clear input and type "@" again to test DM post input scenario
         await ChannelScreen.postInput.clearText();

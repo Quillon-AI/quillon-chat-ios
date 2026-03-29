@@ -65,11 +65,7 @@ class CreateDirectMessageScreen {
     };
 
     toBeVisible = async () => {
-        if (isIos()) {
-            await waitFor(this.createDirectMessageScreen).toExist().withTimeout(timeouts.TEN_SEC);
-        } else {
-            await waitForElementToBeVisible(this.createDirectMessageScreen, timeouts.TEN_SEC);
-        }
+        await waitFor(this.createDirectMessageScreen).toExist().withTimeout(timeouts.TEN_SEC);
 
         return this.createDirectMessageScreen;
     };

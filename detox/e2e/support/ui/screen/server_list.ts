@@ -53,11 +53,7 @@ class ServerListScreen {
     };
 
     toBeVisible = async () => {
-        if (isIos()) {
-            await waitFor(this.serverListScreen).toExist().withTimeout(timeouts.TEN_SEC);
-        } else {
-            await waitForElementToBeVisible(this.serverListScreen, timeouts.TEN_SEC);
-        }
+        await waitFor(this.serverListScreen).toExist().withTimeout(timeouts.TEN_SEC);
 
         return this.serverListScreen;
     };

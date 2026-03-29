@@ -2,8 +2,8 @@
 // See LICENSE.txt for license information.
 
 import {Alert} from '@support/ui/component';
-import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
-import {expect} from 'detox';
+import {isAndroid, isIos, timeouts, wait} from '@support/utils';
+import {expect, waitFor} from 'detox';
 
 class ServerScreen {
     testID = {
@@ -87,9 +87,12 @@ class ServerScreen {
             }
         }
 
-        // The bridge can be busy during login transition, use waitFor without idle check
+        // Wait for the login form to appear after server connection.
+        // Use toExist() rather than toBeVisible() because the 50% visibility
+        // threshold can fail on Android edge-to-edge rendering even when the
+        // element is present and usable.
         const timeout = isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN;
-        await waitForElementToBeVisible(this.usernameInput, timeout, timeouts.ONE_SEC);
+        await waitFor(this.usernameInput).toExist().withTimeout(timeout);
     };
 
     close = async () => {
@@ -149,9 +152,9 @@ class ServerScreen {
             }
         }
 
-        // The bridge can be busy during login transition, so poll for the element without waiting for idle
+        // Wait for the login form to appear after server connection with preauth.
         const timeout = isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN;
-        await waitForElementToBeVisible(this.usernameInput, timeout, timeouts.ONE_SEC);
+        await waitFor(this.usernameInput).toExist().withTimeout(timeout);
     };
 }
 

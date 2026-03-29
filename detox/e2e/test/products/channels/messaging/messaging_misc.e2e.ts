@@ -30,7 +30,7 @@ import {
     UserProfileScreen,
 } from '@support/ui/screen';
 import {getRandomId, isAndroid, timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 describe('Messaging - Misc Behaviors', () => {
     const serverOneDisplayName = 'Server 1';
@@ -139,7 +139,7 @@ describe('Messaging - Misc Behaviors', () => {
         // scrollTo('top') starts its gesture from the bottom edge of the FlatList bounds which
         // is occluded by the post-draft input on iOS, causing a visibility failure.
         // Using scroll() with startNormalizedPositionY=0.5 (mid-screen) avoids this.
-        await ChannelScreen.getFlatPostList().scroll(5000, 'up', NaN, 0.5);
+        await ChannelScreen.getFlatPostList().scroll(5000, 'up', 0.5, 0.5);
         await wait(timeouts.ONE_SEC);
 
         // # Send a new message from the UI
@@ -351,6 +351,12 @@ describe('Messaging - Misc Behaviors', () => {
 
         // # Open the channel and navigate to the reply thread
         await ChannelScreen.open(channelsCategory, testChannel.name);
+        await wait(timeouts.TWO_SEC);
+
+        // * Verify root post is visible before attempting long-press
+        const {postListPostItem: rootPostItem} = ChannelScreen.getPostListPostItem(rootPost.id, rootMessage);
+        await waitFor(rootPostItem).toBeVisible().withTimeout(timeouts.TEN_SEC);
+
         await ChannelScreen.openReplyThreadFor(rootPost.id, rootMessage);
         await ThreadScreen.toBeVisible();
         await wait(timeouts.ONE_SEC);

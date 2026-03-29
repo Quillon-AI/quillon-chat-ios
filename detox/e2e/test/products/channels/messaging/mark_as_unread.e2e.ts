@@ -48,7 +48,7 @@ async function openPostOptionsFor(postId: string, message: string, screen: typeo
     for (let attempt = 1; attempt <= 3; attempt++) {
         try {
             // eslint-disable-next-line no-await-in-loop
-            await flatList.scroll(100, 'down', NaN, 0.5);
+            await flatList.scroll(100, 'down', 0.5, 0.5);
         } catch {
             // Ignore scroll failures at list boundaries.
         }

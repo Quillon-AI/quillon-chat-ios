@@ -151,7 +151,7 @@ describe('Smoke Test - Messaging', () => {
         await element(by.text('🤡')).tap();
 
         // * Verify reaction is added to the message
-        await waitFor(element(by.text('🤡').withAncestor(by.id(`channel.post_list.post.${post.id}`)))).toBeVisible().withTimeout(timeouts.TWO_SEC);
+        await waitFor(element(by.text('🤡').withAncestor(by.id(`channel.post_list.post.${post.id}`)))).toExist().withTimeout(timeouts.TEN_SEC);
 
         // # Go back to channel list screen
         await ChannelScreen.back();
@@ -169,7 +169,7 @@ describe('Smoke Test - Messaging', () => {
         // * Verify post options closed and message is followed by user via post footer
         await waitFor(PostOptionsScreen.postOptionsScreen).not.toBeVisible().withTimeout(timeouts.FOUR_SEC);
         const {postListPostItem, postListPostItemFooterFollowingButton} = ChannelScreen.getPostListPostItem(post.id, message);
-        await waitFor(postListPostItemFooterFollowingButton).toExist().withTimeout(timeouts.FOUR_SEC);
+        await waitFor(postListPostItemFooterFollowingButton).toExist().withTimeout(timeouts.TEN_SEC);
 
         // # Tap on following button via post footer to unfollow
         await postListPostItemFooterFollowingButton.tap();

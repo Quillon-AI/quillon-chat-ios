@@ -155,7 +155,7 @@ export async function longPressWithScrollRetry(
         // Scroll to settle the UI and dismiss any keyboard. Ignore if the list cannot scroll
         // (e.g. only a few posts that fit on screen without overflow).
         try {
-            await scrollTarget.scroll(100, 'down', NaN, 0.5);
+            await scrollTarget.scroll(100, 'down', 0.5, 0.5);
         } catch {
             // List is already at scroll boundary — proceed with longPress anyway
         }

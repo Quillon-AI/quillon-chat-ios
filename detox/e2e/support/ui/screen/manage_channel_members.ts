@@ -50,11 +50,7 @@ class ManageChannelMembersScreen {
     };
 
     toBeVisible = async () => {
-        if (isIos()) {
-            await waitFor(this.manageMembersScreen).toExist().withTimeout(timeouts.TEN_SEC);
-        } else {
-            await waitForElementToBeVisible(this.manageMembersScreen, timeouts.TEN_SEC);
-        }
+        await waitFor(this.manageMembersScreen).toExist().withTimeout(timeouts.TEN_SEC);
 
         return this.manageMembersScreen;
     };

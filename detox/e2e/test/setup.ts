@@ -73,6 +73,8 @@ beforeAll(async () => {
     }
 
     const isFirstFile = !process.env.DETOX_SETUP_DONE;
+    const launchPermissions = {notifications: 'YES', camera: 'NO', medialibrary: 'NO', photos: 'NO'} as const;
+    const launchArgs = {detoxDisableSynchronization: 'YES'};
 
     if (isFirstFile) {
         process.env.DETOX_SETUP_DONE = 'true';
@@ -80,16 +82,42 @@ beforeAll(async () => {
         // First file: app is freshly installed by Detox or CI pre-boot step.
         await device.launchApp({
             newInstance: true,
-            permissions: {notifications: 'YES', camera: 'NO', medialibrary: 'NO', photos: 'NO'},
-            launchArgs: {detoxDisableSynchronization: 'YES'},
+            permissions: launchPermissions,
+            launchArgs,
         });
     } else {
         // Subsequent files: delete + reinstall for clean state (wipes DB, Keychain, caches).
-        await device.launchApp({
-            delete: true,
-            permissions: {notifications: 'YES', camera: 'NO', medialibrary: 'NO', photos: 'NO'},
-            launchArgs: {detoxDisableSynchronization: 'YES'},
-        });
+        // The delete path is fragile on CI — Detox occasionally loses connection to the
+        // app after uninstall/reinstall (especially on iPad simulators).  Retry up to 2
+        // additional times, falling back to newInstance on the last attempt.
+        const MAX_LAUNCH_ATTEMPTS = 3;
+        for (let attempt = 1; attempt <= MAX_LAUNCH_ATTEMPTS; attempt++) {
+            try {
+                if (attempt < MAX_LAUNCH_ATTEMPTS) {
+                    await device.launchApp({
+                        delete: true,
+                        permissions: launchPermissions,
+                        launchArgs,
+                    });
+                } else {
+                    // Last resort: skip delete, just relaunch fresh instance.
+                    // State may not be perfectly clean but the connection will survive.
+                    console.warn('⚠️ delete:true failed twice, falling back to newInstance:true');
+                    await device.launchApp({
+                        newInstance: true,
+                        permissions: launchPermissions,
+                        launchArgs,
+                    });
+                }
+                break; // success
+            } catch (launchError) {
+                if (attempt === MAX_LAUNCH_ATTEMPTS) {
+                    throw launchError;
+                }
+                console.warn(`⚠️ device.launchApp attempt ${attempt} failed, retrying in 3s...`, String(launchError).slice(0, 200));
+                await new Promise((resolve) => setTimeout(resolve, 3000));
+            }
+        }
     }
 
     grantAndroidNotificationPermission();

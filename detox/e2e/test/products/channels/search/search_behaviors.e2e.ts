@@ -309,7 +309,7 @@ describe('Search - Search Behaviors', () => {
 
         // # Scroll the results list down to verify it is scrollable
         try {
-            await flatList.scroll(300, 'down', NaN, 0.5);
+            await flatList.scroll(300, 'down', 0.5, 0.5);
         } catch {
             // List may be too short to scroll — scrollability already satisfied
         }

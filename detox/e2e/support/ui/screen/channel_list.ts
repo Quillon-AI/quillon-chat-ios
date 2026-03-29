@@ -6,7 +6,7 @@ import {
     TeamSidebar,
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
-import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
+import {isAndroid, timeouts, wait} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ChannelListScreen {
@@ -127,12 +127,11 @@ class ChannelListScreen {
 
     toBeVisible = async () => {
         // Android CI emulators are slower to settle after navigation transitions.
+        // Use toExist() (not toBeVisible()) because Android edge-to-edge rendering
+        // can cause the channel list screen to exist but not meet the 50% visibility
+        // threshold, which cascades into every subsequent test in the suite.
         const timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC;
-        if (isIos()) {
-            await waitFor(this.channelListScreen).toExist().withTimeout(timeout);
-        } else {
-            await waitForElementToBeVisible(this.channelListScreen, timeout);
-        }
+        await waitFor(this.channelListScreen).toExist().withTimeout(timeout);
 
         return this.channelListScreen;
     };
