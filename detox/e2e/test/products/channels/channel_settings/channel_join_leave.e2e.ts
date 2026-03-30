@@ -46,6 +46,9 @@ describe('Channels', () => {
         testChannel = channel;
 
         const {channel: privateChannelData} = await Channel.apiCreateChannel(siteOneUrl, {type: 'P', prefix: 'channel', teamId: team.id});
+        if (!privateChannelData?.id) {
+            throw new Error('[beforeAll] Failed to create private channel');
+        }
         privateChannel = privateChannelData;
 
         await Channel.apiAddUserToChannel(siteOneUrl, testUser.id, privateChannel.id);

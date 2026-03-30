@@ -77,6 +77,9 @@ describe('Channels - Channel Bookmarks Permissions', () => {
 
         // Create the regular user needed for the permission test (MM-T5615_1).
         const {user: rUser} = await User.apiCreateUser(siteOneUrl);
+        if (!rUser?.id) {
+            throw new Error('[beforeAll] Failed to create regularUser');
+        }
         regularUser = rUser;
         await Team.apiAddUserToTeam(siteOneUrl, regularUser.id, testTeam.id);
 

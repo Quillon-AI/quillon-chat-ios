@@ -125,6 +125,9 @@ describe('Channels - Channel Bookmarks', () => {
         const {bookmark: bT5610} = await ChannelBookmark.apiCreateChannelBookmarkLink(
             siteOneUrl, channelT5610.id, 'Original Bookmark', 'https://mattermost.com',
         );
+        if (!bT5610?.id) {
+            throw new Error('[beforeAll] Failed to create bookmarkT5610');
+        }
         bookmarkT5610 = bT5610;
 
         await ChannelBookmark.apiCreateChannelBookmarkLink(

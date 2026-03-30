@@ -25,7 +25,7 @@ import {
     ServerScreen,
     ThreadScreen,
 } from '@support/ui/screen';
-import {getRandomId, timeouts} from '@support/utils';
+import {getRandomId, timeouts, wait} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 describe('Messaging - Message Edit', () => {
@@ -132,6 +132,7 @@ describe('Messaging - Message Edit', () => {
 
         // # Scroll to post to dismiss keyboard before tapping
         await parentPostListPostItem.scrollTo('top');
+        await wait(timeouts.ONE_SEC);
         await parentPostListPostItem.tap();
 
         // * Verify on thread screen

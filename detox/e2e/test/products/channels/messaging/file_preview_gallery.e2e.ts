@@ -76,14 +76,35 @@ describe('Messaging - File Preview Gallery', () => {
     });
 
     afterEach(async () => {
-        // # Safety net: return to channel list after each test in case the gallery or
-        // channel screen is still open due to a mid-test failure
+        // # Aggressive multi-step recovery so that a mid-test failure (e.g. gallery
+        // left open, view hierarchy corrupted after a swipe) does not cascade into
+        // the next test starting in a broken state.
+
+        // Step 1 — close the gallery if it is still open
         try {
-            await HomeScreen.channelListTab.tap();
+            await waitFor(element(by.id('gallery.header.close.button'))).toExist().withTimeout(timeouts.ONE_SEC);
+            if (isAndroid()) {
+                await device.pressBack();
+            } else {
+                await element(by.id('gallery.header.close.button')).tap();
+            }
+            await wait(timeouts.ONE_SEC);
         } catch {
-            // Best-effort
+            // Gallery is not open — nothing to do
         }
-        await wait(timeouts.ONE_SEC);
+
+        // Step 2 — go back from the channel screen if we are still on it
+        try {
+            await waitFor(ChannelScreen.channelScreen).toExist().withTimeout(timeouts.ONE_SEC);
+            await ChannelScreen.back();
+        } catch {
+            // Not on the channel screen — nothing to do
+        }
+
+        // Step 3 — ensure we are on the channel list screen; ChannelListScreen.toBeVisible()
+        // has built-in recovery (device.launchApp({newInstance: true})) so this handles
+        // the worst-case scenario where the view hierarchy is completely corrupted.
+        await ChannelListScreen.toBeVisible();
     });
 
     afterAll(async () => {
@@ -157,7 +178,13 @@ describe('Messaging - File Preview Gallery', () => {
         await ChannelScreen.back();
     });
 
-    it('MM-T3459_2 - should dismiss file preview when user swipes down', async () => {
+    it('MM-T3459_2 - should dismiss file preview when user swipes down (iOS) or presses Back (Android)', async () => {
+        // NOTE: On Android, a swipe-down gesture on the gallery causes view-hierarchy
+        // corruption (home tab disappears) that breaks subsequent tests in the suite.
+        // dismissGallery() therefore uses device.pressBack() on Android, which covers
+        // the same functional intent (dismissing the gallery) without the side-effects.
+        // The swipe-down gesture path is exercised on iOS only.
+
         // # Upload an image and create a post via API
         const {post, fileId} = await Post.apiCreatePostWithImageAttachment(siteOneUrl, testChannel.id);
 

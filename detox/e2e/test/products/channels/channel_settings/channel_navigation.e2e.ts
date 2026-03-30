@@ -47,6 +47,9 @@ describe('Channels', () => {
             displayName: `Archive Test ${getRandomId()}`,
             type: 'O',
         });
+        if (!archiveCh?.id) {
+            throw new Error('[beforeAll] Failed to create archive test channel');
+        }
         archiveChannel = archiveCh;
 
         await wait(timeouts.THREE_SEC);

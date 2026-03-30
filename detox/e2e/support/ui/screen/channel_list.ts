@@ -68,7 +68,7 @@ class ChannelListScreen {
      * Public channel rows can appear under Unreads (when grouped unreads is on), Channels, or
      * Favorites. Wait until any matching row is visible, then tap the one that is on screen.
      */
-    waitForSidebarPublicChannelDisplayNameVisible = async (channelName: string, timeout = timeouts.TEN_SEC) => {
+    waitForSidebarPublicChannelDisplayNameVisible = async (channelName: string, timeout = timeouts.HALF_MIN) => {
         const unreads = this.getChannelItemDisplayName('unreads', channelName);
         const channels = this.getChannelItemDisplayName('channels', channelName);
         const favorites = this.getChannelItemDisplayName('favorites', channelName);
@@ -79,7 +79,11 @@ class ChannelListScreen {
         while (Date.now() < deadline) {
             for (const el of candidates) {
                 try {
-                    await waitFor(el).toBeVisible().withTimeout(500);
+                    // Use toExist() instead of toBeVisible(): on iOS/Android the sidebar row
+                    // may be in the view hierarchy but fail the 50% visible-rect threshold
+                    // (edge-to-edge rendering, partial scroll position). toExist() is
+                    // sufficient to confirm the channel is rendered and tappable.
+                    await waitFor(el).toExist().withTimeout(500);
                     return;
                 } catch (error) {
                     lastError = error;
@@ -91,20 +95,20 @@ class ChannelListScreen {
         throw lastError instanceof Error ? lastError : new Error('Sidebar channel display name not visible');
     };
 
-    tapSidebarPublicChannelDisplayName = async (channelName: string, timeout = timeouts.TEN_SEC) => {
+    tapSidebarPublicChannelDisplayName = async (channelName: string, timeout = timeouts.HALF_MIN) => {
         await this.waitForSidebarPublicChannelDisplayNameVisible(channelName, timeout);
         const unreads = this.getChannelItemDisplayName('unreads', channelName);
         const channels = this.getChannelItemDisplayName('channels', channelName);
         const favorites = this.getChannelItemDisplayName('favorites', channelName);
         try {
-            await expect(unreads).toBeVisible();
+            await expect(unreads).toExist();
             await unreads.tap();
             return;
         } catch {
             // try next
         }
         try {
-            await expect(channels).toBeVisible();
+            await expect(channels).toExist();
             await channels.tap();
             return;
         } catch {

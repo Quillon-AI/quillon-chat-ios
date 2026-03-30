@@ -69,6 +69,9 @@ describe('Messaging - Message Permalink Preview', () => {
         testUser = user;
 
         ({user: testOtherUser} = await User.apiCreateUser(siteOneUrl));
+        if (!testOtherUser?.id) {
+            throw new Error('[beforeAll] Failed to create testOtherUser');
+        }
         await Team.apiAddUserToTeam(siteOneUrl, testOtherUser.id, testTeam.id);
         await Channel.apiAddUserToChannel(siteOneUrl, testOtherUser.id, testChannel.id);
 

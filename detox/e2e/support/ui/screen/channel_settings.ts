@@ -33,8 +33,9 @@ class ChannelSettingsScreen {
     };
 
     close = async () => {
+        await waitFor(this.closeButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await this.closeButton.tap();
-        await expect(this.channelSettingsScreen).not.toBeVisible();
+        await waitFor(this.channelSettingsScreen).not.toBeVisible().withTimeout(timeouts.TEN_SEC);
     };
 
     archiveChannel = async (alertArchiveChannelTitle: Detox.NativeElement, {confirm = true} = {}) => {

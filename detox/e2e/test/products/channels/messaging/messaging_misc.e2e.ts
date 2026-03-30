@@ -64,6 +64,9 @@ describe('Messaging - Misc Behaviors', () => {
                 header: '',
             },
         });
+        if (!pChannel?.id) {
+            throw new Error('[beforeAll] Failed to create purpose channel');
+        }
         await Channel.apiAddUserToChannel(siteOneUrl, user.id, pChannel.id);
         purposeChannel = {...pChannel, markdownPurpose};
 
@@ -72,6 +75,9 @@ describe('Messaging - Misc Behaviors', () => {
             type: 'O',
             prefix: 'channel-b',
         });
+        if (!bChannel?.id) {
+            throw new Error('[beforeAll] Failed to create channel B');
+        }
         await Channel.apiAddUserToChannel(siteOneUrl, user.id, bChannel.id);
         channelB = bChannel;
 

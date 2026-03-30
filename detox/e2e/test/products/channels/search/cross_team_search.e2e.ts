@@ -50,15 +50,24 @@ describe('Search - Cross Team Search', () => {
 
         // # Get Off-Topic channel for Rainforest team
         const {channel: offTopicChannelResult} = await Channel.apiGetChannelByName(siteOneUrl, teamRainforest.id, 'off-topic');
+        if (!offTopicChannelResult?.id) {
+            throw new Error("[beforeAll] Failed to get 'off-topic' channel for Rainforest team");
+        }
         offTopicChannel = offTopicChannelResult;
 
         // # Create second team (Team Open) and add user to it
         const {team: testTeamOpen} = await Team.apiCreateTeam(siteOneUrl, {prefix: 'team-open'});
+        if (!testTeamOpen?.id) {
+            throw new Error('[beforeAll] Failed to create Team Open');
+        }
         teamOpen = testTeamOpen;
         await Team.apiAddUserToTeam(siteOneUrl, testUser.id, teamOpen.id);
 
         // # Get Town Square channel for Team Open
         const {channel: townSquareChannelResult} = await Channel.apiGetChannelByName(siteOneUrl, teamOpen.id, 'town-square');
+        if (!townSquareChannelResult?.id) {
+            throw new Error("[beforeAll] Failed to get 'town-square' channel for Team Open");
+        }
         townSquareChannel = townSquareChannelResult;
 
         // # Log in to server

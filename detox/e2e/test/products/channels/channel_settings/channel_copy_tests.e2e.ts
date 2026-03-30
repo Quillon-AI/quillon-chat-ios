@@ -51,6 +51,9 @@ describe('Channel Settings - Copy Tests', () => {
                 header: '',
             },
         });
+        if (!purposeChannel?.id) {
+            throw new Error('[beforeAll] Failed to create channel with purpose');
+        }
         channelWithPurpose = purposeChannel;
         channelWithPurpose.purposeText = purposeText;
 
@@ -68,6 +71,9 @@ describe('Channel Settings - Copy Tests', () => {
                 header: headerUrl,
             },
         });
+        if (!headerUrlChannel?.id) {
+            throw new Error('[beforeAll] Failed to create channel with header URL');
+        }
         channelWithHeaderUrl = headerUrlChannel;
         channelWithHeaderUrl.headerUrl = headerUrl;
 

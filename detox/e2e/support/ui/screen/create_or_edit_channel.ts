@@ -8,7 +8,7 @@ import {
     ChannelSettingsScreen,
 } from '@support/ui/screen';
 import {isIos, timeouts} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 class CreateOrEditChannelScreen {
     testID = {
@@ -64,7 +64,10 @@ class CreateOrEditChannelScreen {
             }
         }
 
-        // # Open create channel screen
+        // # Open create channel screen — wait for the button to be hittable before
+        // tapping; on iOS a UITransitionView animation overlay can block the tap
+        // if the channel list just appeared.
+        await waitFor(ChannelListScreen.headerPlusButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await ChannelListScreen.headerPlusButton.tap();
         await ChannelListScreen.createNewChannelItem.tap();
 

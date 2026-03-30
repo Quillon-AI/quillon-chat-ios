@@ -308,6 +308,33 @@ jobs:
           # Wait for boot to complete
           xcrun simctl bootstatus "$SIMULATOR_ID"
 
+          # Disable the Passwords.app credential-save UI via per-app defaults.
+          # The MDM plist approach (allowPasswordAutoFill=NO) only suppresses the
+          # keyboard autofill bar; on iOS 18+ the "Save Password?" modal is shown
+          # by ASCredentialIdentityStore / Passwords.app extension independently
+          # of that restriction. Writing these defaults after boot targets the
+          # Passwords app directly and prevents the save-credential sheet from
+          # appearing during test login flows.
+          echo "Disabling Passwords.app credential-save prompts via defaults..."
+          xcrun simctl spawn "${SIMULATOR_ID}" defaults write com.apple.Passwords AutoFill -bool NO 2>/dev/null || true
+          xcrun simctl spawn "${SIMULATOR_ID}" defaults write com.apple.Passwords AutoSave -bool NO 2>/dev/null || true
+          xcrun simctl spawn "${SIMULATOR_ID}" defaults write com.apple.Passwords credentialSaveNotificationsEnabled -bool NO 2>/dev/null || true
+          xcrun simctl spawn "${SIMULATOR_ID}" defaults write com.apple.springboard AutoFillPasswords -bool NO 2>/dev/null || true
+          echo "Passwords.app defaults written (keys may be silently ignored on some OS versions)"
+
+          # Attempt to kill the Passwords credential-provider XPC service.
+          # On iOS 18+ the "Save Password?" modal is shown by this launchd service.
+          # Killing it prevents new credential-save prompts for the duration of the
+          # test session. The service name varies by iOS version — try both known names.
+          # This is best-effort (|| true) since the service may not be running yet or
+          # the name may differ on future OS versions.
+          echo "Killing Passwords credential provider XPC service..."
+          xcrun simctl spawn "${SIMULATOR_ID}" launchctl kill TERM system/com.apple.PasswordsCredentialProvider 2>/dev/null || true
+          xcrun simctl spawn "${SIMULATOR_ID}" launchctl kill TERM system/com.apple.Passwords.CredentialProvider 2>/dev/null || true
+          # Also enumerate password-related launchd services for diagnostic visibility
+          echo "Active password-related launchd services:"
+          xcrun simctl spawn "${SIMULATOR_ID}" launchctl list 2>/dev/null | grep -i password || echo "  (none found)"
+
           # Install the app now while the simulator is fully booted.
           # reinstallApp: false in .detoxrc.json means Detox never installs the app,
           # and launchApp({newInstance: true}) only launches — it does not install.

@@ -90,18 +90,33 @@ describe('Messaging - Mark as Unread', () => {
 
         // # Create DM channel and post a message BEFORE login so it shows in the sidebar on first load
         const {user: otherUser} = await User.apiCreateUser(siteOneUrl);
+        if (!otherUser?.id) {
+            throw new Error('[beforeAll] Failed to create otherUser for DM');
+        }
         await Team.apiAddUserToTeam(siteOneUrl, otherUser.id, testTeam.id);
         const {channel: dm} = await Channel.apiCreateDirectChannel(siteOneUrl, [testUser.id, otherUser.id]);
+        if (!dm?.id) {
+            throw new Error('[beforeAll] Failed to create DM channel');
+        }
         dmChannel = dm;
         dmMessage = `DM message ${getRandomId()}`;
         await Post.apiCreatePost(siteOneUrl, {channelId: dmChannel.id, message: dmMessage});
 
         // # Create GM channel and post a message BEFORE login so it shows in the sidebar on first load
         const {user: gmUser1} = await User.apiCreateUser(siteOneUrl);
+        if (!gmUser1?.id) {
+            throw new Error('[beforeAll] Failed to create gmUser1 for GM');
+        }
         await Team.apiAddUserToTeam(siteOneUrl, gmUser1.id, testTeam.id);
         const {user: gmUser2} = await User.apiCreateUser(siteOneUrl);
+        if (!gmUser2?.id) {
+            throw new Error('[beforeAll] Failed to create gmUser2 for GM');
+        }
         await Team.apiAddUserToTeam(siteOneUrl, gmUser2.id, testTeam.id);
         const {channel: gm} = await Channel.apiCreateGroupChannel(siteOneUrl, [testUser.id, gmUser1.id, gmUser2.id]);
+        if (!gm?.id) {
+            throw new Error('[beforeAll] Failed to create GM channel');
+        }
         gmChannel = gm;
         gmMessage = `GM message ${getRandomId()}`;
         await Post.apiCreatePost(siteOneUrl, {channelId: gmChannel.id, message: gmMessage});

@@ -77,10 +77,18 @@ class LoginScreen {
         await this.loginFormInfoText.tap();
         await this.signinButton.tap();
 
-        // Dismiss iOS "Save Password?" system dialog if it appears after login
-        await this.dismissSavePasswordIfVisible();
-
+        // Wait for the channel list first — the "Save Password?" sheet on iOS 26.x
+        // appears with a delay (after the login animation settles, ~5s after tap).
+        // Calling dismissSavePasswordIfVisible() immediately after tap means the
+        // dialog hasn't appeared yet and the dismiss is a no-op. We dismiss AFTER
+        // the channel list exists so the dialog has had time to appear.
         await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
+
+        // Dismiss the "Save Password?" sheet now that the channel list is loaded.
+        // On Android this is a no-op (returns immediately). On iOS 26.x the sheet
+        // is shown by the Passwords.app credential provider and is NOT prevented by
+        // the allowPasswordAutoFill MDM restriction — it must be explicitly dismissed.
+        await this.dismissSavePasswordIfVisible();
     };
 
     login = async (user: any = {}) => {
@@ -138,10 +146,10 @@ class LoginScreen {
                 await this.signinButton.tap();
 
                 // eslint-disable-next-line no-await-in-loop
-                await this.dismissSavePasswordIfVisible();
+                await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
 
                 // eslint-disable-next-line no-await-in-loop
-                await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
+                await this.dismissSavePasswordIfVisible();
                 return;
             } catch (error) {
                 lastError = error;

@@ -187,6 +187,7 @@ describe('Server Login - Server List', () => {
         }
         await waitFor(ServerListScreen.getServerItemActive(serverOneDisplayName)).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await ServerListScreen.getServerItemActive(serverOneDisplayName).swipe('left', 'slow');
+        await wait(timeouts.ONE_SEC);
         await ServerListScreen.getServerItemEditOption(serverOneDisplayName).tap();
 
         // * Verify on edit server screen
@@ -210,6 +211,7 @@ describe('Server Login - Server List', () => {
 
         // # Revert back to original first server display name and go back to first server
         await ServerListScreen.getServerItemActive(newServerOneDisplayName).swipe('left', 'slow');
+        await wait(timeouts.ONE_SEC);
         await ServerListScreen.getServerItemEditOption(newServerOneDisplayName).tap();
         await EditServerScreen.serverDisplayNameInput.replaceText(serverOneDisplayName);
         await EditServerScreen.saveButton.tap();
@@ -230,6 +232,7 @@ describe('Server Login - Server List', () => {
         }
         await waitFor(ServerListScreen.getServerItemActive(serverOneDisplayName)).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await ServerListScreen.getServerItemActive(serverOneDisplayName).swipe('left', 'slow');
+        await wait(timeouts.ONE_SEC);
         await ServerListScreen.getServerItemRemoveOption(serverOneDisplayName).tap();
 
         // * Verify remove server alert is displayed
@@ -271,6 +274,7 @@ describe('Server Login - Server List', () => {
         }
         await waitFor(ServerListScreen.getServerItemInactive(serverThreeDisplayName)).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await ServerListScreen.getServerItemInactive(serverThreeDisplayName).swipe('left', 'slow');
+        await wait(timeouts.ONE_SEC);
         await ServerListScreen.getServerItemLogoutOption(serverThreeDisplayName).tap();
 
         // * Verify logout server alert is displayed
@@ -349,6 +353,7 @@ describe('Server Login - Server List', () => {
         }
         await waitFor(ServerListScreen.getServerItemInactive(serverTwoDisplayName)).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await ServerListScreen.getServerItemInactive(serverTwoDisplayName).swipe('left', 'slow');
+        await wait(timeouts.ONE_SEC);
         await ServerListScreen.getServerItemLogoutOption(serverTwoDisplayName).tap();
         await wait(timeouts.FOUR_SEC);
         await waitFor(Alert.logoutButton).toBeVisible().withTimeout(timeouts.HALF_MIN);

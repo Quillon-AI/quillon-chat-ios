@@ -134,10 +134,21 @@ export async function retryWithReload(
 /**
  * Dismiss an iOS system alert dialog (e.g. "Save Password?") if it is visible.
  *
- * After a `device.launchApp({newInstance: true})` recovery relaunch the app
- * restores the previous session and iOS may immediately show a "Save Password?"
- * sheet. If this dialog is not dismissed it blocks all subsequent taps on the
- * app (the `_alertControllerDimmingViewColor` overlay intercepts all touches).
+ * The "Save Password?" sheet on iOS 18+ is shown by the Passwords.app credential
+ * provider extension (ASCredentialIdentityStore). It cannot be suppressed via MDM
+ * restrictions (`allowPasswordAutoFill=NO` only disables the keyboard toolbar) and
+ * must be actively dismissed.
+ *
+ * Strategy — two layers:
+ * 1. Fast path: tap "Not Now" via `element(by.text())`. On iOS simulators Detox/
+ *    XCTest can see system dialog elements in the accessibility tree, so this works
+ *    when the dialog is present. Uses a 4 s timeout — this is called AFTER the
+ *    channel list already exists, so the dialog has had plenty of time to appear.
+ * 2. Guaranteed fallback (wix/Detox#3761): if the text-based tap fails (dialog not
+ *    visible or button text differs), background the app with `device.sendToHome()`
+ *    then resume with `device.launchApp({newInstance:false})`. iOS auto-dismisses
+ *    any system sheet when the app loses foreground. This adds ~1–2 s but only fires
+ *    when the fast path fails.
  *
  * Safe to call on Android — returns immediately without doing anything.
  *
@@ -148,20 +159,22 @@ export const dismissSystemDialogIfVisible = async (): Promise<void> => {
         return;
     }
 
-    // iOS "Save Password?" system dialog can take several seconds to appear
-    // after session restore, especially on iOS 26.x CI simulators. Try twice
-    // with a generous timeout to avoid leaving the alert on screen.
-    for (let round = 0; round < 2; round++) {
-        try {
-            // eslint-disable-next-line no-await-in-loop
-            await waitFor(element(by.text('Not Now'))).toBeVisible().withTimeout(round === 0 ? 5000 : 3000);
-            // eslint-disable-next-line no-await-in-loop
-            await element(by.text('Not Now')).tap();
-            return;
-        } catch {
-            // Dialog may not have appeared yet or uses different button text
-        }
+    // Fast path: "Not Now" is the dismiss button label on iOS 17-26.x.
+    // Called after channel list exists, so the dialog has had time to appear.
+    try {
+        await waitFor(element(by.text('Not Now'))).toBeVisible().withTimeout(4000);
+        await element(by.text('Not Now')).tap();
+        return;
+    } catch {
+        // Dialog not visible via element() — either it didn't appear or it cannot
+        // be reached through the standard accessibility tree. Fall through.
     }
+
+    // Guaranteed fallback: background + foreground dismisses any blocking system
+    // sheet. The app resumes on the channel list with session state intact.
+    // Only reaches here when the fast path failed, so overhead is minimal.
+    await device.sendToHome();
+    await device.launchApp({newInstance: false});
 };
 
 /**

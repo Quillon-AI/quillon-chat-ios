@@ -100,8 +100,9 @@ class ChannelInfoScreen {
     };
 
     close = async () => {
+        await waitFor(this.closeButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await this.closeButton.tap();
-        await expect(this.channelInfoScreen).not.toBeVisible();
+        await waitFor(this.channelInfoScreen).not.toBeVisible().withTimeout(timeouts.TEN_SEC);
     };
 
     openChannelSettings = async () => {
