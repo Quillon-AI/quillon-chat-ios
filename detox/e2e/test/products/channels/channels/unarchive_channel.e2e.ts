@@ -20,7 +20,7 @@ import {
     ChannelSettingsScreen,
 } from '@support/ui/screen';
 import {getAdminAccount, getRandomId, timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 describe('Channels - Unarchive Channel', () => {
     const serverOneDisplayName = 'Server 1';
@@ -32,7 +32,11 @@ describe('Channels - Unarchive Channel', () => {
         // # Log in to server as admin
         await ServerScreen.connectToServer(serverTwoUrl, serverOneDisplayName);
         await LoginScreen.loginAsAdmin(getAdminAccount());
-        await wait(timeouts.TWO_SEC);
+
+        // Wait for the channel list header plus button to be fully visible and hittable
+        // before any test attempts to tap it. A fixed TWO_SEC sleep was insufficient on
+        // iOS/Android CI where the navigation animation can take longer after relaunch.
+        await waitFor(ChannelListScreen.headerPlusButton).toBeVisible().withTimeout(timeouts.HALF_MIN);
     });
 
     beforeEach(async () => {

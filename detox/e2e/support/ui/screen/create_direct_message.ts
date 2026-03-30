@@ -69,6 +69,14 @@ class CreateDirectMessageScreen {
         // so the screen has enough time to appear on resource-constrained CI runners.
         await waitFor(this.createDirectMessageScreen).toExist().withTimeout(timeouts.HALF_MIN);
 
+        // Wait for the search input to be visible and hittable. On iOS a RNSVGGroup
+        // (part of the plus-menu icon animation) sits on top of the input immediately
+        // after navigation and intercepts taps even though the element is in the
+        // hierarchy. Waiting for the input to report as visible gives the SVG layer
+        // time to finish its animation, and the extra 500 ms ensures it has cleared.
+        await waitFor(this.searchInput).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        await wait(timeouts.HALF_SEC);
+
         return this.createDirectMessageScreen;
     };
 

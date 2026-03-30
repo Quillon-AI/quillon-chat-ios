@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {adminEmail, adminPassword, adminUsername} from '@support/test_config';
+import {by, element, waitFor} from 'detox';
 import {v4 as uuidv4} from 'uuid';
 
 export * from './email';
@@ -129,6 +130,39 @@ export async function retryWithReload(
         }
     }
 }
+
+/**
+ * Dismiss an iOS system alert dialog (e.g. "Save Password?") if it is visible.
+ *
+ * After a `device.launchApp({newInstance: true})` recovery relaunch the app
+ * restores the previous session and iOS may immediately show a "Save Password?"
+ * sheet. If this dialog is not dismissed it blocks all subsequent taps on the
+ * app (the `_alertControllerDimmingViewColor` overlay intercepts all touches).
+ *
+ * Safe to call on Android — returns immediately without doing anything.
+ *
+ * @return {Promise<void>}
+ */
+export const dismissSystemDialogIfVisible = async (): Promise<void> => {
+    if (isAndroid()) {
+        return;
+    }
+
+    // iOS "Save Password?" system dialog can take several seconds to appear
+    // after session restore, especially on iOS 26.x CI simulators. Try twice
+    // with a generous timeout to avoid leaving the alert on screen.
+    for (let round = 0; round < 2; round++) {
+        try {
+            // eslint-disable-next-line no-await-in-loop
+            await waitFor(element(by.text('Not Now'))).toBeVisible().withTimeout(round === 0 ? 5000 : 3000);
+            // eslint-disable-next-line no-await-in-loop
+            await element(by.text('Not Now')).tap();
+            return;
+        } catch {
+            // Dialog may not have appeared yet or uses different button text
+        }
+    }
+};
 
 /**
  * Long-press an element with automatic retry, re-scrolling the list between attempts.

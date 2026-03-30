@@ -24,6 +24,7 @@ import {
 import {
     ChannelListScreen,
     ChannelScreen,
+    CreateDirectMessageScreen,
     HomeScreen,
     LoginScreen,
     ServerScreen,
@@ -452,17 +453,15 @@ describe('Agents - Tool Calls in Channels', () => {
         await wait(timeouts.TWO_SEC);
         await ChannelListScreen.toBeVisible();
 
-        // # Use find channels to navigate to the DM
-        const {headerPlusButton} = ChannelListScreen;
-        await headerPlusButton.tap();
-        await element(by.id('plus_menu_item.open_direct_message')).tap();
+        // # Open create direct message screen and wait for SVG animation to clear
+        await CreateDirectMessageScreen.open();
+        await CreateDirectMessageScreen.toBeVisible();
 
         // # Search for admin user in the DM create screen
-        await waitFor(element(by.id('create_direct_message.search_bar.search.input'))).toBeVisible().withTimeout(timeouts.FOUR_SEC);
-        await element(by.id('create_direct_message.search_bar.search.input')).typeText(adminUser.username);
+        await CreateDirectMessageScreen.searchInput.typeText(adminUser.username);
         await wait(timeouts.ONE_SEC);
-        await element(by.id(`create_direct_message.user_list.user_item.${adminUser.id}`)).tap();
-        await element(by.id('create_direct_message.start.button')).tap();
+        await CreateDirectMessageScreen.getUserItem(adminUser.id).tap();
+        await CreateDirectMessageScreen.startButton.tap();
 
         await wait(timeouts.TWO_SEC);
 

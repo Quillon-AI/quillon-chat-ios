@@ -3,7 +3,7 @@
 
 import {serverOneUrl} from '@support/test_config';
 import {ChannelListScreen, ServerScreen} from '@support/ui/screen';
-import {isAndroid, retryWithReload, timeouts, wait} from '@support/utils';
+import {dismissSystemDialogIfVisible, isAndroid, retryWithReload, timeouts, wait} from '@support/utils';
 import {expect} from 'detox';
 
 class LoginScreen {
@@ -63,26 +63,9 @@ class LoginScreen {
     };
 
     dismissSavePasswordIfVisible = async () => {
-        if (isAndroid()) {
-            return;
-        }
-
-        // iOS "Save Password?" system dialog can take several seconds to appear
-        // after sign-in, especially on iOS 26.x CI simulators. Try twice with a
-        // generous timeout to avoid leaving the alert on screen.
-        for (let round = 0; round < 2; round++) {
-            try {
-                // eslint-disable-next-line no-await-in-loop
-                await waitFor(element(by.text('Not Now'))).toBeVisible().withTimeout(round === 0 ? 5000 : 3000);
-                // eslint-disable-next-line no-await-in-loop
-                await element(by.text('Not Now')).tap();
-
-                return;
-            } catch {
-                // Dialog may not have appeared yet or uses different button text
-            }
-        }
-
+        // Delegates to the shared utility so the same logic covers both the
+        // post-login path here and the recovery-relaunch path in channel_list.ts.
+        await dismissSystemDialogIfVisible();
     };
 
     loginWithRetryIfStuck = async (user: any = {}) => {
