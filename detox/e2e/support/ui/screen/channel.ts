@@ -318,6 +318,32 @@ class ChannelScreen {
         await expect(this.scheduledPostOptionNextMondaySelected).toBeVisible();
     };
 
+    /**
+     * Picks the first available schedule option regardless of the current day.
+     *
+     * The picker shows different options depending on the day of the week:
+     *   Sunday  (0): Tomorrow
+     *   Monday  (1): Tomorrow, Next Monday
+     *   Tue–Thu (2–4): Tomorrow, Monday
+     *   Friday  (5): Monday
+     *   Saturday(6): Monday
+     *
+     * This method always selects a valid option so tests pass on any day.
+     */
+    scheduleMessageForAvailableOption = async () => {
+        const day = new Date().getDay(); // 0 = Sunday … 6 = Saturday
+        if (day === 5 || day === 6) {
+            // Friday or Saturday: only "Monday" is available
+            await this.scheduleMessageForMonday();
+        } else if (day === 1) {
+            // Monday: "Tomorrow" and "Next Monday" are available; pick "Next Monday"
+            await this.scheduleMessageForNextMonday();
+        } else {
+            // Sunday, Tuesday–Thursday: "Tomorrow" is available
+            await this.scheduleMessageForTomorrow();
+        }
+    };
+
     clickOnScheduledMessage = async () => {
         await this.clickOnScheduledMessageButton.tap();
         await waitFor(this.clickOnScheduledMessageButton).not.toBeVisible().withTimeout(timeouts.FOUR_SEC);

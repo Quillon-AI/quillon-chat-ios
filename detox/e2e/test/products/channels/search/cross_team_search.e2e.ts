@@ -151,11 +151,11 @@ describe('Search - Cross Team Search', () => {
 
         // # j) Tap on Team Open with the drop-down arrow, then select All teams
         await SearchMessagesScreen.teamPickerButton.tap();
-        await wait(timeouts.ONE_SEC);
-        await element(by.text('All teams')).tap();
+        await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        await TeamDropdownMenuScreen.getAllTeamsItem().tap();
 
         // * j) Verify the selector changed to All teams
-        await expect(element(by.text('All teams'))).toBeVisible();
+        await waitFor(element(by.text('All teams'))).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
         // # k) In the "Search messages and files" field, type "horses" and press Enter
         await SearchMessagesScreen.searchInput.typeText('horses');
@@ -188,7 +188,8 @@ describe('Search - Cross Team Search', () => {
         await expect(element(by.text('Select a team to search'))).toBeVisible();
 
         // # n) Tap on "All teams" option
-        await element(by.text('All teams')).tap();
+        await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        await TeamDropdownMenuScreen.getAllTeamsItem().tap();
 
         // * n) Verify only two options visible - "exclude search terms" and "messages with phrases"
         await expect(SearchMessagesScreen.searchModifierExclude).toBeVisible();

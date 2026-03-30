@@ -219,14 +219,14 @@ describe('Scheduled Draft,', () => {
     }
 
     async function chooseScheduleMessageDate() {
-        // # The bottom sheet info will not show `Tomorrow` if today is Friday or Saturday. Always schedule for Monday.
-        const today = new Date().getDay();
-        if (today === 1) { // 1 represents Monday
-            await ChannelScreen.scheduleMessageForNextMonday();
-        } else {
-            await ChannelScreen.scheduleMessageForMonday();
-        }
-
+        // # Pick whichever schedule option is available for today's day of week.
+        // The picker shows different options per day:
+        //   Sunday  (0): Tomorrow only
+        //   Monday  (1): Tomorrow + Next Monday
+        //   Tue–Thu (2–4): Tomorrow + Monday
+        //   Friday  (5): Monday only
+        //   Saturday(6): Monday only
+        await ChannelScreen.scheduleMessageForAvailableOption();
         await ChannelScreen.clickOnScheduledMessage();
     }
 });
