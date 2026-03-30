@@ -221,7 +221,7 @@ jobs:
     with:
       platform: ios
       run-type: "MAIN"
-      MOBILE_VERSION: ${{ github.ref }}
+      MOBILE_VERSION: ${{ inputs.MOBILE_VERSION || github.ref }}
       MM_TEST_SERVER_URL: ${{ inputs.MM_TEST_SERVER_URL_3 }}
     secrets: inherit
 
@@ -233,6 +233,6 @@ jobs:
     with:
       platform: android
       run-type: "MAIN"
-      MOBILE_VERSION: ${{ github.ref }}
+      MOBILE_VERSION: ${{ inputs.MOBILE_VERSION || github.ref }}
       MM_TEST_SERVER_URL: ${{ inputs.MM_TEST_SERVER_URL_3 }}
     secrets: inherit

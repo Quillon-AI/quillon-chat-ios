@@ -237,23 +237,24 @@ describe('Messaging - File Upload', () => {
                 MaxFileSize: 1,
             },
         });
+        try {
+            // # Open channel screen
+            await ChannelScreen.open(channelsCategory, testChannel.name);
+            await wait(timeouts.TWO_SEC);
 
-        // # Open channel screen
-        await ChannelScreen.open(channelsCategory, testChannel.name);
-        await wait(timeouts.TWO_SEC);
+            // * Verify the channel screen is visible
+            await ChannelScreen.toBeVisible();
 
-        // * Verify the channel screen is visible
-        await ChannelScreen.toBeVisible();
-
-        // # Restore original MaxFileSize config
-        await System.apiUpdateConfig(siteOneUrl, {
-            FileSettings: {
-                MaxFileSize: originalConfig.FileSettings.MaxFileSize,
-            },
-        });
-
-        // # Go back to channel list screen
-        await ChannelScreen.back();
+            // # Go back to channel list screen
+            await ChannelScreen.back();
+        } finally {
+            // # Restore original MaxFileSize config
+            await System.apiUpdateConfig(siteOneUrl, {
+                FileSettings: {
+                    MaxFileSize: originalConfig.FileSettings.MaxFileSize,
+                },
+            });
+        }
     });
 
     it('MM-T330_1 - iOS only — inline image with size specified renders in the channel', async () => {

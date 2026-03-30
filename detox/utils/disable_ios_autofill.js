@@ -243,10 +243,13 @@ function disablePasswordAutofill(udid) {
                 {silent: true},
             );
             const cmd = checkValue.code === 0 ? 'replace' : 'insert';
-            shell.exec(
+            const mirrorResult = shell.exec(
                 `plutil -${cmd} ${key.path} -${key.type} ${key.value} "${effectivePlist}"`,
                 {silent: true},
             );
+            if (mirrorResult.code !== 0) {
+                console.log(`  ⚠️  Failed to mirror ${key.description} to EffectiveUserSettings.plist`);
+            }
         }
     }
 

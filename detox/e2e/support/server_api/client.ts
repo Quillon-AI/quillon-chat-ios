@@ -81,7 +81,7 @@ baseClient.interceptors.response.use(
 
 // Add response interceptor to retry on transient 5xx server errors (502, 503, 504).
 // During beforeAll API calls a single 502 from Cloudflare/the server would otherwise
-// cause the whole test suite to fail. Exponential backoff: 1s, 2s, 4s.
+// cause the whole test suite to fail. Linear backoff: 1s, 2s, 3s.
 baseClient.interceptors.response.use(
     (response) => response,
     async (error) => {

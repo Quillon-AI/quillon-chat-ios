@@ -46,7 +46,6 @@ const CUSTOM_THEME_JSON = JSON.stringify({
     onlineIndicator: '#3db887',
     awayIndicator: '#ffd470',
     dndIndicator: '#f74343',
-    mentionBj: '#579eff',
     mentionBg: '#579eff',
     mentionColor: '#ffffff',
     mentionHighlightBg: '#ffe577',

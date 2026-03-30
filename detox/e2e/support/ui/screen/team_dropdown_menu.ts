@@ -13,7 +13,7 @@ class TeamDropdownMenuScreen {
     teamDropdownMenuScreen = element(by.id(this.testID.teamDropdownMenuScreen));
 
     getAllTeamsItem = () => {
-        return element(by.id('team_sidebar.team_list.team_list_item..team_display_name'));
+        return element(by.id('team_sidebar.team_list.team_list_item.team_display_name'));
     };
 
     getTeamIcon = (teamId: string) => {
