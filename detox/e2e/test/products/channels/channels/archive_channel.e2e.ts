@@ -309,7 +309,10 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify archived channel displays and is read-only (archived post draft shown)
-        await ChannelScreen.toBeVisible();
+        // Use a longer timeout: navigating from the Browse Channels modal to a channel
+        // involves dismissing the modal and pushing a new screen, which can take >10s on
+        // slow iOS CI runners.
+        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
         await expect(ChannelScreen.postDraftArchived).toBeVisible();
 
         // * Verify the close channel button is visible at the bottom
@@ -349,7 +352,9 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
-        await ChannelScreen.toBeVisible();
+        // Use a longer timeout: navigating from Browse Channels modal to a channel
+        // involves dismissing the modal + pushing a new screen; can take >10s on slow CI.
+        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
         await expect(ChannelScreen.postDraftArchived).toBeVisible();
 
         // # Open channel info
@@ -392,7 +397,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
-        await ChannelScreen.toBeVisible();
+        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
         await expect(ChannelScreen.postDraftArchived).toBeVisible();
 
         // # Open channel info and leave the channel
@@ -445,7 +450,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel is in read-only state
-        await ChannelScreen.toBeVisible();
+        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
         await expect(ChannelScreen.postDraftArchived).toBeVisible();
 
         // # Long-press on the post to open post options
@@ -495,7 +500,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel is in read-only state
-        await ChannelScreen.toBeVisible();
+        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
         await expect(ChannelScreen.postDraftArchived).toBeVisible();
 
         // # Long-press on the post to open post options and verify reactions cannot be added
@@ -536,7 +541,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
-        await ChannelScreen.toBeVisible();
+        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
         await expect(ChannelScreen.postDraftArchived).toBeVisible();
 
         // # Open channel info
@@ -688,7 +693,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
-        await ChannelScreen.toBeVisible();
+        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
         await expect(ChannelScreen.postDraftArchived).toBeVisible();
 
         // # Long-press the post to open post options and save it
@@ -754,7 +759,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the channel screen is visible
-        await ChannelScreen.toBeVisible();
+        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
 
         // * Verify main thread has no active post input box
         await expect(ChannelScreen.postInput).not.toBeVisible();

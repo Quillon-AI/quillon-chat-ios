@@ -3,7 +3,7 @@
 
 import {ChannelListScreen} from '@support/ui/screen';
 import {isAndroid, timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 class BrowseChannelsScreen {
     testID = {
@@ -51,7 +51,20 @@ class BrowseChannelsScreen {
     };
 
     open = async () => {
-        // # Open browse channels screen
+        // If Browse Channels is already open (e.g. a previous test failed mid-navigation
+        // and left the modal on screen), close it first so we start from the channel list.
+        try {
+            await waitFor(this.browseChannelsScreen).toExist().withTimeout(2000);
+            await this.closeButton.tap();
+            await waitFor(this.browseChannelsScreen).not.toExist().withTimeout(timeouts.TEN_SEC);
+        } catch {
+            // Browse Channels is not open — proceed normally
+        }
+
+        // # Open browse channels screen from the channel list header plus button.
+        // Wait for the plus button to be visible before tapping: a previous test may
+        // have left an alert overlay that would block the tap with a dimming view.
+        await waitFor(ChannelListScreen.headerPlusButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await ChannelListScreen.headerPlusButton.tap();
         await wait(timeouts.ONE_SEC);
         await ChannelListScreen.browseChannelsItem.tap();

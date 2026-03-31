@@ -51,11 +51,15 @@ class ChannelSettingsScreen {
         await expect(yesButton).toBeVisible();
         if (confirm) {
             await yesButton.tap();
-            await wait(timeouts.TWO_SEC);
+
+            // Wait for the alert to be fully dismissed before proceeding — a fixed sleep
+            // is insufficient on slow iOS CI runners where the dismiss animation can take
+            // longer, leaving the dimming view blocking subsequent taps.
+            await waitFor(alertArchiveChannelTitle).not.toExist().withTimeout(timeouts.TEN_SEC);
             await expect(this.channelSettingsScreen).not.toExist();
         } else {
             await noButton.tap();
-            await wait(timeouts.TWO_SEC);
+            await waitFor(alertArchiveChannelTitle).not.toExist().withTimeout(timeouts.TEN_SEC);
             await expect(this.channelSettingsScreen).toExist();
         }
     };
@@ -80,19 +84,27 @@ class ChannelSettingsScreen {
             okButton,
             yesButton2,
         } = Alert;
-        await expect(convertToPrivateChannelTitle(channelDisplayName)).toBeVisible();
+        const convertTitle = convertToPrivateChannelTitle(channelDisplayName);
+        await expect(convertTitle).toBeVisible();
         await expect(noButton2).toBeVisible();
         await expect(yesButton2).toBeVisible();
         if (confirm) {
             await yesButton2.tap();
-            await wait(timeouts.ONE_SEC);
-            await expect(channelNowPrivateTitle(channelDisplayName)).toBeVisible();
+
+            // Wait for the first alert to dismiss and the "now private" confirmation to appear
+            await waitFor(convertTitle).not.toExist().withTimeout(timeouts.TEN_SEC);
+            const nowPrivateTitle = channelNowPrivateTitle(channelDisplayName);
+            await expect(nowPrivateTitle).toBeVisible();
             await okButton.tap();
-            await wait(timeouts.TWO_SEC);
+
+            // Wait for the confirmation alert to be fully dismissed before proceeding — a fixed
+            // sleep is insufficient on slow iOS CI runners where the UIAlertController dimming
+            // view can block subsequent taps on the channel list header plus button.
+            await waitFor(nowPrivateTitle).not.toExist().withTimeout(timeouts.TEN_SEC);
             await expect(this.channelSettingsScreen).toExist();
         } else {
             await noButton2.tap();
-            await wait(timeouts.TWO_SEC);
+            await waitFor(convertTitle).not.toExist().withTimeout(timeouts.TEN_SEC);
             await expect(this.channelSettingsScreen).toExist();
         }
     };
@@ -110,11 +122,15 @@ class ChannelSettingsScreen {
         await expect(yesButton).toBeVisible();
         if (confirm) {
             await yesButton.tap();
-            await wait(timeouts.TWO_SEC);
+
+            // Wait for the alert to be fully dismissed before proceeding — a fixed sleep
+            // is insufficient on slow iOS CI runners where the dismiss animation can take
+            // longer, leaving the dimming view blocking subsequent taps.
+            await waitFor(alertUnarchiveChannelTitle).not.toExist().withTimeout(timeouts.TEN_SEC);
             await expect(this.channelSettingsScreen).not.toExist();
         } else {
             await noButton.tap();
-            await wait(timeouts.TWO_SEC);
+            await waitFor(alertUnarchiveChannelTitle).not.toExist().withTimeout(timeouts.TEN_SEC);
             await expect(this.channelSettingsScreen).toExist();
         }
     };
