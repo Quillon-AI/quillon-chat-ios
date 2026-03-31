@@ -3,7 +3,7 @@
 
 import {ProfilePicture} from '@support/ui/component';
 import {ChannelListScreen} from '@support/ui/screen';
-import {isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
+import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect} from 'detox';
 
 class CreateDirectMessageScreen {
@@ -65,9 +65,12 @@ class CreateDirectMessageScreen {
     };
 
     toBeVisible = async () => {
-        // Android emulators are slow to animate the DM bottom sheet — use HALF_MIN
-        // so the screen has enough time to appear on resource-constrained CI runners.
-        await waitFor(this.createDirectMessageScreen).toExist().withTimeout(timeouts.HALF_MIN);
+        // Android CI emulators can have a stuck BridgeIdlingResource after a previous
+        // test failure, causing waitFor to block until the timeout even though the screen
+        // is rendering. Use ONE_MIN on Android (vs HALF_MIN on iOS) to give enough
+        // headroom for both normal slow-boot cases and post-failure bridge recovery.
+        const dmScreenTimeout = isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN;
+        await waitFor(this.createDirectMessageScreen).toExist().withTimeout(dmScreenTimeout);
 
         // Wait for the search input to be visible and hittable. On iOS a RNSVGGroup
         // (part of the plus-menu icon animation) sits on top of the input immediately

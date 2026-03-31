@@ -148,7 +148,12 @@ class ChannelListScreen {
             // eslint-disable-next-line no-console
             console.warn('[ChannelListScreen.toBeVisible] Channel list not found — attempting recovery relaunch');
             try {
-                await device.launchApp({newInstance: true});
+                // Pass detoxDisableSynchronization so the launch is not blocked by a
+                // stuck BridgeIdlingResource — a common Android CI pattern where a
+                // previous test left the bridge busy (network request, animation) and
+                // Detox's idle wait never resolves, causing all subsequent waitFor calls
+                // to timeout immediately until the app is restarted.
+                await device.launchApp({newInstance: true, launchArgs: {detoxDisableSynchronization: 'YES'}});
                 await waitFor(this.channelListScreen).toExist().withTimeout(timeouts.TWO_MIN);
             } catch (recoveryError) {
                 // Log recovery failure, then re-throw the original error so the test failure message is meaningful
