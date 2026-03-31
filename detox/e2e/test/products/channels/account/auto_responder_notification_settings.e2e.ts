@@ -21,7 +21,7 @@ import {
     ServerScreen,
     SettingsScreen,
 } from '@support/ui/screen';
-import {getRandomId, isAndroid, isIos} from '@support/utils';
+import {getRandomId, isAndroid, isIos, timeouts} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 describe('Account - Settings - Auto-Responder Notification Settings', () => {
@@ -66,7 +66,7 @@ describe('Account - Settings - Auto-Responder Notification Settings', () => {
         // screen and can be partially covered by the status bar (<50% visible area).
         // Use toExist() on Android to confirm presence without the visibility threshold.
         if (isAndroid()) {
-            await waitFor(AutoResponderNotificationSettingsScreen.backButton).toExist().withTimeout(5000);
+            await waitFor(AutoResponderNotificationSettingsScreen.backButton).toExist().withTimeout(timeouts.TEN_SEC);
         } else {
             await expect(AutoResponderNotificationSettingsScreen.backButton).toBeVisible();
         }
