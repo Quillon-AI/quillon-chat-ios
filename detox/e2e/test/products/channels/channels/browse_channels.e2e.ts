@@ -115,8 +115,8 @@ describe('Channels - Browse Channels', () => {
         // the assertion confirms the correct empty state is shown.
         await wait(timeouts.ONE_SEC);
         if (isAndroid()) {
-            await waitFor(element(by.text(`No matches found for "${searchTerm}"`))).toExist().withTimeout(timeouts.TEN_SEC);
-            await waitFor(element(by.text('Check the spelling or try another search.'))).toExist().withTimeout(timeouts.TEN_SEC);
+            await waitFor(element(by.text(`No matches found for "${searchTerm}"`))).toExist().withTimeout(timeouts.HALF_MIN);
+            await waitFor(element(by.text('Check the spelling or try another search.'))).toExist().withTimeout(timeouts.HALF_MIN);
         } else {
             await expect(element(by.text(`No matches found for "${searchTerm}"`))).toBeVisible();
             await expect(element(by.text('Check the spelling or try another search.'))).toBeVisible();
@@ -141,7 +141,7 @@ describe('Channels - Browse Channels', () => {
         // On Android edge-to-edge, empty-state text may have <50% visible area. Use toExist().
         await wait(timeouts.ONE_SEC);
         if (isAndroid()) {
-            await waitFor(element(by.text(`No matches found for "${testOtherUser1.username}"`))).toExist().withTimeout(timeouts.TEN_SEC);
+            await waitFor(element(by.text(`No matches found for "${testOtherUser1.username}"`))).toExist().withTimeout(timeouts.HALF_MIN);
         } else {
             await expect(element(by.text(`No matches found for "${testOtherUser1.username}"`))).toBeVisible();
         }
@@ -151,7 +151,7 @@ describe('Channels - Browse Channels', () => {
 
         // * Verify empty search state for browse channels
         if (isAndroid()) {
-            await waitFor(element(by.text(`No matches found for "${testOtherUser2.username}"`))).toExist().withTimeout(timeouts.TEN_SEC);
+            await waitFor(element(by.text(`No matches found for "${testOtherUser2.username}"`))).toExist().withTimeout(timeouts.HALF_MIN);
         } else {
             await expect(element(by.text(`No matches found for "${testOtherUser2.username}"`))).toBeVisible();
         }

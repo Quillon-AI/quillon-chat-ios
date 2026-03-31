@@ -164,7 +164,7 @@ describe('Search - Cross Team Search', () => {
         // On Android edge-to-edge the dropdown item can render with <50% visible area
         // due to system bar insets. Use toExist() on Android to bypass the threshold.
         if (isAndroid()) {
-            await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toExist().withTimeout(timeouts.TEN_SEC);
+            await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toExist().withTimeout(timeouts.HALF_MIN);
         } else {
             await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toBeVisible().withTimeout(timeouts.TEN_SEC);
         }
