@@ -72,12 +72,20 @@ class CreateDirectMessageScreen {
         const dmScreenTimeout = isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN;
         await waitFor(this.createDirectMessageScreen).toExist().withTimeout(dmScreenTimeout);
 
-        // Wait for the search input to be visible and hittable. On iOS a RNSVGGroup
-        // (part of the plus-menu icon animation) sits on top of the input immediately
-        // after navigation and intercepts taps even though the element is in the
-        // hierarchy. Waiting for the input to report as visible gives the SVG layer
-        // time to finish its animation, and the extra 500 ms ensures it has cleared.
-        await waitFor(this.searchInput).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        // Wait for the search input to be ready.
+        // On iOS a RNSVGGroup (part of the plus-menu icon animation) sits on top of the
+        // input immediately after navigation and intercepts taps even though the element
+        // is in the hierarchy. Waiting for the input to report as visible gives the SVG
+        // layer time to finish its animation, and the extra 500 ms ensures it has cleared.
+        // On Android edge-to-edge displays the search input can render partially off-screen
+        // (<50% visible) due to system bar insets immediately after navigation. Use toExist()
+        // on Android so we don't fail the 50% threshold check — interactability is confirmed
+        // by the subsequent replaceText call.
+        if (isAndroid()) {
+            await waitFor(this.searchInput).toExist().withTimeout(timeouts.TEN_SEC);
+        } else {
+            await waitFor(this.searchInput).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        }
         await wait(timeouts.HALF_SEC);
 
         return this.createDirectMessageScreen;

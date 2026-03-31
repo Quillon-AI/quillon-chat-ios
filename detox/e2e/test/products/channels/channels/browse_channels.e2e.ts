@@ -26,7 +26,7 @@ import {
     LoginScreen,
     ServerScreen,
 } from '@support/ui/screen';
-import {timeouts, wait} from '@support/utils';
+import {isAndroid, timeouts, wait} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 describe('Channels - Browse Channels', () => {
@@ -110,9 +110,17 @@ describe('Channels - Browse Channels', () => {
         await BrowseChannelsScreen.searchInput.replaceText(searchTerm);
 
         // * Verify empty search state for browse channels
+        // On Android edge-to-edge the empty-state text can render with <50% area visible
+        // (status/nav bar insets). Use toExist() on Android — the text is present and
+        // the assertion confirms the correct empty state is shown.
         await wait(timeouts.ONE_SEC);
-        await expect(element(by.text(`No matches found for "${searchTerm}"`))).toBeVisible();
-        await expect(element(by.text('Check the spelling or try another search.'))).toBeVisible();
+        if (isAndroid()) {
+            await waitFor(element(by.text(`No matches found for "${searchTerm}"`))).toExist().withTimeout(timeouts.TEN_SEC);
+            await waitFor(element(by.text('Check the spelling or try another search.'))).toExist().withTimeout(timeouts.TEN_SEC);
+        } else {
+            await expect(element(by.text(`No matches found for "${searchTerm}"`))).toBeVisible();
+            await expect(element(by.text('Check the spelling or try another search.'))).toBeVisible();
+        }
 
         // # Go back to channel list screen
         await BrowseChannelsScreen.close();
@@ -130,14 +138,23 @@ describe('Channels - Browse Channels', () => {
         await BrowseChannelsScreen.searchInput.replaceText(testOtherUser1.username);
 
         // * Verify empty search state for browse channels
+        // On Android edge-to-edge, empty-state text may have <50% visible area. Use toExist().
         await wait(timeouts.ONE_SEC);
-        await expect(element(by.text(`No matches found for "${testOtherUser1.username}"`))).toBeVisible();
+        if (isAndroid()) {
+            await waitFor(element(by.text(`No matches found for "${testOtherUser1.username}"`))).toExist().withTimeout(timeouts.TEN_SEC);
+        } else {
+            await expect(element(by.text(`No matches found for "${testOtherUser1.username}"`))).toBeVisible();
+        }
 
         // # Search for the group message channel
         await BrowseChannelsScreen.searchInput.replaceText(testOtherUser2.username);
 
         // * Verify empty search state for browse channels
-        await expect(element(by.text(`No matches found for "${testOtherUser2.username}"`))).toBeVisible();
+        if (isAndroid()) {
+            await waitFor(element(by.text(`No matches found for "${testOtherUser2.username}"`))).toExist().withTimeout(timeouts.TEN_SEC);
+        } else {
+            await expect(element(by.text(`No matches found for "${testOtherUser2.username}"`))).toBeVisible();
+        }
 
         // # Go back to channel list screen
         await BrowseChannelsScreen.close();

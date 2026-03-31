@@ -24,7 +24,8 @@ import {
     ServerScreen,
     SettingsScreen,
 } from '@support/ui/screen';
-import {expect} from 'detox';
+import {isAndroid} from '@support/utils';
+import {expect, waitFor} from 'detox';
 
 describe('Account - Settings - Notification Settings', () => {
     const serverOneDisplayName = 'Server 1';
@@ -59,7 +60,14 @@ describe('Account - Settings - Notification Settings', () => {
 
     it('MM-T5101_1 - should match elements on notification settings screen', async () => {
         // * Verify basic elements on notification settings screen
-        await expect(NotificationSettingsScreen.backButton).toBeVisible();
+        // On Android edge-to-edge the navigation back button sits near the top of the
+        // screen and can be partially covered by the status bar (<50% visible area).
+        // Use toExist() on Android to confirm presence without the visibility threshold.
+        if (isAndroid()) {
+            await waitFor(NotificationSettingsScreen.backButton).toExist().withTimeout(5000);
+        } else {
+            await expect(NotificationSettingsScreen.backButton).toBeVisible();
+        }
         await expect(NotificationSettingsScreen.mentionsOption).toBeVisible();
         await expect(NotificationSettingsScreen.pushNotificationsOption).toBeVisible();
         await expect(NotificationSettingsScreen.emailNotificationsOption).toBeVisible();

@@ -63,8 +63,8 @@ describe('Messaging - Message Edit', () => {
         const {postListPostItem: originalPostListPostItem} = ChannelScreen.getPostListPostItem(post.id, message);
         await waitFor(originalPostListPostItem).toBeVisible().withTimeout(timeouts.FOUR_SEC);
 
-        // # Scroll to post to dismiss keyboard and ensure post is visible
-        await originalPostListPostItem.scrollTo('top');
+        // # Scroll the post list (not the post item) to dismiss the keyboard and ensure post is tappable
+        await ChannelScreen.getFlatPostList().scroll(100, 'up', 0.5, 0.5);
 
         // # Open post options for the message that was just posted and tap edit option
         await ChannelScreen.openPostOptionsFor(post.id, message);
@@ -100,8 +100,8 @@ describe('Messaging - Message Edit', () => {
         const {postListPostItem} = ChannelScreen.getPostListPostItem(post.id, message);
         await waitFor(postListPostItem).toBeVisible().withTimeout(timeouts.FOUR_SEC);
 
-        // # Scroll to post to dismiss keyboard and ensure post is visible
-        await postListPostItem.scrollTo('top');
+        // # Scroll the post list (not the post item) to dismiss the keyboard and ensure post is tappable
+        await ChannelScreen.getFlatPostList().scroll(100, 'up', 0.5, 0.5);
 
         // # Open post options for the message that was just posted and tap edit option
         await ChannelScreen.openPostOptionsFor(post.id, message);
@@ -130,8 +130,8 @@ describe('Messaging - Message Edit', () => {
         const {post: parentPost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
         const {postListPostItem: parentPostListPostItem} = ChannelScreen.getPostListPostItem(parentPost.id, message);
 
-        // # Scroll to post to dismiss keyboard before tapping
-        await parentPostListPostItem.scrollTo('top');
+        // # Scroll the post list (not the post item) to dismiss the keyboard before tapping
+        await ChannelScreen.getFlatPostList().scroll(100, 'up', 0.5, 0.5);
         await wait(timeouts.ONE_SEC);
         await parentPostListPostItem.tap();
 
@@ -142,10 +142,9 @@ describe('Messaging - Message Edit', () => {
         const replyMessage = `${message} reply`;
         await ThreadScreen.postMessage(replyMessage);
         const {post: replyPost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
-        const {postListPostItem: replyPostListPostItem} = ThreadScreen.getPostListPostItem(replyPost.id, replyMessage);
 
-        // # Scroll to reply post to dismiss keyboard before long press
-        await replyPostListPostItem.scrollTo('top');
+        // # Scroll the thread post list (not the post item) to dismiss keyboard before long press
+        await ThreadScreen.getFlatPostList().scroll(100, 'up', 0.5, 0.5);
         await ThreadScreen.openPostOptionsFor(replyPost.id, replyMessage);
         await PostOptionsScreen.editPostOption.tap();
 

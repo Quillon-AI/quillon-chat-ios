@@ -336,8 +336,10 @@ class ChannelScreen {
             // Friday or Saturday: only "Monday" is available
             await this.scheduleMessageForMonday();
         } else if (day === 1) {
-            // Monday: "Tomorrow" and "Next Monday" are available; pick "Next Monday"
-            await this.scheduleMessageForNextMonday();
+            // Monday: "Tomorrow" is always available; "Next Monday" may also appear
+            // depending on server configuration, but its testID is not guaranteed.
+            // Use "Tomorrow" so the test is stable on any Monday.
+            await this.scheduleMessageForTomorrow();
         } else {
             // Sunday, Tuesday–Thursday: "Tomorrow" is available
             await this.scheduleMessageForTomorrow();

@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {
+    NavigationHeader,
     PlusMenu,
     TeamSidebar,
 } from '@support/ui/component';
@@ -154,6 +155,25 @@ class ChannelListScreen {
                 // Detox's idle wait never resolves, causing all subsequent waitFor calls
                 // to timeout immediately until the app is restarted.
                 await device.launchApp({newInstance: true, launchArgs: {detoxDisableSynchronization: 'YES'}});
+
+                // After relaunch the app restores to the last visited screen (e.g. a channel).
+                // If the back button is present we are inside a channel — tap it once to pop
+                // back to the channel list. We attempt this up to 3 times to handle nested
+                // navigation (e.g. thread → channel → channel list).
+                /* eslint-disable no-await-in-loop -- sequential back-navigation: each tap must complete before probing again */
+                for (let i = 0; i < 3; i++) {
+                    try {
+                        // Quick probe — don't wait long; if back button isn't there, we're done.
+                        await waitFor(NavigationHeader.backButton).toExist().withTimeout(timeouts.FOUR_SEC);
+                        await NavigationHeader.backButton.tap();
+                        await wait(timeouts.ONE_SEC);
+                    } catch {
+                        // Back button not found — already at channel list (or login screen).
+                        break;
+                    }
+                }
+                /* eslint-enable no-await-in-loop */
+
                 await waitFor(this.channelListScreen).toExist().withTimeout(timeouts.TWO_MIN);
             } catch (recoveryError) {
                 // Log recovery failure, then re-throw the original error so the test failure message is meaningful

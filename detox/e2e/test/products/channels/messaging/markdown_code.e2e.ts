@@ -59,11 +59,17 @@ describe('Messaging - Markdown Code', () => {
         await ChannelScreen.postMessage(markdownCodeBlock);
 
         // * Verify markdown code block is displayed
-        // Use toBeVisible(50) because multi-line code blocks can be 50–74% visible when
-        // the bottom is clipped by the message input bar. The old Detox default was 50%.
         const {post} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
         const {postListPostItemCodeBlock} = ChannelScreen.getPostListPostItem(post.id);
         await waitFor(postListPostItemCodeBlock).toExist().withTimeout(10000);
+
+        // Scroll the post list to dismiss the keyboard and bring the code block fully
+        // into view. 300px is enough to clear the soft keyboard + message input bar so
+        // the block passes the 50% visibility threshold.
+        await ChannelScreen.getFlatPostList().scroll(300, 'up', 0.5, 0.5);
+
+        // Use toBeVisible(50): multi-line code blocks can be 50–74% visible when the
+        // bottom is clipped by the message input bar.
         await expect(postListPostItemCodeBlock).toBeVisible(50);
 
         // # Go back to channel list screen
@@ -81,6 +87,9 @@ describe('Messaging - Markdown Code', () => {
         const {post} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
         const {postListPostItemCodeBlock} = ChannelScreen.getPostListPostItem(post.id);
         await waitFor(postListPostItemCodeBlock).toExist().withTimeout(10000);
+
+        // Scroll the post list to dismiss the keyboard before the visibility check.
+        await ChannelScreen.getFlatPostList().scroll(100, 'up', 0.5, 0.5);
         await expect(postListPostItemCodeBlock).toBeVisible(50);
 
         // # Go back to channel list screen

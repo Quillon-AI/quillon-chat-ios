@@ -139,8 +139,17 @@ export async function retryWithReload(
  * the UI) so tests are self-healing regardless of animation timing.
  *
  * On iOS 26.2 the gesture responder system takes longer to become available after keyboard
- * dismiss animations complete. Use FIVE_SEC wait (up from THREE_SEC) and a smaller scroll
- * distance (50px vs 100px) to avoid over-scrolling past the target post.
+ * dismiss animations complete. Use FIVE_SEC wait and press duration to ensure the gesture
+ * lands correctly. On Android a shorter wait (TWO_SEC) and press (THREE_SEC) is sufficient
+ * because Android gesture handling is more deterministic and reduces total elapsed time.
+ *
+ * Per-attempt budget:
+ *   iOS:     5s wait + 5s press + 10s check = 20s × 5 attempts = 100s max
+ *   Android: 2s wait + 3s press + 10s check = 15s × 5 attempts = 75s max
+ *
+ * Using HALF_MIN (30s) for the check risked blowing the 240s Jest per-test limit when a
+ * test calls openPostOptionsFor twice (e.g. MM-T4786_1 edit then delete). TEN_SEC is
+ * still generous — if the long-press lands the options sheet opens within ~1s.
  *
  * @param target - The element to long-press
  * @param scrollTarget - A scrollable list to scroll before each attempt (dismisses keyboard + settles UI)
@@ -165,12 +174,18 @@ export async function longPressWithScrollRetry(
             // List is already at scroll boundary — proceed with longPress anyway
         }
 
-        // On iOS 26.2 the gesture responder takes longer to become available
-        // after keyboard dismiss animations. Use FIVE_SEC wait (up from THREE_SEC).
-        await wait(timeouts.FIVE_SEC);
-        await target.longPress(timeouts.FIVE_SEC);
+        // On iOS 26.2 the gesture responder takes longer to become available after
+        // keyboard dismiss animations. On Android the gesture system is more
+        // deterministic so a shorter wait avoids blowing the per-test time budget.
+        const waitDuration = isAndroid() ? timeouts.TWO_SEC : timeouts.FIVE_SEC;
+        const pressDuration = isAndroid() ? timeouts.THREE_SEC : timeouts.FIVE_SEC;
+        await wait(waitDuration);
+        await target.longPress(pressDuration);
         try {
-            await detoxWaitFor(checkElement).toExist().withTimeout(timeouts.HALF_MIN);
+            // TEN_SEC is sufficient: if the long-press lands the options sheet
+            // opens within ~1s. HALF_MIN (30s) per attempt risks blowing the
+            // 240s Jest per-test limit when all 5 attempts are needed.
+            await detoxWaitFor(checkElement).toExist().withTimeout(timeouts.TEN_SEC);
             return;
         } catch {
             if (attempt === maxAttempts) {

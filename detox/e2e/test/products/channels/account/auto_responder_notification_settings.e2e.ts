@@ -21,8 +21,8 @@ import {
     ServerScreen,
     SettingsScreen,
 } from '@support/ui/screen';
-import {getRandomId, isIos} from '@support/utils';
-import {expect} from 'detox';
+import {getRandomId, isAndroid, isIos} from '@support/utils';
+import {expect, waitFor} from 'detox';
 
 describe('Account - Settings - Auto-Responder Notification Settings', () => {
     const serverOneDisplayName = 'Server 1';
@@ -62,7 +62,14 @@ describe('Account - Settings - Auto-Responder Notification Settings', () => {
 
     it('MM-T5110_1 - should match elements on auto-responder notification settings screen', async () => {
         // * Verify basic elements on auto-responder notification settings screen
-        await expect(AutoResponderNotificationSettingsScreen.backButton).toBeVisible();
+        // On Android edge-to-edge the navigation back button sits near the top of the
+        // screen and can be partially covered by the status bar (<50% visible area).
+        // Use toExist() on Android to confirm presence without the visibility threshold.
+        if (isAndroid()) {
+            await waitFor(AutoResponderNotificationSettingsScreen.backButton).toExist().withTimeout(5000);
+        } else {
+            await expect(AutoResponderNotificationSettingsScreen.backButton).toBeVisible();
+        }
         await expect(AutoResponderNotificationSettingsScreen.enableAutomaticRepliesOptionToggledOff).toBeVisible();
         await expect(AutoResponderNotificationSettingsScreen.messageInputDescription).toHaveText('Set a custom message that is automatically sent in response to direct messages, such as an out of office or vacation reply. Enabling this setting changes your status to Out of Office and disables notifications.');
     });

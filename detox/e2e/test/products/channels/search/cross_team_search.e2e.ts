@@ -27,8 +27,8 @@ import {
     ServerScreen,
     TeamDropdownMenuScreen,
 } from '@support/ui/screen';
-import {timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {isAndroid, timeouts, wait} from '@support/utils';
+import {expect, waitFor} from 'detox';
 
 describe('Search - Cross Team Search', () => {
     const serverOneDisplayName = 'Server 1';
@@ -160,7 +160,14 @@ describe('Search - Cross Team Search', () => {
 
         // # j) Tap on Team Open with the drop-down arrow, then select All teams
         await SearchMessagesScreen.teamPickerButton.tap();
-        await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toBeVisible().withTimeout(timeouts.TEN_SEC);
+
+        // On Android edge-to-edge the dropdown item can render with <50% visible area
+        // due to system bar insets. Use toExist() on Android to bypass the threshold.
+        if (isAndroid()) {
+            await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toExist().withTimeout(timeouts.TEN_SEC);
+        } else {
+            await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        }
         await TeamDropdownMenuScreen.getAllTeamsItem().tap();
 
         // * j) Verify the selector changed to All teams

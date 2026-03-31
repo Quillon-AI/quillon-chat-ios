@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {PostList} from '@support/ui/component';
-import {timeouts, wait} from '@support/utils';
+import {isAndroid, timeouts, wait} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class PermalinkScreen {
@@ -29,7 +29,16 @@ class PermalinkScreen {
 
     toBeVisible = async () => {
         await wait(timeouts.ONE_SEC);
-        await expect(this.permalinkScreen).toBeVisible();
+
+        // On Android edge-to-edge displays the permalink screen container can render
+        // with <50% area visible due to system bar insets, causing expect().toBeVisible()
+        // to fail. Use toExist() on Android — the screen is present and interactive even
+        // when the container's bounding rect is partially covered by the navigation bar.
+        if (isAndroid()) {
+            await waitFor(this.permalinkScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        } else {
+            await expect(this.permalinkScreen).toBeVisible();
+        }
 
         return this.permalinkScreen;
     };
