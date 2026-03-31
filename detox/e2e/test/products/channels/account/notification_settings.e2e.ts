@@ -24,8 +24,8 @@ import {
     ServerScreen,
     SettingsScreen,
 } from '@support/ui/screen';
-import {isAndroid, timeouts} from '@support/utils';
-import {expect, waitFor} from 'detox';
+import {isAndroid, timeouts, waitForElementToExist} from '@support/utils';
+import {expect} from 'detox';
 
 describe('Account - Settings - Notification Settings', () => {
     const serverOneDisplayName = 'Server 1';
@@ -64,7 +64,7 @@ describe('Account - Settings - Notification Settings', () => {
         // screen and can be partially covered by the status bar (<50% visible area).
         // Use toExist() on Android to confirm presence without the visibility threshold.
         if (isAndroid()) {
-            await waitFor(NotificationSettingsScreen.backButton).toExist().withTimeout(timeouts.HALF_MIN);
+            await waitForElementToExist(NotificationSettingsScreen.backButton, timeouts.ONE_MIN);
         } else {
             await expect(NotificationSettingsScreen.backButton).toBeVisible();
         }
