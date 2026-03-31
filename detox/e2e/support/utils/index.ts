@@ -258,3 +258,48 @@ export async function waitForElementToBeVisible(
     // Final check - will throw if still not found
     await detoxExpect(detoxElement).toBeVisible();
 }
+
+/**
+ * Poll for element existence without Detox bridge-idle synchronization.
+ *
+ * On Android the JS bridge (mqt_js) is often busy during animations and
+ * bottom-sheet open/close transitions. waitFor().toExist().withTimeout()
+ * uses bridge-idle sync and blocks until the bridge is idle before
+ * evaluating, which can take much longer than the timeout on CI emulators.
+ * This helper bypasses that by polling expect().toExist() directly.
+ *
+ * Use this instead of waitFor().toExist().withTimeout() when the element
+ * may be present behind an overlay (like a tutorial), where toBeVisible()
+ * would also fail due to the 50% visibility threshold.
+ *
+ * @param {Detox.NativeElement} detoxElement - The Detox element to wait for
+ * @param {number} timeout - Maximum time to wait in milliseconds (default: HALF_MIN)
+ * @param {number} pollInterval - How often to check in milliseconds (default: 500ms)
+ *
+ * @example
+ * await waitForElementToExist(serverListScreen, timeouts.HALF_MIN);
+ */
+export async function waitForElementToExist(
+    detoxElement: Detox.NativeElement,
+    timeout: number = timeouts.HALF_MIN,
+    pollInterval: number = timeouts.HALF_SEC,
+): Promise<void> {
+    const {expect: detoxExpect} = require('detox');
+    const startTime = Date.now();
+    /* eslint-disable no-await-in-loop */
+    while (Date.now() - startTime < timeout) {
+        try {
+            await detoxExpect(detoxElement).toExist();
+            return; // Element exists in hierarchy
+        } catch (error) {
+            if ((Date.now() - startTime) + pollInterval >= timeout) {
+                throw error;
+            }
+            await wait(pollInterval);
+        }
+    }
+    /* eslint-enable no-await-in-loop */
+    // Final check - will throw if still not found
+    const {expect: detoxExpectFinal} = require('detox');
+    await detoxExpectFinal(detoxElement).toExist();
+}
