@@ -66,7 +66,6 @@ describe('Messaging - File Preview Gallery', () => {
         // # Log in to server
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(user);
-        await device.reloadReactNative();
         await ChannelListScreen.toBeVisible();
     });
 

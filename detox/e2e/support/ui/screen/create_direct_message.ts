@@ -4,7 +4,7 @@
 import {ProfilePicture} from '@support/ui/component';
 import {ChannelListScreen} from '@support/ui/screen';
 import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 class CreateDirectMessageScreen {
     testID = {
@@ -85,6 +85,12 @@ class CreateDirectMessageScreen {
 
     open = async () => {
         // # Open create direct message screen
+        // Wait for the plus button to exist before tapping. The button only renders
+        // when the team displayName is loaded — after a recovery relaunch or a slow
+        // login flow the team data may not be hydrated yet, causing the tap to fail
+        // with "No elements found". Using toExist() (not toBeVisible()) also handles
+        // alert dimming overlays left by previous tests.
+        await waitFor(ChannelListScreen.headerPlusButton).toExist().withTimeout(timeouts.HALF_MIN);
         await ChannelListScreen.headerPlusButton.tap();
         await wait(timeouts.ONE_SEC);
         await ChannelListScreen.openDirectMessageItem.tap();

@@ -62,9 +62,13 @@ class BrowseChannelsScreen {
         }
 
         // # Open browse channels screen from the channel list header plus button.
-        // Wait for the plus button to be visible before tapping: a previous test may
-        // have left an alert overlay that would block the tap with a dimming view.
-        await waitFor(ChannelListScreen.headerPlusButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        // Wait for the plus button to exist (not just be visible) with a long timeout.
+        // The plus button only renders when the team displayName is loaded — after a
+        // recovery relaunch (launchApp({newInstance:true})) the app has to re-hydrate
+        // team data from WatermelonDB, which can take >10 s on slow CI machines.
+        // Using toExist() (not toBeVisible()) also handles the case where a previous
+        // test left an alert dimming overlay on top.
+        await waitFor(ChannelListScreen.headerPlusButton).toExist().withTimeout(timeouts.HALF_MIN);
         await ChannelListScreen.headerPlusButton.tap();
         await wait(timeouts.ONE_SEC);
         await ChannelListScreen.browseChannelsItem.tap();
