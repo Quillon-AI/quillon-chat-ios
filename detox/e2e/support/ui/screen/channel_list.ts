@@ -6,7 +6,7 @@ import {
     TeamSidebar,
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
-import {dismissSystemDialogIfVisible, timeouts, wait} from '@support/utils';
+import {timeouts, wait} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ChannelListScreen {
@@ -149,14 +149,6 @@ class ChannelListScreen {
             console.warn('[ChannelListScreen.toBeVisible] Channel list not found — attempting recovery relaunch');
             try {
                 await device.launchApp({newInstance: true});
-
-                // After a newInstance relaunch the app restores the previous
-                // session. iOS may immediately present a "Save Password?" system
-                // dialog whose dimming overlay blocks all subsequent taps even
-                // though the channel list is already visible. Dismiss it before
-                // waiting for the channel list screen so that later interactions
-                // (e.g. tapping headerPlusButton) are not blocked.
-                await dismissSystemDialogIfVisible();
                 await waitFor(this.channelListScreen).toExist().withTimeout(timeouts.TWO_MIN);
             } catch (recoveryError) {
                 // Log recovery failure, then re-throw the original error so the test failure message is meaningful

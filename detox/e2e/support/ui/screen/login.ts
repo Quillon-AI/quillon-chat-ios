@@ -3,7 +3,7 @@
 
 import {serverOneUrl} from '@support/test_config';
 import {ChannelListScreen, ServerScreen} from '@support/ui/screen';
-import {dismissSystemDialogIfVisible, isAndroid, retryWithReload, timeouts, wait} from '@support/utils';
+import {isAndroid, retryWithReload, timeouts, wait} from '@support/utils';
 import {expect} from 'detox';
 
 class LoginScreen {
@@ -62,12 +62,6 @@ class LoginScreen {
         await expect(this.loginScreen).not.toBeVisible();
     };
 
-    dismissSavePasswordIfVisible = async () => {
-        // Delegates to the shared utility so the same logic covers both the
-        // post-login path here and the recovery-relaunch path in channel_list.ts.
-        await dismissSystemDialogIfVisible();
-    };
-
     loginWithRetryIfStuck = async (user: any = {}) => {
         await this.toBeVisible();
         await this.usernameInput.tap({x: 150, y: 10});
@@ -77,18 +71,7 @@ class LoginScreen {
         await this.loginFormInfoText.tap();
         await this.signinButton.tap();
 
-        // Wait for the channel list first — the "Save Password?" sheet on iOS 26.x
-        // appears with a delay (after the login animation settles, ~5s after tap).
-        // Calling dismissSavePasswordIfVisible() immediately after tap means the
-        // dialog hasn't appeared yet and the dismiss is a no-op. We dismiss AFTER
-        // the channel list exists so the dialog has had time to appear.
         await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
-
-        // Dismiss the "Save Password?" sheet now that the channel list is loaded.
-        // On Android this is a no-op (returns immediately). On iOS 26.x the sheet
-        // is shown by the Passwords.app credential provider and is NOT prevented by
-        // the allowPasswordAutoFill MDM restriction — it must be explicitly dismissed.
-        await this.dismissSavePasswordIfVisible();
     };
 
     login = async (user: any = {}) => {
@@ -147,9 +130,6 @@ class LoginScreen {
 
                 // eslint-disable-next-line no-await-in-loop
                 await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
-
-                // eslint-disable-next-line no-await-in-loop
-                await this.dismissSavePasswordIfVisible();
                 return;
             } catch (error) {
                 lastError = error;
