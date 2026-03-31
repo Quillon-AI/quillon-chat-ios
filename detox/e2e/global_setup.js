@@ -208,6 +208,7 @@ async function serverSetup() {
         await axios.put(`${SITE_URL}/api/v4/config/patch`, {
             ServiceSettings: {SessionLengthWebInHours: 4320},
             RateLimitSettings: {PerSec: 10000, MaxBurst: 999999},
+
             // Enable ExperimentalEnableAutomaticReplies globally so the Auto-Responder
             // option appears in Notification Settings on all shards without requiring
             // each test suite's beforeAll to enable it first.
