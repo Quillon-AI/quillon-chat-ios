@@ -24,7 +24,7 @@ import {
     ServerScreen,
     SettingsScreen,
 } from '@support/ui/screen';
-import {isAndroid, timeouts, waitForElementToExist} from '@support/utils';
+import {isAndroid} from '@support/utils';
 import {expect} from 'detox';
 
 describe('Account - Settings - Notification Settings', () => {
@@ -60,12 +60,11 @@ describe('Account - Settings - Notification Settings', () => {
 
     it('MM-T5101_1 - should match elements on notification settings screen', async () => {
         // * Verify basic elements on notification settings screen
-        // On Android edge-to-edge the navigation back button sits near the top of the
-        // screen and can be partially covered by the status bar (<50% visible area).
-        // Use toExist() on Android to confirm presence without the visibility threshold.
-        if (isAndroid()) {
-            await waitForElementToExist(NotificationSettingsScreen.backButton, timeouts.ONE_MIN);
-        } else {
+        // The notifications screen uses useAndroidHardwareBackHandler — on Android the
+        // back navigation is handled by the hardware back button, not a React Native
+        // NavigationHeader component. The navigation.header.back testID is never
+        // rendered on Android for this screen, so skip the check there.
+        if (!isAndroid()) {
             await expect(NotificationSettingsScreen.backButton).toBeVisible();
         }
         await expect(NotificationSettingsScreen.mentionsOption).toBeVisible();

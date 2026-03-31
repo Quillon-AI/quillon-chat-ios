@@ -115,10 +115,10 @@ describe('Channels - Browse Channels', () => {
         // the assertion confirms the correct empty state is shown.
         await wait(timeouts.ONE_SEC);
         if (isAndroid()) {
-            await waitForElementToExist(element(by.text(`No matches found for "${searchTerm}"`)), timeouts.HALF_MIN);
+            await waitForElementToExist(element(by.text(`No matches found for \u201C${searchTerm}\u201D`)), timeouts.HALF_MIN);
             await waitForElementToExist(element(by.text('Check the spelling or try another search.')), timeouts.HALF_MIN);
         } else {
-            await expect(element(by.text(`No matches found for "${searchTerm}"`))).toBeVisible();
+            await expect(element(by.text(`No matches found for \u201C${searchTerm}\u201D`))).toBeVisible();
             await expect(element(by.text('Check the spelling or try another search.'))).toBeVisible();
         }
 
@@ -141,9 +141,9 @@ describe('Channels - Browse Channels', () => {
         // On Android edge-to-edge, empty-state text may have <50% visible area. Use toExist().
         await wait(timeouts.ONE_SEC);
         if (isAndroid()) {
-            await waitForElementToExist(element(by.text(`No matches found for "${testOtherUser1.username}"`)), timeouts.HALF_MIN);
+            await waitForElementToExist(element(by.text(`No matches found for \u201C${testOtherUser1.username}\u201D`)), timeouts.HALF_MIN);
         } else {
-            await expect(element(by.text(`No matches found for "${testOtherUser1.username}"`))).toBeVisible();
+            await expect(element(by.text(`No matches found for \u201C${testOtherUser1.username}\u201D`))).toBeVisible();
         }
 
         // # Search for the group message channel
@@ -151,9 +151,9 @@ describe('Channels - Browse Channels', () => {
 
         // * Verify empty search state for browse channels
         if (isAndroid()) {
-            await waitForElementToExist(element(by.text(`No matches found for "${testOtherUser2.username}"`)), timeouts.HALF_MIN);
+            await waitForElementToExist(element(by.text(`No matches found for \u201C${testOtherUser2.username}\u201D`)), timeouts.HALF_MIN);
         } else {
-            await expect(element(by.text(`No matches found for "${testOtherUser2.username}"`))).toBeVisible();
+            await expect(element(by.text(`No matches found for \u201C${testOtherUser2.username}\u201D`))).toBeVisible();
         }
 
         // # Go back to channel list screen
@@ -175,7 +175,7 @@ describe('Channels - Browse Channels', () => {
 
         // * Verify empty search state for browse channels
         await wait(timeouts.ONE_SEC);
-        await expect(element(by.text(`No matches found for "${archivedChannel.name}"`))).toBeVisible();
+        await expect(element(by.text(`No matches found for \u201C${archivedChannel.name}\u201D`))).toBeVisible();
 
         // # Go back to channel list screen
         await BrowseChannelsScreen.close();
