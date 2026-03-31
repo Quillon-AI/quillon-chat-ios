@@ -206,7 +206,12 @@ beforeAll(async () => {
     // Retry loop with per-attempt timeout. On iOS CI, device.launchApp({newInstance:true})
     // can hang when Detox's internal terminateApp() stalls on iOS 26.x. The timeout
     // ensures we abort quickly enough for the next attempt to fit within 240s.
-    const MAX_LAUNCH_ATTEMPTS = 3;
+    //
+    // MAX_LAUNCH_ATTEMPTS=2 (not 3): each attempt is capped at PER_ATTEMPT_MS=90s.
+    // 3 × 90s = 270s > 240s Jest beforeAll limit, which caused iPad simulator
+    // launch failures where the 3rd attempt started but beforeAll timed out mid-run.
+    // 2 × 90s = 180s comfortably fits within 240s while still giving a full retry.
+    const MAX_LAUNCH_ATTEMPTS = 2;
     for (let attempt = 1; attempt <= MAX_LAUNCH_ATTEMPTS; attempt++) {
         try {
             await withTimeout(
