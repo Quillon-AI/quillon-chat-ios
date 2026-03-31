@@ -102,7 +102,15 @@ class CreateDirectMessageScreen {
         await ChannelListScreen.headerPlusButton.tap();
         await wait(timeouts.ONE_SEC);
         await ChannelListScreen.openDirectMessageItem.tap();
-        return this.toBeVisible();
+        await this.toBeVisible();
+
+        // Dismiss the "Long-press on an item to view a user's profile" tutorial overlay
+        // if it appears. The overlay blocks 50% of the search input on first open and
+        // intercepts taps, causing subsequent interactions to fail. Calling closeTutorial()
+        // here makes the dismissal explicit regardless of the searchInput visibility approach.
+        await this.closeTutorial();
+
+        return this.createDirectMessageScreen;
     };
 
     close = async () => {

@@ -8,7 +8,7 @@ import {
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
 import {timeouts, wait} from '@support/utils';
-import {expect, waitFor} from 'detox';
+import {waitFor} from 'detox';
 
 class ChannelListScreen {
     testID = {
@@ -67,55 +67,63 @@ class ChannelListScreen {
 
     /**
      * Public channel rows can appear under Unreads (when grouped unreads is on), Channels, or
-     * Favorites. Wait until any matching row is visible, then tap the one that is on screen.
+     * Favorites. Wait until any matching row exists, then tap the one that is present.
+     *
+     * Strategy: try the 'channels' category first with the full timeout (most common case).
+     * If that times out, fall back to 'unreads' and 'favorites' with a short probe each.
+     * This avoids the slow 500ms-per-candidate polling loop that was consuming the 30s budget
+     * with repeated false negatives on slower CI runners.
      */
     waitForSidebarPublicChannelDisplayNameVisible = async (channelName: string, timeout = timeouts.HALF_MIN) => {
-        const unreads = this.getChannelItemDisplayName('unreads', channelName);
         const channels = this.getChannelItemDisplayName('channels', channelName);
+        const unreads = this.getChannelItemDisplayName('unreads', channelName);
         const favorites = this.getChannelItemDisplayName('favorites', channelName);
-        const candidates = [unreads, channels, favorites];
-        const deadline = Date.now() + timeout;
-        let lastError: unknown;
-        /* eslint-disable no-await-in-loop -- poll sidebar rows until one is visible */
-        while (Date.now() < deadline) {
-            for (const el of candidates) {
-                try {
-                    // Use toExist() instead of toBeVisible(): on iOS/Android the sidebar row
-                    // may be in the view hierarchy but fail the 50% visible-rect threshold
-                    // (edge-to-edge rendering, partial scroll position). toExist() is
-                    // sufficient to confirm the channel is rendered and tappable.
-                    await waitFor(el).toExist().withTimeout(500);
-                    return;
-                } catch (error) {
-                    lastError = error;
-                }
+
+        // Fast path: channel is in 'channels' category (the common case). Use the full
+        // timeout so slow CI runners have enough time for the sidebar to render.
+        try {
+            await waitFor(channels).toExist().withTimeout(timeout);
+            return;
+        } catch {
+            // Not in channels — may be in unreads or favorites
+        }
+
+        // Fallback: check unreads and favorites with a short probe each
+        /* eslint-disable no-await-in-loop -- sequential fallback probes */
+        for (const el of [unreads, favorites]) {
+            try {
+                await waitFor(el).toExist().withTimeout(timeouts.TWO_SEC);
+                return;
+            } catch {
+                // try next
             }
-            await wait(200);
         }
         /* eslint-enable no-await-in-loop */
-        throw lastError instanceof Error ? lastError : new Error('Sidebar channel display name not visible');
+        throw new Error('Sidebar channel display name not visible');
     };
 
     tapSidebarPublicChannelDisplayName = async (channelName: string, timeout = timeouts.HALF_MIN) => {
         await this.waitForSidebarPublicChannelDisplayNameVisible(channelName, timeout);
-        const unreads = this.getChannelItemDisplayName('unreads', channelName);
         const channels = this.getChannelItemDisplayName('channels', channelName);
+        const unreads = this.getChannelItemDisplayName('unreads', channelName);
         const favorites = this.getChannelItemDisplayName('favorites', channelName);
-        try {
-            await expect(unreads).toExist();
-            await unreads.tap();
-            return;
-        } catch {
-            // try next
+
+        // Tap whichever category actually exists. Use waitFor with a short timeout
+        // rather than instant expect().toExist() to handle the case where the sidebar
+        // re-renders between the wait and the tap (e.g. after device.reloadReactNative).
+        /* eslint-disable no-await-in-loop -- sequential fallback: each probe must complete */
+        for (const el of [channels, unreads, favorites]) {
+            try {
+                await waitFor(el).toExist().withTimeout(timeouts.TWO_SEC);
+                await el.tap();
+                return;
+            } catch {
+                // try next
+            }
         }
-        try {
-            await expect(channels).toExist();
-            await channels.tap();
-            return;
-        } catch {
-            // try next
-        }
-        await favorites.tap();
+        /* eslint-enable no-await-in-loop */
+        // All categories failed — throw a clear error
+        throw new Error(`Sidebar channel item not found for channel: ${channelName}`);
     };
 
     getTeamItemSelected = (teamId: string) => {

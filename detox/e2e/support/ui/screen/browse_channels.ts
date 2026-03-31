@@ -69,7 +69,26 @@ class BrowseChannelsScreen {
         // Using toExist() (not toBeVisible()) also handles the case where a previous
         // test left an alert dimming overlay on top.
         await waitFor(ChannelListScreen.headerPlusButton).toExist().withTimeout(timeouts.HALF_MIN);
-        await ChannelListScreen.headerPlusButton.tap();
+
+        // On iOS, a UITransitionView (navigation animation overlay) can still be running
+        // when the element exists but is not yet hittable. Retry the tap up to 3 times
+        // with a short delay to let the transition complete.
+        let tapError: unknown;
+        /* eslint-disable no-await-in-loop -- sequential retry: each tap must complete before retrying */
+        for (let i = 0; i < 3; i++) {
+            try {
+                await ChannelListScreen.headerPlusButton.tap();
+                tapError = undefined;
+                break;
+            } catch (err) {
+                tapError = err;
+                await wait(timeouts.ONE_SEC);
+            }
+        }
+        /* eslint-enable no-await-in-loop */
+        if (tapError) {
+            throw tapError;
+        }
         await wait(timeouts.ONE_SEC);
         await ChannelListScreen.browseChannelsItem.tap();
 

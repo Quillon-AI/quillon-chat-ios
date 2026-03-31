@@ -7,7 +7,7 @@ import {
     ChannelListScreen,
     ChannelSettingsScreen,
 } from '@support/ui/screen';
-import {isIos, timeouts} from '@support/utils';
+import {isIos, timeouts, wait} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class CreateOrEditChannelScreen {
@@ -66,9 +66,24 @@ class CreateOrEditChannelScreen {
 
         // # Open create channel screen — wait for the button to be hittable before
         // tapping; on iOS a UITransitionView animation overlay can block the tap
-        // if the channel list just appeared.
+        // if the channel list just appeared. Retry up to 3 times with a 1s gap.
         await waitFor(ChannelListScreen.headerPlusButton).toBeVisible().withTimeout(timeouts.HALF_MIN);
-        await ChannelListScreen.headerPlusButton.tap();
+        let tapError: unknown;
+        /* eslint-disable no-await-in-loop -- sequential retry: each tap must complete before retrying */
+        for (let i = 0; i < 3; i++) {
+            try {
+                await ChannelListScreen.headerPlusButton.tap();
+                tapError = undefined;
+                break;
+            } catch (err) {
+                tapError = err;
+                await wait(timeouts.ONE_SEC);
+            }
+        }
+        /* eslint-enable no-await-in-loop */
+        if (tapError) {
+            throw tapError;
+        }
         await ChannelListScreen.createNewChannelItem.tap();
 
         return this.toBeVisible();

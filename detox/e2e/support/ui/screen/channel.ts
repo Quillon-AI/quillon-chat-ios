@@ -18,7 +18,7 @@ import {
     ThreadScreen,
 } from '@support/ui/screen';
 import {isAndroid, isIos, longPressWithScrollRetry, timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 class ChannelScreen {
     testID = {
@@ -307,16 +307,21 @@ class ChannelScreen {
     };
 
     scheduleMessageForTomorrow = async () => {
+        // Wait for the picker option to appear before tapping — the long-press send button
+        // triggers the sheet asynchronously and the option may not be in the hierarchy yet.
+        await waitFor(this.scheduleMessageTomorrowOption).toExist().withTimeout(timeouts.TEN_SEC);
         await this.scheduleMessageTomorrowOption.tap();
         await expect(this.scheduledPostOptionTomorrowSelected).toBeVisible();
     };
 
     scheduleMessageForMonday = async () => {
+        await waitFor(this.scheduleMessageOnMondayOption).toExist().withTimeout(timeouts.TEN_SEC);
         await this.scheduleMessageOnMondayOption.tap();
         await expect(this.scheduledPostOptionMondaySelected).toBeVisible();
     };
 
     scheduleMessageForNextMonday = async () => {
+        await waitFor(this.scheduledPostOptionNextMonday).toExist().withTimeout(timeouts.TEN_SEC);
         await this.scheduledPostOptionNextMonday.tap();
         await expect(this.scheduledPostOptionNextMondaySelected).toBeVisible();
     };
@@ -339,13 +344,13 @@ class ChannelScreen {
             // Friday or Saturday: only "Monday" is available
             await this.scheduleMessageForMonday();
         } else if (day === 1) {
-            // Monday: "Tomorrow" is always available; "Next Monday" may also appear
-            // depending on server configuration, but its testID is not guaranteed.
-            // Use "Tomorrow" so the test is stable on any Monday.
-            await this.scheduleMessageForTomorrow();
+            // Monday: "Tomorrow" and "Next Monday" are available; pick "Next Monday"
+            await this.scheduleMessageForNextMonday();
         } else {
-            // Sunday, Tuesday–Thursday: "Tomorrow" is available
-            await this.scheduleMessageForTomorrow();
+            // Sunday, Tuesday–Thursday: "Tomorrow" is available but may not match on
+            // all CI server locales (moment.weekday() is locale-dependent). Use "Monday"
+            // which is always present as a stable fallback on weekdays.
+            await this.scheduleMessageForMonday();
         }
     };
 
