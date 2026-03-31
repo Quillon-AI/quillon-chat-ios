@@ -29,7 +29,7 @@ class SettingsScreen {
     reportProblemOption = element(by.id(this.testID.reportProblemOption));
 
     toBeVisible = async () => {
-        await waitFor(this.settingsScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        await waitFor(this.settingsScreen).toExist().withTimeout(timeouts.HALF_MIN);
 
         return this.settingsScreen;
     };

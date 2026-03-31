@@ -132,7 +132,11 @@ describe('Threads - Open Thread in Channel', () => {
         await ChannelScreen.toBeVisible();
         await ChannelScreen.dismissScheduledPostTooltip();
         const {postListPostItem: channelPostItem} = ChannelScreen.getPostListPostItem(parentPost.id, parentMessage);
-        await expect(channelPostItem).toBeVisible();
+
+        // Use 50% threshold: on iOS 26.x the message input bar can clip the bottom
+        // post to ~50–74% visible after jumping from a permalink, causing the
+        // default 75% check to fail intermittently.
+        await expect(channelPostItem).toBeVisible(50);
 
         // # Go back to channel list screen
         await ChannelScreen.back();

@@ -92,6 +92,7 @@ describe('Messaging - Markdown Code', () => {
 
         // Scroll the post list to dismiss the keyboard before the visibility check.
         await ChannelScreen.getFlatPostList().scroll(100, 'up', 0.5, 0.5);
+
         // toExist() confirms the code block rendered correctly; toBeVisible(50) is fragile
         // when the message input bar clips a short block below the 50% threshold.
         await expect(postListPostItemCodeBlock).toExist();

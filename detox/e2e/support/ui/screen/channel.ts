@@ -270,7 +270,10 @@ class ChannelScreen {
 
     hasPostMessage = async (postId: string, postMessage: string) => {
         const {postListPostItem} = this.getPostListPostItem(postId, postMessage);
-        await expect(postListPostItem).toBeVisible();
+
+        // Use 50% threshold: on iOS 26.x the message input bar can clip the bottom
+        // post to ~50–74% visible, causing the default 75% check to fail intermittently.
+        await expect(postListPostItem).toBeVisible(50);
     };
 
     hasPostMessageAtIndex = async (index: number, postMessage: string) => {

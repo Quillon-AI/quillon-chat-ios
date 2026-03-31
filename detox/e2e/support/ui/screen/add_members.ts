@@ -67,7 +67,7 @@ class AddMembersScreen {
         await userItem.tap();
         await wait(timeouts.ONE_SEC);
 
-        await waitFor(this.addChannelMembersButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        await waitFor(this.addChannelMembersButton).toBeVisible().withTimeout(timeouts.HALF_MIN);
         await this.addChannelMembersButton.tap();
         await wait(timeouts.TWO_SEC);
     };

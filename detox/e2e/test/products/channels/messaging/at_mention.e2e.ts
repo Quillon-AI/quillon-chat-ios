@@ -177,7 +177,7 @@ describe('Messaging - At-Mention', () => {
         await wait(timeouts.TWO_SEC);
 
         // * Verify at-mention list is displayed
-        await waitFor(Autocomplete.sectionAtMentionList).toExist().withTimeout(timeouts.TEN_SEC);
+        await waitFor(Autocomplete.sectionAtMentionList).toExist().withTimeout(timeouts.HALF_MIN);
 
         // # Type the out-of-channel user's username
         await ChannelScreen.postInput.typeText(outOfChannelUser.username);

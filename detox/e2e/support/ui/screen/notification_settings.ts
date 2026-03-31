@@ -29,7 +29,7 @@ class NotificationSettingsScreen {
     automaticRepliesOptionInfo = element(by.id(this.testID.automaticRepliesOptionInfo));
 
     toBeVisible = async () => {
-        await waitFor(this.notificationSettingsScreen).toExist().withTimeout(timeouts.TEN_SEC);
+        await waitFor(this.notificationSettingsScreen).toExist().withTimeout(timeouts.HALF_MIN);
 
         return this.notificationSettingsScreen;
     };

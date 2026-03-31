@@ -238,7 +238,9 @@ describe('Channels - Browse Channels', () => {
         await BrowseChannelsScreen.searchClearButton.tap();
 
         // * Verify search input is cleared (flat list is visible again)
-        await expect(BrowseChannelsScreen.flatChannelList).toBeVisible();
+        // Use 50% threshold: on iOS 26.x the search bar area clips the flat list
+        // to ~50–74% of the screen, causing the default 75% check to fail.
+        await expect(BrowseChannelsScreen.flatChannelList).toBeVisible(50);
 
         // # Search for the channel again
         await BrowseChannelsScreen.searchInput.replaceText(unjoinedChannel.name);

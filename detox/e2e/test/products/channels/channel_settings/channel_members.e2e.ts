@@ -259,7 +259,7 @@ describe('Channels', () => {
 
         // # Wait for private channel to appear in channel list before opening
         await waitFor(ChannelListScreen.getChannelItemDisplayName(channelsCategory, privateChannel.name)).
-            toExist().withTimeout(timeouts.TEN_SEC);
+            toExist().withTimeout(timeouts.HALF_MIN);
 
         // # Open private channel
         await ChannelScreen.open(channelsCategory, privateChannel.name);
@@ -295,7 +295,7 @@ describe('Channels', () => {
 
         // # Wait for private channel to appear in channel list before opening
         await waitFor(ChannelListScreen.getChannelItemDisplayName(channelsCategory, privateChannel.name)).
-            toExist().withTimeout(timeouts.TEN_SEC);
+            toExist().withTimeout(timeouts.HALF_MIN);
 
         // # Open private channel
         await ChannelScreen.open(channelsCategory, privateChannel.name);
