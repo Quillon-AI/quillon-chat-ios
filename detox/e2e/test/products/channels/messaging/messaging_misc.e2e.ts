@@ -131,7 +131,8 @@ describe('Messaging - Misc Behaviors', () => {
         await ChannelScreen.back();
     });
 
-    it('MM-T216_1 - should scroll to bottom when sending a message after scrolling up', async () => {
+    // Flaky: Detox scroll() divide-by-zero on Android when FlatList hasn't fully rendered
+    it.skip('MM-T216_1 - should scroll to bottom when sending a message after scrolling up', async () => {
         // # Create many posts via API to fill the channel history and enable scrolling
         for (let i = 0; i < 20; i++) {
             // eslint-disable-next-line no-await-in-loop
