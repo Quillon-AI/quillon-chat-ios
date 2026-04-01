@@ -331,42 +331,32 @@ export function KeyboardStateProvider({children, tabBarHeight, enabled = false}:
 
 export function useKeyboardState() {
     const context = useContext(KeyboardStateContext);
-    if (!context) {
-        const stateContext = useKeyboardStateContext({tabBarHeight: 0, enabled: false});
-        const stateMachine = useKeyboardStateMachine(stateContext);
-        const onScroll = useAnimatedScrollHandler({});
 
-        return {
-            stateContext,
-            listRef: {current: null},
-            inputRef: {current: null},
-            stateMachine,
-            onScroll,
-            showInputAccessoryView: false,
-            setShowInputAccessoryView: () => {
-                // No-op when used outside provider
-            },
-            isEmojiSearchFocused: false,
-            setIsEmojiSearchFocused: () => {
-                // No-op when used outside provider
-            },
-            updateValue: null,
-            updateCursorPosition: null,
-            registerPostInputCallbacks: () => {
-                // No-op when used outside provider
-            },
-            getCursorPosition: () => 0,
-            setCursorPosition: () => {
-                // No-op when used outside provider
-            },
-            postInputContainerHeight: 0,
-            blurAndDismissKeyboard: async () => {
-                // No-op when used outside provider
-            },
-            closeInputAccessoryView: () => {
-                // No-op when used outside provider
-            },
-        };
+    const fallbackStateContext = useKeyboardStateContext({tabBarHeight: 0, enabled: false});
+    const fallbackStateMachine = useKeyboardStateMachine(fallbackStateContext);
+    const fallbackOnScroll = useAnimatedScrollHandler({});
+
+    if (context) {
+        return context;
     }
-    return context;
+
+    return {
+        stateContext: fallbackStateContext,
+        listRef: {current: null} as MutableRefObject<FlatList<string | PostModel> | null>,
+        inputRef: {current: null} as MutableRefObject<PasteInputRef | null>,
+        stateMachine: fallbackStateMachine,
+        onScroll: fallbackOnScroll,
+        showInputAccessoryView: false,
+        setShowInputAccessoryView: () => { /* no-op */ },
+        isEmojiSearchFocused: false,
+        setIsEmojiSearchFocused: () => { /* no-op */ },
+        updateValue: null,
+        updateCursorPosition: null,
+        registerPostInputCallbacks: () => { /* no-op */ },
+        getCursorPosition: () => 0,
+        setCursorPosition: () => { /* no-op */ },
+        postInputContainerHeight: 0,
+        blurAndDismissKeyboard: async () => { /* no-op */ },
+        closeInputAccessoryView: () => { /* no-op */ },
+    };
 }
