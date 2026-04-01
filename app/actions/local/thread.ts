@@ -173,9 +173,10 @@ export async function createThreadFromNewPost(serverUrl: string, post: Post, pre
             const existingThread = await getThreadById(database, post.root_id);
 
             if (existingThread) {
-                // Update the thread data: `reply_count`
+                // Update the thread data: `reply_count` and auto-follow (replying auto-follows the thread)
                 const {model: threadModel} = await updateThread(serverUrl, post.root_id, {
                     reply_count: post.reply_count,
+                    is_following: true,
                 }, true);
                 if (threadModel) {
                     models.push(threadModel);
