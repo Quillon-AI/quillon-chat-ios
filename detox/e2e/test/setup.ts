@@ -183,6 +183,7 @@ beforeAll(async () => {
     async function launchAndVerify(): Promise<void> {
         await device.launchApp({
             newInstance: true,
+
             // permissions intentionally omitted — pre-granted once in the CI workflow via
             // `xcrun simctl privacy` after app install. Running simctl privacy on every
             // beforeAll was adding 24–35s per test file on iOS 26.x CI runners.

@@ -57,6 +57,7 @@ describe('Messaging - Message Permalink Preview', () => {
 
     const expectPermalinkPreviewVisible = async (message: string, channelName: string) => {
         const container = element(by.id('permalink-preview-container'));
+
         // Use TEN_SEC: posting a permalink URL triggers a server fetch + re-render that
         // can exceed 4s on a loaded CI runner, causing intermittent timeouts.
         await waitFor(container).toBeVisible().withTimeout(timeouts.TEN_SEC);
