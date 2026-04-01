@@ -143,14 +143,20 @@ describe('Channels', () => {
         // # Archive the channel
         await ChannelSettingsScreen.archivePublicChannel({confirm: true});
 
-        // * Verify channel info screen is closed
-        await wait(timeouts.TWO_SEC);
-        await expect(ChannelInfoScreen.channelInfoScreen).not.toBeVisible();
+        // After archiving with ExperimentalViewArchivedChannels=true (the default), the app
+        // calls dismissModal(channelSettings) which dismisses the entire ChannelInfo modal
+        // stack (ChannelInfo + ChannelSettings), returning to the channel screen in archived
+        // (read-only) state. popToRoot() is NOT called in this code path — the channel list
+        // is NOT automatically shown. The test must explicitly navigate back.
+        //
+        // * Verify the channel screen now shows the archived (read-only) state
+        await expect(ChannelScreen.postDraftArchivedCloseChannelButton).toBeVisible();
+
+        // # Navigate back from the archived channel to the channel list
+        await ChannelScreen.back();
 
         // * Verify we're back at channel list
-        // Use ONE_MIN: post-archive navigation on API 35 emulators can take >30s
-        // (the default HALF_MIN) to dismiss the settings stack and render the list.
-        await ChannelListScreen.toBeVisible(timeouts.ONE_MIN);
+        await ChannelListScreen.toBeVisible();
 
         // * Verify archived channel is not visible in the list
         await expect(ChannelListScreen.getChannelItemDisplayName(channelsCategory, archiveChannel.name)).not.toBeVisible();
