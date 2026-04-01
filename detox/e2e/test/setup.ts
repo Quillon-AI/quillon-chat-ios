@@ -158,7 +158,12 @@ beforeAll(async () => {
     // 2) Detox's delete:true on subsequent files occasionally fails to fully
     //    clear data on CI emulators (observed: app shows channel list instead
     //    of server screen after delete:true).
+    // We force-stop first so pm clear can safely wipe the data directory while
+    // the app is not holding any open file handles.
     if (device.getPlatform() === 'android') {
+        try {
+            execSync(`adb shell am force-stop ${BUNDLE_ID}`, {stdio: 'pipe'});
+        } catch { /* app may not be running */ }
         try {
             execSync(`adb shell pm clear ${BUNDLE_ID}`, {stdio: 'pipe'});
         } catch {
@@ -176,7 +181,34 @@ beforeAll(async () => {
     // and WebSocket connect takes ~8s. Under CPU contention these can spike higher.
     // 90s gives sufficient headroom for worst-case conditions.
     const PER_ATTEMPT_MS = 90_000;
-    const APP_READY_TIMEOUT = 30_000;
+
+    // Android CI emulators cold-start more slowly than iOS simulators, especially
+    // after adb shell pm clear wipes the data directory. Use a longer ready-timeout
+    // on Android to avoid spurious launch failures that cause the cascade described
+    // in the "logout-failure cascade" bug: if pm clear silently fails (adb glitch),
+    // the app may launch in a logged-in state (channel_list) instead of server.screen.
+    // The detection logic below handles that case explicitly.
+    const APP_READY_TIMEOUT = device.getPlatform() === 'android' ? 60_000 : 30_000;
+
+    // Force-clear Android app data via adb before each launch attempt.
+    // This is a stronger reset than pm clear alone: we stop the app, clear its
+    // data, and grant notification permission fresh so the app always starts
+    // in a clean, logged-out state.
+    async function forceAndroidDataClear(): Promise<void> {
+        if (device.getPlatform() !== 'android') {
+            return;
+        }
+        try {
+            // Stop the app process first so pm clear can safely wipe its data dir.
+            execSync(`adb shell am force-stop ${BUNDLE_ID}`, {stdio: 'pipe'});
+        } catch { /* app may not be running */ }
+        try {
+            execSync(`adb shell pm clear ${BUNDLE_ID}`, {stdio: 'pipe'});
+            console.info('[forceAndroidDataClear] pm clear succeeded');
+        } catch (e) {
+            console.warn('[forceAndroidDataClear] pm clear failed:', String(e).slice(0, 200));
+        }
+    }
 
     async function launchAndVerify(): Promise<void> {
         await device.launchApp({
@@ -190,7 +222,61 @@ beforeAll(async () => {
             launchArgs,
         });
         grantAndroidNotificationPermission();
-        await waitFor(element(by.id('server.screen'))).toExist().withTimeout(APP_READY_TIMEOUT);
+
+        // Wait for EITHER server.screen (clean state) or channel_list.screen
+        // (logged-in state, meaning pm clear did not take effect).
+        // We poll with short waitFor() calls so we detect either outcome quickly
+        // without blocking for the full APP_READY_TIMEOUT on each individual check.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const {expect: detoxExpect} = require('detox');
+        const serverScreenEl = element(by.id('server.screen'));
+        const channelListEl = element(by.id('channel_list.screen'));
+
+        let detectedScreen: 'server' | 'channel_list' | null = null;
+        const pollInterval = 1_000;
+        const deadline = Date.now() + APP_READY_TIMEOUT;
+
+        while (Date.now() < deadline) {
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await detoxExpect(serverScreenEl).toExist();
+                detectedScreen = 'server';
+                break;
+            } catch { /* not yet */ }
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await detoxExpect(channelListEl).toExist();
+                detectedScreen = 'channel_list';
+                break;
+            } catch { /* not yet */ }
+            // eslint-disable-next-line no-await-in-loop
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        }
+
+        if (detectedScreen === 'channel_list') {
+            // The app launched in a logged-in state — pm clear did not take effect.
+            // Force-stop + pm clear + relaunch to get a truly clean state.
+            console.warn(
+                '[launchAndVerify] App launched in logged-in state (channel_list visible). ' +
+                'pm clear did not take effect. Retrying with force-stop + pm clear.',
+            );
+            await forceAndroidDataClear();
+            await device.launchApp({newInstance: true, launchArgs});
+            grantAndroidNotificationPermission();
+
+            // Now wait strictly for server.screen — if it still doesn't appear, let the
+            // outer retry loop handle it.
+            await waitFor(serverScreenEl).toExist().withTimeout(APP_READY_TIMEOUT);
+        } else if (detectedScreen === null) {
+
+            // Neither screen appeared within APP_READY_TIMEOUT — throw so the retry
+            // loop can attempt a fresh launch.
+            throw new Error(
+                `[launchAndVerify] Neither server.screen nor channel_list.screen appeared within ${APP_READY_TIMEOUT / 1000}s`,
+            );
+        }
+
+        // detectedScreen === 'server' → happy path, nothing more to do
     }
 
     if (isFirstFile) {
