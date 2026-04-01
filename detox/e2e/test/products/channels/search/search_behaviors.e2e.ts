@@ -202,6 +202,15 @@ describe('Search - Search Behaviors', () => {
         await SearchMessagesScreen.searchInput.tapReturnKey();
         await wait(timeouts.TWO_SEC);
 
+        // # Scroll the results list down to dismiss the keyboard and bring the result fully into
+        // view — after tapReturnKey the soft keyboard can still be raised on Android, which
+        // covers the bottom of the list and causes the 50%-visibility check to fail.
+        try {
+            await SearchMessagesScreen.getFlatPostList().scroll(100, 'down', 0.5, 0.5);
+        } catch {
+            // List too short to scroll — result is already fully visible
+        }
+
         // * Verify the DM message appears in search results
         const {postListPostItem} = SearchMessagesScreen.getPostListPostItem(dmPost.id, dmMessage);
         await expect(postListPostItem).toBeVisible();

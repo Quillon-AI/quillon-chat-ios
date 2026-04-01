@@ -3,7 +3,7 @@
 
 import React, {useCallback, useMemo, useState} from 'react';
 import {useIntl} from 'react-intl';
-import {type LayoutChangeEvent, useWindowDimensions, View} from 'react-native';
+import {type LayoutChangeEvent, ScrollView, useWindowDimensions, View} from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import Markdown from '@components/markdown';
@@ -112,29 +112,36 @@ const Message = ({
     return (
         <>
             <Animated.View style={animatedStyle}>
-                <View
-                    style={[style.messageContainer, (isReplyPost && style.reply), (isPendingOrFailed && style.pendingPost)]}
-                    onLayout={onLayout}
+                <ScrollView
+                    keyboardShouldPersistTaps={'always'}
+                    scrollEnabled={false}
+                    showsVerticalScrollIndicator={false}
+                    showsHorizontalScrollIndicator={false}
                 >
-                    <Markdown
-                        baseTextStyle={style.message}
-                        channelId={post.channelId}
-                        channelMentions={channelMentions}
-                        imagesMetadata={post.metadata?.images}
-                        isEdited={isEdited}
-                        isReplyPost={isReplyPost}
-                        isSearchResult={location === SEARCH}
-                        layoutWidth={layoutWidth}
-                        location={location}
-                        postId={post.id}
-                        value={message}
-                        mentionKeys={mentionKeys}
-                        highlightKeys={highlightKeys}
-                        searchPatterns={searchPatterns}
-                        theme={theme}
-                        isUnsafeLinksPost={Boolean(post.props?.unsafe_links && post.props.unsafe_links !== '')}
-                    />
-                </View>
+                    <View
+                        style={[style.messageContainer, (isReplyPost && style.reply), (isPendingOrFailed && style.pendingPost)]}
+                        onLayout={onLayout}
+                    >
+                        <Markdown
+                            baseTextStyle={style.message}
+                            channelId={post.channelId}
+                            channelMentions={channelMentions}
+                            imagesMetadata={post.metadata?.images}
+                            isEdited={isEdited}
+                            isReplyPost={isReplyPost}
+                            isSearchResult={location === SEARCH}
+                            layoutWidth={layoutWidth}
+                            location={location}
+                            postId={post.id}
+                            value={message}
+                            mentionKeys={mentionKeys}
+                            highlightKeys={highlightKeys}
+                            searchPatterns={searchPatterns}
+                            theme={theme}
+                            isUnsafeLinksPost={Boolean(post.props?.unsafe_links && post.props.unsafe_links !== '')}
+                        />
+                    </View>
+                </ScrollView>
             </Animated.View>
             {(height || 0) > maxHeight &&
             <ShowMoreButton

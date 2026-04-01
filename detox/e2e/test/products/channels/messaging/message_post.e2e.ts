@@ -22,8 +22,8 @@ import {
     LoginScreen,
     ServerScreen,
 } from '@support/ui/screen';
-import {getRandomId, timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {getRandomId, isAndroid, timeouts, wait} from '@support/utils';
+import {expect, waitFor} from 'detox';
 
 describe('Messaging - Message Post', () => {
     const serverOneDisplayName = 'Server 1';
@@ -90,14 +90,23 @@ describe('Messaging - Message Post', () => {
         // removing the show_more element from the view hierarchy entirely)
         const {postListPostItem, postListPostItemShowLessButton, postListPostItemShowMoreButton} = ChannelScreen.getPostListPostItem(post.id, longMessage);
         await expect(postListPostItem).toBeVisible();
-        await expect(postListPostItemShowMoreButton).toBeVisible();
+
+        // # On Android the keyboard can remain open after sending, which compresses the FlatList
+        // and pushes the show-more button behind the draft input bar. Dismiss it first.
+        // The show-more button also requires multiple layout cycles to appear (post body measures
+        // layoutWidth, then message re-renders at correct width, then onLayout sets height),
+        // so wait up to 10s for it to become visible.
+        if (isAndroid()) {
+            await device.pressBack();
+        }
+        await waitFor(postListPostItemShowMoreButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
         // # Tap on show more button on long message post
         await postListPostItemShowMoreButton.tap();
         await wait(timeouts.TWO_SEC);
 
         // * Verify long message post displays show less button (chevron up button)
-        await expect(postListPostItemShowLessButton).toBeVisible();
+        await waitFor(postListPostItemShowLessButton).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
         // # Post a short message and go back to channel list screen
         await ChannelScreen.postMessage('short message');
