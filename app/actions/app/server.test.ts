@@ -161,7 +161,6 @@ describe('switchToServerAndLogin', () => {
 
         const callback = jest.fn();
         await Actions.switchToServerAndLogin('serverUrl', theme, intl, callback);
-        await Actions.switchToServerAndLogin('serverUrl', theme, intl, jest.fn());
 
         expect(canReceiveNotifications).toHaveBeenCalledWith('serverUrl', undefined, intl);
         expect(callback).toHaveBeenCalledWith({config, license});
