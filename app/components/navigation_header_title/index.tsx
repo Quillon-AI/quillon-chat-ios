@@ -1,8 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React from 'react';
-import {Platform, Text, View} from 'react-native';
+import React, {useMemo} from 'react';
+import {Platform, Pressable, Text, View} from 'react-native';
 
 import {useTheme} from '@context/theme';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
@@ -11,6 +11,8 @@ import {typography} from '@utils/typography';
 type Props = {
     title: string;
     subtitle?: string;
+    subtitleElement?: React.ReactNode;
+    onPress?: () => void;
 }
 
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
@@ -31,14 +33,33 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
     };
 });
 
-export default function NavigationHeaderTitle({title, subtitle}: Props) {
+export default function NavigationHeaderTitle({title, subtitle, subtitleElement, onPress}: Props) {
     const theme = useTheme();
     const styles = getStyleSheet(theme);
 
+    const Subtitle = useMemo(() => {
+        if (subtitle && subtitleElement) {
+            return (
+                <View>
+                    <Text style={styles.subtitle}>{subtitle}</Text>
+                    {subtitleElement}
+                </View>
+            );
+        } else if (subtitle) {
+            return <Text style={styles.subtitle}>{subtitle}</Text>;
+        }
+
+        return null;
+    }, [styles.subtitle, subtitle, subtitleElement]);
+
     return (
-        <View style={styles.container}>
+        <Pressable
+            style={({pressed}) => [styles.container, pressed && {opacity: 0.72}]}
+            disabled={!onPress}
+            onPress={onPress}
+        >
             <Text style={styles.title}>{title}</Text>
-            {Boolean(subtitle) && <Text style={styles.subtitle}>{subtitle}</Text>}
-        </View>
+            {Subtitle}
+        </Pressable>
     );
 }

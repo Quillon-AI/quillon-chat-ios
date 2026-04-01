@@ -477,6 +477,7 @@ jest.mock('react-native-keyboard-controller', () => {
     return {
         KeyboardProvider: ({children}: {children: React.ReactNode}) => children,
         useKeyboardHandler: jest.fn(),
+        useReanimatedFocusedInput: jest.fn(() => ({input: {value: null}})),
         useKeyboardState: jest.fn(() => ({
             isVisible: false,
         })),

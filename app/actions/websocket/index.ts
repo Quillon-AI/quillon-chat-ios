@@ -13,6 +13,8 @@ import {deferredAppEntryActions} from '@actions/remote/entry/deferred';
 import {fetchPostsForChannel, fetchPostThread} from '@actions/remote/post';
 import {openAllUnreadChannels} from '@actions/remote/preference';
 import {autoUpdateTimezone} from '@actions/remote/user';
+import {checkIsAgentsPluginEnabled} from '@agents/actions/remote/agents_status';
+import {handleAgentsReconnect} from '@agents/actions/websocket/reconnect';
 import {loadConfigAndCalls} from '@calls/actions/calls';
 import {isSupportedServerCalls} from '@calls/utils';
 import {Screens} from '@constants';
@@ -90,10 +92,13 @@ async function doReconnect(serverUrl: string, groupLabel?: BaseRequestGroupLabel
     const config = await getConfig(database);
 
     handlePlaybookReconnect(serverUrl);
+    handleAgentsReconnect(serverUrl);
 
     if (isSupportedServerCalls(config?.Version)) {
         loadConfigAndCalls(serverUrl, currentUserId, groupLabel);
     }
+
+    checkIsAgentsPluginEnabled(serverUrl);
 
     await deferredAppEntryActions(serverUrl, lastFullSync, currentUserId, currentUserLocale, prefData.preferences, config, license, teamData, chData, meData, initialTeamId, undefined, groupLabel);
 

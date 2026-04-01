@@ -2,8 +2,8 @@
 // See LICENSE.txt for license information.
 
 import BottomSheetM, {BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView, type BottomSheetBackdropProps} from '@gorhom/bottom-sheet';
-import React, {type ReactNode, useCallback, useEffect, useMemo, useRef} from 'react';
-import {DeviceEventEmitter, type Handle, InteractionManager, Keyboard, type StyleProp, View, type ViewStyle} from 'react-native';
+import React, {forwardRef, type ReactNode, useCallback, useEffect, useImperativeHandle, useMemo, useRef} from 'react';
+import {DeviceEventEmitter, type Handle, InteractionManager, type StyleProp, View, type ViewStyle} from 'react-native';
 import {ReduceMotion, useReducedMotion, type WithSpringConfig} from 'react-native-reanimated';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
@@ -14,6 +14,7 @@ import {useBottomSheetListsFix} from '@hooks/bottom_sheet_lists_fix';
 import {navigateBack} from '@screens/navigation';
 import BottomSheetStore from '@store/bottom_sheet_store';
 import {hapticFeedback} from '@utils/general';
+import {dismissKeyboard} from '@utils/keyboard';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 
 import EmptyBottomSheetFooter from './footer';
@@ -23,6 +24,10 @@ import type {AvailableScreens} from '@typings/screens/navigation';
 
 export {default as BottomSheetButton, BUTTON_HEIGHT} from './button';
 export {default as BottomSheetContent, TITLE_HEIGHT} from './content';
+
+export type BottomSheetRef = {
+    close: () => void;
+};
 
 type Props = {
     screen: AvailableScreens;
@@ -34,6 +39,8 @@ type Props = {
     enableDynamicSizing?: boolean;
     testID?: string;
     scrollable?: boolean;
+    keyboardBehavior?: 'extend' | 'fillParent' | 'interactive';
+    keyboardBlurBehavior?: 'none' | 'restore';
 }
 
 const PADDING_TOP_MOBILE = 20;
@@ -84,7 +91,7 @@ export const animatedConfig: Omit<WithSpringConfig, 'velocity'> = {
     restDisplacementThreshold: 0.3,
 };
 
-const BottomSheet = ({
+const BottomSheet = forwardRef<BottomSheetRef, Props>(({
     screen,
     contentStyle,
     initialSnapIndex = 1,
@@ -94,7 +101,9 @@ const BottomSheet = ({
     testID,
     enableDynamicSizing = false,
     scrollable = false,
-}: Props) => {
+    keyboardBehavior = 'extend',
+    keyboardBlurBehavior = 'restore',
+}: Props, ref) => {
     const isClosing = useRef(false);
     const reducedMotion = useReducedMotion();
     const sheetRef = useRef<BottomSheetM>(null);
@@ -123,13 +132,14 @@ const BottomSheet = ({
     }, []);
 
     useEffect(() => {
-        const listener = DeviceEventEmitter.addListener(Events.CLOSE_BOTTOM_SHEET, () => {
+        const listenerfn = () => {
             if (sheetRef.current) {
                 sheetRef.current.close();
             } else if (!isClosing.current) {
                 close();
             }
-        });
+        };
+        const listener = DeviceEventEmitter.addListener(Events.CLOSE_BOTTOM_SHEET, listenerfn);
 
         return () => listener.remove();
     }, [close]);
@@ -171,7 +181,7 @@ const BottomSheet = ({
 
     useEffect(() => {
         hapticFeedback();
-        Keyboard.dismiss();
+        dismissKeyboard();
 
         return () => {
             if (timeoutRef.current) {
@@ -183,6 +193,16 @@ const BottomSheet = ({
             }
         };
     }, []);
+
+    useImperativeHandle(ref, () => ({
+        close: () => {
+            if (sheetRef.current) {
+                sheetRef.current.close();
+            } else if (!isClosing.current) {
+                close();
+            }
+        },
+    }), [close]);
 
     const renderBackdrop = useCallback((props: BottomSheetBackdropProps) => {
         return (
@@ -240,8 +260,8 @@ const BottomSheet = ({
             handleStyle={styles.indicatorContainer}
             backgroundStyle={styles.bottomSheetBackground}
             footerComponent={footerComponent || EmptyBottomSheetFooter}
-            keyboardBehavior='extend'
-            keyboardBlurBehavior='restore'
+            keyboardBehavior={keyboardBehavior}
+            keyboardBlurBehavior={keyboardBlurBehavior}
             onClose={onBottomSheetClose}
             bottomInset={insets.bottom}
             enableDynamicSizing={enableDynamicSizing}
@@ -251,6 +271,8 @@ const BottomSheet = ({
             </View>
         </BottomSheetM>
     );
-};
+});
+
+BottomSheet.displayName = 'BottomSheet';
 
 export default BottomSheet;

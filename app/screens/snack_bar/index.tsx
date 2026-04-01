@@ -9,6 +9,7 @@ import {FullWindowOverlay} from 'react-native-screens';
 
 import {Navigation} from '@constants';
 import {withServerDatabase} from '@database/components';
+import useDidMount from '@hooks/did_mount';
 import SnackBarStore from '@store/snackbar_store';
 
 import SnackBar from './snack_bar';
@@ -18,10 +19,10 @@ function SnackBarContainer() {
     const pathname = usePathname();
 
     // Subscribe to store changes
-    useEffect(() => {
+    useDidMount(() => {
         const sub = SnackBarStore.observe().subscribe(setState);
         return () => sub.unsubscribe();
-    }, []);
+    });
 
     // Auto-dismiss on navigation changes
     useEffect(() => {

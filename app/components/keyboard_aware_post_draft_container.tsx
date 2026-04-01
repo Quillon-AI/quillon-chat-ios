@@ -172,6 +172,7 @@ export const KeyboardAwarePostDraftContainer = ({
     // On Android, marginBottom is used instead and doesn't require scroll adjustment
     useEffect(() => {
         if (showInputAccessoryView) {
+
             // Wait one frame to ensure emoji picker has rendered
             requestAnimationFrame(() => {
                 // Use targetHeight instead of inputAccessoryHeight because inputAccessoryHeight

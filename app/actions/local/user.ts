@@ -5,7 +5,7 @@ import {SYSTEM_IDENTIFIERS} from '@constants/database';
 import DatabaseManager from '@database/manager';
 import {DEFAULT_LOCALE} from '@i18n';
 import {getRecentCustomStatuses} from '@queries/servers/system';
-import {getCurrentUser, getUserById} from '@queries/servers/user';
+import {getCurrentUser, getUserById, queryUsersById} from '@queries/servers/user';
 import {logError} from '@utils/log';
 
 import {addRecentReaction} from './reactions';
@@ -170,4 +170,34 @@ export const getCurrentUserLocale = async (serverUrl: string): Promise<string> =
     } catch {
         return DEFAULT_LOCALE;
     }
+};
+
+export const getExistingUserProfilesByIdWithFallback = async (serverUrl: string, userIds: string[]): Promise<Record<string, UserProfile>> => {
+    const result: Record<string, UserProfile> = {};
+
+    try {
+        const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+        const users = await queryUsersById(database, userIds).fetch();
+        const userMap = new Map<string, UserProfile>();
+        for (const user of users) {
+            userMap.set(user.id, user.toAPI());
+        }
+
+        for (const id of userIds) {
+            const user = userMap.get(id);
+            if (user) {
+                result[id] = user;
+            } else {
+                // Fallback for users not found in database
+                result[id] = {id, username: '', first_name: '', last_name: ''} as UserProfile;
+            }
+        }
+    } catch (error) {
+        logError('Failed getExistingUserProfilesByIdWithFallback', error);
+        for (const id of userIds) {
+            result[id] = {id, username: '', first_name: '', last_name: ''} as UserProfile;
+        }
+    }
+
+    return result;
 };

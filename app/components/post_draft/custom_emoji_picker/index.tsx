@@ -90,7 +90,7 @@ const CustomEmojiPicker: React.FC = () => {
         // This ensures the next rapid click uses the updated position
         setCursorPosition(newCursorPosition);
 
-        // Update cursor position state (for Android and to keep state in sync)
+        // Update cursor position state
         updateCursorPosition(newCursorPosition);
 
         const insertEmoji = (v: string): string => {

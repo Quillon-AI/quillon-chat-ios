@@ -25,7 +25,7 @@ import {useInputPropagation} from '@hooks/input';
 import DraftEditPostUploadManager from '@managers/draft_upload_manager';
 import PostError from '@screens/edit_post/post_error';
 import {navigateBack} from '@screens/navigation';
-import {fileMaxWarning, fileSizeWarning, uploadDisabledWarning} from '@utils/file';
+import {fileMaxWarning, fileSizeWarning, getUploadErrorMessage, uploadDisabledWarning} from '@utils/file';
 
 import EditPostInput from './edit_post_input';
 
@@ -158,6 +158,10 @@ const EditPost = ({
         });
     }, []);
 
+    const handleUploadError = useCallback((errorMessage: string, errorName?: string) => {
+        setErrorLine(getUploadErrorMessage(intl, errorMessage, errorName));
+    }, [intl]);
+
     const addFiles = useCallback((newFiles: FileInfo[]) => {
         if (!newFiles.length) {
             return;
@@ -194,14 +198,14 @@ const EditPost = ({
                 true, // isEditPost = true
                 updateFileInPostFiles,
             );
-            uploadErrorHandlers.current[file.clientId!] = DraftEditPostUploadManager.registerErrorHandler(file.clientId!, setErrorLine);
+            uploadErrorHandlers.current[file.clientId!] = DraftEditPostUploadManager.registerErrorHandler(file.clientId!, handleUploadError);
         }
 
         const currentMessageTooLong = postMessage.length > maxPostSize;
         if (!currentMessageTooLong) {
             setErrorLine(undefined);
         }
-    }, [canUploadFiles, postFiles?.length, maxFileCount, setErrorLine, intl, maxFileSize, serverUrl, post.channelId, post.rootId, updateFileInPostFiles, postMessage, maxPostSize]);
+    }, [canUploadFiles, postFiles?.length, maxFileCount, setErrorLine, intl, maxFileSize, serverUrl, post.channelId, post.rootId, updateFileInPostFiles, postMessage, maxPostSize, handleUploadError]);
 
     const handleFileRemoval = useCallback((id: string) => {
         const fileToRemove = postFiles?.find((file) => {
@@ -298,10 +302,10 @@ const EditPost = ({
 
         for (const file of loadingFiles) {
             if (file.clientId && !uploadErrorHandlers.current[file.clientId]) {
-                uploadErrorHandlers.current[file.clientId] = DraftEditPostUploadManager.registerErrorHandler(file.clientId, setErrorLine);
+                uploadErrorHandlers.current[file.clientId] = DraftEditPostUploadManager.registerErrorHandler(file.clientId, handleUploadError);
             }
         }
-    }, [postFiles, postMessage, setErrorLine, shouldEnableSaveButton]);
+    }, [handleUploadError, postFiles, postMessage, setErrorLine, shouldEnableSaveButton]);
 
     const onChangeTextCommon = useCallback((message: string) => {
         const tooLong = message.length > maxPostSize;

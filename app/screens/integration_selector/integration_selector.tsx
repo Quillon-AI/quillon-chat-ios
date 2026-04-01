@@ -7,6 +7,7 @@ import {defineMessages, useIntl} from 'react-intl';
 import {View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
+import {getExistingUserProfilesByIdWithFallback} from '@actions/local/user';
 import {fetchChannels, searchChannels} from '@actions/remote/channel';
 import {fetchProfiles, searchProfiles} from '@actions/remote/user';
 import FormattedText from '@components/formatted_text';
@@ -17,6 +18,7 @@ import {General, Screens, View as ViewConstants} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
+import useDidMount from '@hooks/did_mount';
 import {useDebounce} from '@hooks/utils';
 import {navigateBack} from '@screens/navigation';
 import SettingsStore from '@store/settings_store';
@@ -282,6 +284,7 @@ function IntegrationSelector({
     }, [getChannels, dataSource]);
 
     const searchDynamicOptions = useCallback(async (searchTerm = '') => {
+
         if (filteredOptions && filteredOptions !== integrationData && !searchTerm) {
             setIntegrationData(filteredOptions);
         }
@@ -292,6 +295,7 @@ function IntegrationSelector({
         }
 
         const results: DialogOption[] = await getDynamicOptions(searchTerm.toLowerCase());
+
         const searchData = results || [];
 
         if (searchTerm) {
@@ -317,8 +321,15 @@ function IntegrationSelector({
         if (dataSource === ViewConstants.DATA_SOURCE_USERS) {
             // New multiselect
             selectCallback?.(Object.values(selectedIds) as UserProfile[]);
+        } else if (dataSource === ViewConstants.DATA_SOURCE_CHANNELS) {
+            // For channels, combine both previously selected (selectedIds) and newly selected (multiselectSelected)
+            const allSelected = [
+                ...Object.values(selectedIds) as Channel[],
+                ...Object.values(multiselectSelected) as Channel[],
+            ];
+            selectCallback?.(allSelected);
         } else {
-            // Legacy multiselect
+            // Legacy multiselect for regular options
             selectCallback?.(Object.values(multiselectSelected));
         }
         close();
@@ -372,17 +383,14 @@ function IntegrationSelector({
         };
     }, []);
 
-    useEffect(() => {
+    useDidMount(() => {
         if (dataSource === ViewConstants.DATA_SOURCE_CHANNELS) {
             getChannels();
         } else {
             // Static and dynamic option search
             searchDynamicOptions('');
         }
-
-        // We only want to get the channels on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 
     useEffect(() => {
         let listData: DataTypeList = integrationData;
@@ -423,6 +431,50 @@ function IntegrationSelector({
             SettingsStore.removeIntegrationsDynamicOptionsCallback();
         };
     }, []);
+
+    useEffect(() => {
+        const multiselectItems: MultiselectSelectedMap = {};
+
+        if (isMultiselect && Array.isArray(selected) && !([ViewConstants.DATA_SOURCE_USERS, ViewConstants.DATA_SOURCE_CHANNELS].includes(dataSource))) {
+            for (const value of selected) {
+                const option = filteredOptions?.find((opt) => opt.value === value);
+                if (option) {
+                    multiselectItems[value] = option;
+                }
+            }
+
+            setMultiselectSelected(multiselectItems);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only initialize on mount - values are from props and don't need to re-run
+
+    // Initialize selectedIds for user/channel fields
+    const hasInitialized = useRef(false);
+    useEffect(() => {
+        if (isMultiselect && Array.isArray(selected) && [ViewConstants.DATA_SOURCE_USERS, ViewConstants.DATA_SOURCE_CHANNELS].includes(dataSource) && !hasInitialized.current) {
+            if (dataSource === ViewConstants.DATA_SOURCE_CHANNELS && integrationData?.length) {
+                // For channels, look in integrationData
+                const initialSelectedIds: {[id: string]: DataType} = {};
+
+                for (const selectedId of selected) {
+                    const item = integrationData.find((dataItem) => extractItemKey(dataSource, dataItem) === selectedId);
+                    if (item) {
+                        initialSelectedIds[selectedId] = item;
+                    }
+                }
+
+                if (Object.keys(initialSelectedIds).length > 0) {
+                    setSelectedIds(initialSelectedIds);
+                    hasInitialized.current = true;
+                }
+            } else if (dataSource === ViewConstants.DATA_SOURCE_USERS) {
+                getExistingUserProfilesByIdWithFallback(serverUrl, selected).then((initialSelectedIds) => {
+                    setSelectedIds(initialSelectedIds);
+                    hasInitialized.current = true;
+                });
+            }
+        }
+    }, [isMultiselect, selected, dataSource, integrationData, serverUrl]);
 
     // Renders
     const renderLoading = useCallback(() => {
@@ -467,7 +519,7 @@ function IntegrationSelector({
     }, [loading, style]);
 
     const renderChannelItem = useCallback((itemProps: any) => {
-        const itemSelected = Boolean(multiselectSelected[itemProps.item.id]);
+        const itemSelected = Boolean(multiselectSelected[itemProps.item.id] || selectedIds[itemProps.item.id]);
         return (
             <ChannelListRow
                 key={itemProps.id}
@@ -480,7 +532,7 @@ function IntegrationSelector({
                 testID={'integration_selector.channel_list'}
             />
         );
-    }, [multiselectSelected, theme, isMultiselect]);
+    }, [multiselectSelected, selectedIds, theme, isMultiselect]);
 
     const renderOptionItem = useCallback((itemProps: any) => {
         const itemSelected = Boolean(secureGetFromRecord<any>(multiselectSelected, itemProps.item.value));
@@ -510,6 +562,8 @@ function IntegrationSelector({
         if (dataSource === ViewConstants.DATA_SOURCE_USERS) {
             // New multiselect
             selectedItems = Object.values(selectedIds) as UserProfile[];
+        } else if (dataSource === ViewConstants.DATA_SOURCE_CHANNELS) {
+            selectedItems = [...Object.values(multiselectSelected), ...Object.values(selectedIds)] as Channel[];
         }
 
         if (!selectedItems.length) {

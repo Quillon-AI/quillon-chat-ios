@@ -127,12 +127,18 @@ export async function goToEditChecklistItem(
     navigateToScreen(Screens.PLAYBOOK_EDIT_CHECKLIST_ITEM, props);
 }
 
-export async function goToRenamePlaybookRun(
-    currentTitle: string,
-    playbookRunId: string,
-) {
-    const props = {currentTitle, playbookRunId};
+export type GoToEditPlaybookRunOptions = {
+    canEditSummary?: boolean;
+};
 
+export async function goToEditPlaybookRun(
+    currentTitle: string,
+    currentSummary: string,
+    playbookRunId: string,
+    options?: GoToEditPlaybookRunOptions,
+) {
+    const {canEditSummary = true} = options ?? {};
+    const props = {currentTitle, currentSummary, playbookRunId, canEditSummary};
     if (NavigationStore.isModalOpen()) {
         navigateToChannelInfoScreen(Screens.PLAYBOOK_RENAME_RUN, props);
         return;

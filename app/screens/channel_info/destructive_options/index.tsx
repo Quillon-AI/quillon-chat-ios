@@ -4,34 +4,18 @@
 import React from 'react';
 
 import LeaveChannelLabel from '@components/channel_actions/leave_channel_label';
-import {General} from '@constants';
-
-import Archive from './archive';
-import ConvertPrivate from './convert_private';
 
 type Props = {
     channelId: string;
-    type?: ChannelType;
 }
 
-const DestructiveOptions = ({channelId, type}: Props) => {
+const DestructiveOptions = ({channelId}: Props) => {
     return (
-        <>
-            {type === General.OPEN_CHANNEL &&
-            <ConvertPrivate channelId={channelId}/>
-            }
-            <LeaveChannelLabel
-                channelId={channelId}
-                isOptionItem={true}
-                testID='channel_info.options.leave_channel.option'
-            />
-            {type !== General.DM_CHANNEL && type !== General.GM_CHANNEL &&
-            <Archive
-                channelId={channelId}
-                type={type}
-            />
-            }
-        </>
+        <LeaveChannelLabel
+            channelId={channelId}
+            isOptionItem={true}
+            testID='channel_info.options.leave_channel.option'
+        />
     );
 };
 

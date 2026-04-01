@@ -1,6 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import AGENTS_SCREENS from '@agents/constants/screens';
 import PLAYBOOKS_SCREENS from '@playbooks/constants/screens';
 
 const ABOUT = 'about';
@@ -19,6 +20,7 @@ const CHANNEL_FILES = 'channel_files';
 const CHANNEL_INFO = '(channel_info)';
 const CHANNEL_LIST = 'channel_list';
 const CHANNEL_NOTIFICATION_PREFERENCES = 'channel_notification_preferences';
+const CHANNEL_SETTINGS = 'channel_settings';
 const CODE = 'code';
 const CONVERT_GM_TO_CHANNEL = 'convert_gm_to_channel';
 const CREATE_DIRECT_MESSAGE = 'create_direct_message';
@@ -82,6 +84,7 @@ const TERMS_OF_SERVICE = 'terms_of_service';
 const THREAD = 'thread';
 const THREAD_OPTIONS = 'thread_options';
 const USER_PROFILE = 'user_profile';
+const SHOW_TRANSLATION = 'show_translation';
 
 export default {
     ABOUT,
@@ -99,6 +102,7 @@ export default {
     CHANNEL_INFO,
     CHANNEL_LIST,
     CHANNEL_NOTIFICATION_PREFERENCES,
+    CHANNEL_SETTINGS,
     CODE,
     CONVERT_GM_TO_CHANNEL,
     COMPONENT_LIBRARY,
@@ -164,7 +168,9 @@ export default {
     THREAD,
     THREAD_OPTIONS,
     USER_PROFILE,
+    SHOW_TRANSLATION,
     ...PLAYBOOKS_SCREENS,
+    ...AGENTS_SCREENS,
 } as const;
 
 export const MODAL_SCREENS = new Set<string>([
@@ -204,6 +210,8 @@ export const SCREENS_AS_BOTTOM_SHEET = new Set<string>([
     TERMS_OF_SERVICE,
     THREAD_OPTIONS,
     USER_PROFILE,
+    AGENTS_SCREENS.AGENTS_REWRITE_OPTIONS,
+    AGENTS_SCREENS.AGENTS_SELECTOR,
 ]);
 
 // Screens that have been migrated to Expo Router

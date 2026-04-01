@@ -6,6 +6,7 @@ import {DeviceEventEmitter, FlatList, useWindowDimensions} from 'react-native';
 import Animated, {useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
 import {SafeAreaView, type Edge} from 'react-native-safe-area-context';
 
+import AgentsButton from '@agents/components/agents_button';
 import DraftsButton from '@components/drafts_buttton';
 import ThreadsButton from '@components/threads_button';
 import {Events, Screens} from '@constants';
@@ -31,7 +32,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     },
 }));
 
-type ScreenType = typeof Screens.GLOBAL_DRAFTS | typeof Screens.GLOBAL_THREADS | typeof Screens.CHANNEL | typeof Screens.PARTICIPANT_PLAYBOOKS;
+type ScreenType = typeof Screens.GLOBAL_DRAFTS | typeof Screens.GLOBAL_THREADS | typeof Screens.CHANNEL | typeof Screens.PARTICIPANT_PLAYBOOKS | typeof Screens.AGENT_CHAT;
 
 type ChannelListProps = {
     hasChannels: boolean;
@@ -43,6 +44,7 @@ type ChannelListProps = {
     scheduledPostHasError: boolean;
     lastChannelId?: ScreenType;
     scheduledPostsEnabled?: boolean;
+    agentsEnabled?: boolean;
     showPlaybooksButton?: boolean;
 };
 
@@ -62,6 +64,7 @@ const CategoriesList = ({
     scheduledPostHasError,
     lastChannelId,
     scheduledPostsEnabled,
+    agentsEnabled,
     showPlaybooksButton,
 }: ChannelListProps) => {
     const theme = useTheme();
@@ -82,7 +85,7 @@ const CategoriesList = ({
 
     useEffect(() => {
         const listener = DeviceEventEmitter.addListener(Events.ACTIVE_SCREEN, (screen: string) => {
-            if (screen === Screens.GLOBAL_DRAFTS || screen === Screens.GLOBAL_THREADS || screen === Screens.PARTICIPANT_PLAYBOOKS) {
+            if (screen === Screens.GLOBAL_DRAFTS || screen === Screens.GLOBAL_THREADS || screen === Screens.PARTICIPANT_PLAYBOOKS || screen === Screens.AGENT_CHAT) {
                 setActiveScreen(screen);
             } else {
                 setActiveScreen(Screens.CHANNEL);
@@ -132,6 +135,18 @@ const CategoriesList = ({
         return null;
     }, [activeScreen, draftsCount, isTablet, scheduledPostCount, scheduledPostHasError, scheduledPostsEnabled]);
 
+    const agentsButtonComponent = useMemo(() => {
+        if (!agentsEnabled) {
+            return null;
+        }
+
+        return (
+            <AgentsButton
+                shouldHighlightActive={activeScreen === Screens.AGENT_CHAT}
+            />
+        );
+    }, [agentsEnabled, activeScreen]);
+
     const playbooksButtonComponent = useMemo(() => {
         if (!showPlaybooksButton) {
             return null;
@@ -150,7 +165,7 @@ const CategoriesList = ({
             return (<LoadChannelsError/>);
         }
 
-        const components = [threadButtonComponent, draftsButtonComponent, playbooksButtonComponent,
+        const components = [threadButtonComponent, draftsButtonComponent, agentsButtonComponent, playbooksButtonComponent,
             <Categories
                 key='categories'
                 isTablet={isTablet}
@@ -171,7 +186,7 @@ const CategoriesList = ({
                 />
             </SafeAreaView>
         );
-    }, [draftsButtonComponent, hasChannels, isTablet, playbooksButtonComponent, styles.flex, threadButtonComponent]);
+    }, [agentsButtonComponent, draftsButtonComponent, hasChannels, isTablet, playbooksButtonComponent, styles.flex, threadButtonComponent]);
 
     return (
         <Animated.View style={[styles.container, tabletStyle]}>

@@ -19,7 +19,7 @@ import TestHelper from '@test/test_helper';
 import {openUserProfile} from '@utils/navigation';
 import {showPlaybookErrorSnackbar} from '@utils/snack_bar';
 
-import {goToRenamePlaybookRun, goToSelectUser} from '../navigation';
+import {goToEditPlaybookRun, goToSelectUser} from '../navigation';
 
 import ChecklistList from './checklist_list';
 import ErrorState from './error_state';
@@ -76,13 +76,12 @@ jest.mocked(StatusUpdateIndicator).mockImplementation(
 );
 
 jest.mock('../navigation', () => ({
-    goToRenamePlaybookRun: jest.fn(),
+    goToEditPlaybookRun: jest.fn(),
     goToSelectUser: jest.fn(),
 }));
 
 jest.mock('@playbooks/actions/remote/runs', () => ({
     finishRun: jest.fn(),
-    renamePlaybookRun: jest.fn(),
     setOwner: jest.fn(),
 }));
 
@@ -143,6 +142,7 @@ describe('PlaybookRun', () => {
             pendingCount: 3,
             currentUserId: 'current-user',
             teammateNameDisplay: General.TEAMMATE_NAME_DISPLAY.SHOW_USERNAME,
+            canEditSummary: true,
         };
     }
 
@@ -650,9 +650,11 @@ describe('PlaybookRun', () => {
         act(() => {
             fireEvent.press(editIcon);
         });
-        expect(goToRenamePlaybookRun).toHaveBeenCalledWith(
+        expect(goToEditPlaybookRun).toHaveBeenCalledWith(
             'Test Playbook Run',
+            'Test summary',
             props.playbookRun!.id,
+            {canEditSummary: true},
         );
     });
 });

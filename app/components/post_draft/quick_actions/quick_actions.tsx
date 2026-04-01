@@ -4,20 +4,30 @@
 import React from 'react';
 import {StyleSheet, View} from 'react-native';
 
+import AIRewriteAction from '@agents/components/ai_rewrite_action';
+import BoRQuickAction from '@components/post_draft/quick_actions/bor_quick_action';
+import {Screens} from '@constants';
+
 import AttachmentAction from './attachment_quick_action';
 import EmojiAction from './emoji_quick_action';
 import InputAction from './input_quick_action';
 import PostPriorityAction from './post_priority_action';
 
+import type {AvailableScreens} from '@typings/screens/navigation';
+
 type Props = {
     testID?: string;
     canUploadFiles: boolean;
     fileCount: number;
+    isAgentsEnabled: boolean;
     isPostPriorityEnabled: boolean;
+    isBoREnabled: boolean;
     canShowPostPriority?: boolean;
     canShowSlashCommands?: boolean;
     canShowEmojiPicker?: boolean;
     maxFileCount: number;
+    showAttachLogs?: boolean;
+    location?: AvailableScreens;
 
     // Draft Handler
     value: string;
@@ -25,6 +35,8 @@ type Props = {
     addFiles: (file: FileInfo[]) => void;
     postPriority: PostPriority;
     updatePostPriority: (postPriority: PostPriority) => void;
+    postBoRConfig?: PostBoRConfig;
+    updatePostBoRStatus?: (config: PostBoRConfig) => void;
     focus: () => void;
 }
 
@@ -44,25 +56,34 @@ export default function QuickActions({
     canUploadFiles,
     value,
     fileCount,
+    isAgentsEnabled,
     isPostPriorityEnabled,
+    isBoREnabled,
     canShowSlashCommands = true,
     canShowPostPriority,
     canShowEmojiPicker = true,
     maxFileCount,
+    showAttachLogs,
     updateValue,
     addFiles,
     postPriority,
     updatePostPriority,
     focus,
+    updatePostBoRStatus,
+    postBoRConfig,
+    location,
 }: Props) {
-    const atDisabled = value[value.length - 1] === '@';
+    const atDisabled = value.endsWith('@');
     const slashDisabled = value.length > 0;
+    const showBoRAction = isBoREnabled && updatePostBoRStatus && location === Screens.CHANNEL;
 
     const atInputActionTestID = `${testID}.at_input_action`;
     const slashInputActionTestID = `${testID}.slash_input_action`;
     const emojiActionTestID = `${testID}.emoji_action`;
     const attachmentActionTestID = `${testID}.attachment_action`;
+    const aiRewriteActionTestID = `${testID}.ai_rewrite_action`;
     const postPriorityActionTestID = `${testID}.post_priority_action`;
+    const borPriorityActionTestID = `${testID}.bor_action`;
 
     const uploadProps = {
         disabled: !canUploadFiles,
@@ -70,6 +91,7 @@ export default function QuickActions({
         maxFileCount,
         maxFilesReached: fileCount >= maxFileCount,
         onUploadFiles: addFiles,
+        showAttachLogs,
     };
 
     return (
@@ -102,6 +124,13 @@ export default function QuickActions({
                     testID={emojiActionTestID}
                 />
             )}
+            {isAgentsEnabled && (
+                <AIRewriteAction
+                    testID={aiRewriteActionTestID}
+                    value={value}
+                    updateValue={updateValue}
+                />
+            )}
             {isPostPriorityEnabled && canShowPostPriority && (
                 <PostPriorityAction
                     testID={postPriorityActionTestID}
@@ -109,6 +138,13 @@ export default function QuickActions({
                     updatePostPriority={updatePostPriority}
                 />
             )}
+            {showBoRAction &&
+                <BoRQuickAction
+                    testId={borPriorityActionTestID}
+                    postBoRConfig={postBoRConfig}
+                    updatePostBoRStatus={updatePostBoRStatus}
+                />
+            }
         </View>
     );
 }

@@ -17,6 +17,10 @@ jest.mock('@screens/navigation', () => ({
     dismissBottomSheet: jest.fn(),
 }));
 
+jest.mock('@utils/keyboard', () => ({
+    dismissKeyboard: jest.fn(),
+}));
+
 jest.mock('@utils/snack_bar', () => ({
     showScheduledPostCreationErrorSnackbar: jest.fn(),
 }));

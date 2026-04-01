@@ -5,9 +5,7 @@ import React, {useCallback} from 'react';
 import {ScrollView, View} from 'react-native';
 import {type Edge, SafeAreaView} from 'react-native-safe-area-context';
 
-import ChannelInfoEnableCalls from '@calls/components/channel_info_enable_calls';
 import ChannelActions from '@components/channel_actions';
-import ConvertToChannelLabel from '@components/channel_actions/convert_to_channel/convert_to_channel_label';
 import ChannelBookmarks from '@components/channel_bookmarks';
 import {General, Screens} from '@constants';
 import {useServerUrl} from '@context/server';
@@ -24,18 +22,16 @@ import Title from './title';
 
 type Props = {
     canAddBookmarks: boolean;
-    canEnableDisableCalls: boolean;
-    canManageSettings: boolean;
     channelId: string;
     isBookmarksEnabled: boolean;
     isCallsEnabledInChannel: boolean;
     isPlaybooksEnabled: boolean;
     groupCallsAllowed: boolean;
     canManageMembers: boolean;
-    isConvertGMFeatureAvailable: boolean;
     isCRTEnabled: boolean;
-    isGuestUser: boolean;
     type?: ChannelType;
+    hasChannelSettingsActions: boolean;
+    isAutotranslationEnabledForThisChannel: boolean;
 }
 
 const edges: Edge[] = ['bottom', 'left', 'right'];
@@ -57,18 +53,16 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
 
 const ChannelInfo = ({
     canAddBookmarks,
-    canEnableDisableCalls,
     canManageMembers,
-    canManageSettings,
     channelId,
     isBookmarksEnabled,
     isCallsEnabledInChannel,
     isPlaybooksEnabled,
     groupCallsAllowed,
-    isConvertGMFeatureAvailable,
     isCRTEnabled,
-    isGuestUser,
     type,
+    hasChannelSettingsActions,
+    isAutotranslationEnabledForThisChannel,
 }: Props) => {
     const theme = useTheme();
     const serverUrl = useServerUrl();
@@ -86,8 +80,6 @@ const ChannelInfo = ({
     }, []);
 
     useAndroidHardwareBackHandler(Screens.CHANNEL_INFO, onPressed);
-
-    const convertGMOptionAvailable = isConvertGMFeatureAvailable && type === General.GM_CHANNEL && !isGuestUser;
 
     return (
         <View style={styles.flex}>
@@ -125,28 +117,14 @@ const ChannelInfo = ({
                     <Options
                         channelId={channelId}
                         type={type}
-                        callsEnabled={callsAvailable}
+                        callsEnabled={isCallsEnabledInChannel}
                         canManageMembers={canManageMembers}
                         isCRTEnabled={isCRTEnabled}
-                        canManageSettings={canManageSettings}
                         isPlaybooksEnabled={isPlaybooksEnabled}
+                        hasChannelSettingsActions={hasChannelSettingsActions}
+                        isAutotranslationEnabledForThisChannel={isAutotranslationEnabledForThisChannel}
                     />
                     <View style={styles.separator}/>
-                    {convertGMOptionAvailable &&
-                    <>
-                        <ConvertToChannelLabel channelId={channelId}/>
-                        <View style={styles.separator}/>
-                    </>
-                    }
-                    {canEnableDisableCalls &&
-                        <>
-                            <ChannelInfoEnableCalls
-                                channelId={channelId}
-                                enabled={isCallsEnabledInChannel}
-                            />
-                            <View style={styles.separator}/>
-                        </>
-                    }
                     <ChannelInfoAppBindings
                         channelId={channelId}
                         serverUrl={serverUrl}
@@ -154,7 +132,6 @@ const ChannelInfo = ({
                     />
                     <DestructiveOptions
                         channelId={channelId}
-                        type={type}
                     />
                 </ScrollView>
             </SafeAreaView>

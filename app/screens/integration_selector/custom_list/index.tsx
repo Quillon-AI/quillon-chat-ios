@@ -1,10 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
+
 import React, {useCallback} from 'react';
-import {
-    FlatList,
-    Platform, RefreshControl, View,
-} from 'react-native';
+import {FlatList, Platform, RefreshControl, View} from 'react-native';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 
 import {makeStyleSheetFromTheme, changeOpacity} from '@utils/theme';
@@ -162,6 +160,7 @@ function CustomList({
             <FlatList
                 data={data}
                 keyboardShouldPersistTaps='always'
+                keyboardDismissMode='on-drag'
                 keyExtractor={keyExtractor}
                 initialNumToRender={INITIAL_BATCH_TO_RENDER}
                 ItemSeparatorComponent={renderSeparator}

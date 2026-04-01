@@ -5,7 +5,7 @@ import HostControlsScreen from '@calls/screens/host_controls';
 import {getCurrentCall} from '@calls/state';
 import {usePropsFromParams} from '@hooks/props_from_params';
 
-export default function PostOptionsRoute() {
+export default function CallsHostControlsRoute() {
     const {sessionId} = usePropsFromParams<{sessionId: string}>();
     const currentCall = getCurrentCall();
     const session = currentCall?.sessions[sessionId];

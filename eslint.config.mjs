@@ -76,7 +76,7 @@ export default defineConfig([
       ],
       "react/display-name": [2, { "ignoreTranspilerName": false }],
       "react/jsx-filename-extension": "off",
-      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/exhaustive-deps": "error",
       "camelcase": ["off", { "properties": "never" }],
       "@typescript-eslint/ban-types": "off",
       "@typescript-eslint/no-non-null-assertion": "off",
@@ -116,7 +116,7 @@ export default defineConfig([
           "newlines-between": "always",
           "pathGroups": [
             {
-              "pattern": "{@(@actions|@app|@assets|@calls|@client|@components|@constants|@context|@database|@helpers|@hooks|@init|@keyboard|@managers|@playbooks|@queries|@screens|@selectors|@share|@store|@telemetry|@typings|@test|@utils)/**,@(@constants|@i18n|@keyboard|@store|@websocket)}",
+              "pattern": "{@(@actions|@agents|@app|@assets|@calls|@client|@components|@constants|@context|@database|@helpers|@hooks|@init|@keyboard|@managers|@playbooks|@queries|@screens|@selectors|@share|@store|@telemetry|@typings|@test|@utils)/**,@(@agents|@constants|@i18n|@keyboard|@store|@websocket)}",
               "group": "external",
               "position": "after"
             },

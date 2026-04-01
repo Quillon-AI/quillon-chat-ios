@@ -57,6 +57,7 @@ type Props = {
     testID: string;
     currentCallBarVisible?: boolean;
     savedPostIds: Set<string>;
+    isChannelAutotranslated: boolean;
     listRef?: React.RefObject<FlatList<string | PostModel>>;
     onTouchMove?: (event: GestureResponderEvent) => void;
     onTouchEnd?: () => void;
@@ -110,6 +111,7 @@ const PostList = ({
     showNewMessageLine = true,
     testID,
     savedPostIds,
+    isChannelAutotranslated,
     listRef,
     onTouchMove,
     onTouchEnd,
@@ -206,10 +208,7 @@ const PostList = ({
     const scrollToEnd = useCallback(() => {
         listRef?.current?.scrollToOffset({offset: -postInputTranslateY.value, animated: true});
         setShowScrollToEndBtn(false);
-
-        // Shared values don't need to be in dependencies - they're stable references
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [listRef]);
+    }, [listRef, postInputTranslateY.value]);
 
     useEffect(() => {
         const t = setTimeout(() => {
@@ -397,6 +396,7 @@ const PostList = ({
                     shouldRenderReplyButton,
                     skipSaveddHeader,
                     testID: `${testID}.post`,
+                    isChannelAutotranslated,
                 };
 
                 return (
@@ -407,7 +407,7 @@ const PostList = ({
                 );
             }
         }
-    }, [appsEnabled, currentTimezone, currentUsername, customEmojiNames, highlightPinnedOrSaved, highlightedId, isCRTEnabled, isPostAcknowledgementEnabled, location, rootId, shouldRenderReplyButton, shouldShowJoinLeaveMessages, testID, theme]);
+    }, [appsEnabled, currentTimezone, currentUsername, customEmojiNames, highlightPinnedOrSaved, highlightedId, isCRTEnabled, isChannelAutotranslated, isPostAcknowledgementEnabled, location, rootId, shouldRenderReplyButton, shouldShowJoinLeaveMessages, testID, theme]);
 
     useEffect(() => {
         const t = setTimeout(() => {

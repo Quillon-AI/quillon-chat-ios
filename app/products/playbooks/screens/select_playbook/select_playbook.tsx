@@ -14,6 +14,7 @@ import {General, Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
+import useDidMount from '@hooks/did_mount';
 import {fetchPlaybooks} from '@playbooks/actions/remote/playbooks';
 import {fetchPlaybookRunsForChannel} from '@playbooks/actions/remote/runs';
 import {dismissAllRoutesAndResetToRootRoute, navigateBack} from '@screens/navigation';
@@ -173,12 +174,9 @@ function SelectPlaybook({
         };
     }, []);
 
-    useEffect(() => {
+    useDidMount(() => {
         loadMore();
-
-        // We only want to load the playbooks once on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 
     const renderNoResults = useCallback((): JSX.Element | null => {
         if (loading && page.current === -1) {
@@ -298,9 +296,7 @@ function SelectPlaybook({
 
     return (
         <SafeAreaView style={style.container}>
-            <View
-                style={style.searchBar}
-            >
+            <View style={style.searchBar}>
                 <SearchBar
                     testID='selector.search_bar'
                     placeholder={intl.formatMessage({id: 'search_bar.search', defaultMessage: 'Search'})}

@@ -181,4 +181,3 @@ export function navigateToSettingsScreen(screen: AvailableScreens, props?: Recor
 export function navigateToChannelInfoScreen(screen: AvailableScreens, props?: Record<string, unknown>) {
     navigateToScreenWithBaseRoute(`/(modals)/${Screens.CHANNEL_INFO}`, screen, props);
 }
-

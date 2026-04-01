@@ -9,7 +9,7 @@ import {navigateToScreen} from '@screens/navigation';
 import CallbackStore from '@store/callback_store';
 import TestHelper from '@test/test_helper';
 
-import {goToPlaybookRuns, goToPlaybookRun, goToParticipantPlaybooks, goToPlaybookRunWithChannelSwitch, goToEditCommand, goToSelectUser, goToSelectDate, goToPostUpdate, goToSelectPlaybook, goToStartARun, goToRenameChecklist, goToAddChecklistItem, goToEditChecklistItem, goToRenamePlaybookRun, goToCreateQuickChecklist} from './navigation';
+import {goToPlaybookRuns, goToPlaybookRun, goToParticipantPlaybooks, goToPlaybookRunWithChannelSwitch, goToEditCommand, goToSelectUser, goToSelectDate, goToPostUpdate, goToSelectPlaybook, goToStartARun, goToRenameChecklist, goToAddChecklistItem, goToEditChecklistItem, goToEditPlaybookRun, goToCreateQuickChecklist} from './navigation';
 
 jest.mock('@screens/navigation', () => ({
     navigateToScreen: jest.fn(),
@@ -416,18 +416,22 @@ describe('Playbooks Navigation', () => {
         });
     });
 
-    describe('goToRenamePlaybookRun', () => {
-        it('should navigate to rename playbook run screen with correct parameters', async () => {
+    describe('goToEditPlaybookRun', () => {
+        it('should navigate to edit playbook run screen with correct parameters', async () => {
             const currentTitle = 'Playbook Run Title';
+            const currentSummary = 'Playbook run summary';
             const playbookRunId = 'run-id-123';
+            const canEditSummary = true;
 
-            await goToRenamePlaybookRun(currentTitle, playbookRunId);
+            await goToEditPlaybookRun(currentTitle, currentSummary, playbookRunId, {canEditSummary});
 
             expect(navigateToScreen).toHaveBeenCalledWith(
                 Screens.PLAYBOOK_RENAME_RUN,
                 {
                     currentTitle,
+                    currentSummary,
                     playbookRunId,
+                    canEditSummary,
                 },
             );
         });

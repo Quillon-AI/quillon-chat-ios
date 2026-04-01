@@ -20,7 +20,7 @@ type Props = {
     updatePostPriority: (postPriority: PostPriority) => void;
 }
 
-const style = StyleSheet.create({
+export const style = StyleSheet.create({
     icon: {
         alignItems: 'center',
         justifyContent: 'center',

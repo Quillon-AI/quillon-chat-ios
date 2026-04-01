@@ -11,9 +11,11 @@ import {
     type NativeSyntheticEvent, Platform, type TextInputSelectionChangeEventData,
 } from 'react-native';
 import {useAnimatedKeyboard} from 'react-native-keyboard-controller';
+import Animated, {cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming} from 'react-native-reanimated';
 
 import {updateDraftMessage} from '@actions/local/draft';
 import {userTyping} from '@actions/websocket/users';
+import {useRewrite} from '@agents/hooks';
 import {Events, Screens} from '@constants';
 import {isAndroidEdgeToEdge} from '@constants/device';
 import {useKeyboardState} from '@context/keyboard_state';
@@ -135,6 +137,8 @@ export default function PostInput({
     } = useKeyboardState();
 
     // Register cursor position updates with context
+    // Always update cursorPositionRef, even when input accessory view is shown,
+    // so emoji insertion works correctly at cursor position
     useEffect(() => {
         if (showInputAccessoryView) {
             return;
@@ -149,9 +153,13 @@ export default function PostInput({
         if (registerPostInputCallbacks) {
             registerPostInputCallbacks(updateValue, updateCursorPosition);
         }
-    }, [registerPostInputCallbacks, updateValue, updateCursorPosition]);
+
+        // updateValue and updateCursorPosition are stable setState functions, don't need to be in deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [registerPostInputCallbacks]);
 
     const [propagateValue, shouldProcessEvent] = useInputPropagation();
+    const {isProcessing} = useRewrite();
 
     const lastTypingEventSent = useRef(0);
 
@@ -165,6 +173,28 @@ export default function PostInput({
     const pasteInputStyle = useMemo(() => {
         return {...style.input, maxHeight};
     }, [maxHeight, style.input]);
+
+    // Pulsing animation for when AI rewrite is processing
+    const pulseOpacity = useSharedValue(1);
+    const pulsingAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: pulseOpacity.value,
+    }));
+
+    useEffect(() => {
+        if (isProcessing) {
+            pulseOpacity.value = withRepeat(
+                withTiming(0.5, {duration: 400, easing: Easing.inOut(Easing.ease)}),
+                -1,
+                true,
+            );
+        } else {
+            pulseOpacity.value = withTiming(1, {duration: 200});
+        }
+
+        return () => {
+            cancelAnimation(pulseOpacity);
+        };
+    }, [isProcessing, pulseOpacity]);
 
     const onBlur = useCallback(() => {
         handleDraftUpdate({
@@ -367,29 +397,31 @@ export default function PostInput({
     useHardwareKeyboardEvents(events);
 
     return (
-        <PasteableTextInput
-            allowFontScaling={true}
-            disableCopyPaste={disableCopyAndPaste}
-            disableFullscreenUI={true}
-            keyboardAppearance={getKeyboardAppearanceFromTheme(theme)}
-            multiline={true}
-            onBlur={onBlur}
-            onChangeText={handleTextChange}
-            onFocus={onFocus}
-            onPaste={onPaste}
-            onSelectionChange={handlePostDraftSelectionChanged}
-            placeholder={intl.formatMessage(getPlaceHolder(rootId), {channelDisplayName})}
-            placeholderTextColor={changeOpacity(theme.centerChannelColor, 0.5)}
-            ref={inputRef}
-            smartPunctuation='disable'
-            submitBehavior='newline'
-            style={pasteInputStyle}
-            testID={testID}
-            underlineColorAndroid='transparent'
-            textContentType='none'
-            value={value}
-            autoCapitalize='sentences'
-            nativeID={testID}
-        />
+        <Animated.View style={pulsingAnimatedStyle}>
+            <PasteableTextInput
+                allowFontScaling={true}
+                disableCopyPaste={disableCopyAndPaste}
+                disableFullscreenUI={true}
+                keyboardAppearance={getKeyboardAppearanceFromTheme(theme)}
+                multiline={true}
+                onBlur={onBlur}
+                onChangeText={handleTextChange}
+                onFocus={onFocus}
+                onPaste={onPaste}
+                onSelectionChange={handlePostDraftSelectionChanged}
+                placeholder={intl.formatMessage(getPlaceHolder(rootId), {channelDisplayName})}
+                placeholderTextColor={changeOpacity(theme.centerChannelColor, 0.5)}
+                ref={inputRef}
+                smartPunctuation='disable'
+                submitBehavior='newline'
+                style={pasteInputStyle}
+                testID={testID}
+                underlineColorAndroid='transparent'
+                textContentType='none'
+                value={value}
+                autoCapitalize='sentences'
+                nativeID={testID}
+            />
+        </Animated.View>
     );
 }

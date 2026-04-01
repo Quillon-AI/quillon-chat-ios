@@ -3,7 +3,7 @@
 
 import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {defineMessage, useIntl} from 'react-intl';
-import {DeviceEventEmitter, FlatList, Keyboard, StyleSheet, View} from 'react-native';
+import {DeviceEventEmitter, FlatList, StyleSheet, View} from 'react-native';
 import {type Edge, SafeAreaView} from 'react-native-safe-area-context';
 
 import {removeLastViewedChannelIdAndServer, storeLastViewedChannelIdAndServer} from '@actions/app/global';
@@ -112,7 +112,6 @@ const GlobalThreads = ({globalThreadsTab, hasUnreads, teamId}: Props) => {
     }), [defaultHeight]);
 
     const onBackPress = useCallback(() => {
-        Keyboard.dismiss();
         navigateBack();
     }, []);
 

@@ -23,6 +23,7 @@ import {getIsCRTEnabled, prepareThreadsFromReceivedPosts} from '@queries/servers
 import {queryAllUsers} from '@queries/servers/user';
 import EphemeralStore from '@store/ephemeral_store';
 import {setFetchingThreadState} from '@store/fetching_thread_store';
+import {isBoRPost} from '@utils/bor';
 import {getValidEmojis, matchEmoticons} from '@utils/emoji/helpers';
 import {getFullErrorMessage, isServerError} from '@utils/errors';
 import {hasArrayChanged} from '@utils/helpers';
@@ -63,7 +64,7 @@ type AuthorsRequest = {
     error?: unknown;
 }
 
-export async function createPost(serverUrl: string, post: Partial<Post>, files: FileInfo[] = []): Promise<{data?: boolean; error?: unknown}> {
+export async function createPost(serverUrl: string, post: Partial<Post>, files: FileInfo[] = []): Promise<{data?: boolean; post?: Post; error?: unknown}> {
     const operator = DatabaseManager.serverDatabases[serverUrl]?.operator;
     if (!operator) {
         return {error: `${serverUrl} database not found`};
@@ -204,7 +205,7 @@ export async function createPost(serverUrl: string, post: Partial<Post>, files: 
 
     newPost = created;
 
-    return {data: true};
+    return {data: true, post: created};
 }
 
 export const retryFailedPost = async (serverUrl: string, post: PostModel) => {
@@ -868,6 +869,24 @@ export const deletePost = async (serverUrl: string, postToDelete: PostModel | Po
         return {post};
     } catch (error) {
         logDebug('error on deletePost', getFullErrorMessage(error));
+        forceLogoutIfNecessary(serverUrl, error);
+        return {error};
+    }
+};
+
+export const burnPostNow = async (serverUrl: string, postToBurn: PostModel | Post) => {
+    if (!isBoRPost(postToBurn)) {
+        return {error: 'Post is not a Burn-on-Read post'};
+    }
+
+    try {
+        const client = NetworkManager.getClient(serverUrl);
+        await client.burnPostNow(postToBurn.id);
+
+        const post = await removePost(serverUrl, postToBurn);
+        return {post};
+    } catch (error) {
+        logDebug('error on burnPostNow', getFullErrorMessage(error));
         forceLogoutIfNecessary(serverUrl, error);
         return {error};
     }

@@ -58,23 +58,32 @@ function ImageRenderer({
         image,
         targetDimensions,
         targetHeight,
+    }), [
+        interactionsEnabled,
+        isPagerInProgress,
+        scale,
+        scaleOffset,
+        translation,
+        panVelocity,
+        offset,
+        scaleTranslation,
+        canvas,
+        image,
+        targetDimensions,
+        targetHeight,
+    ]);
 
-    // the rest of the values are shared values,
-    // so they don't need to be included in the deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [targetDimensions, targetHeight, canvas]);
-
-    const isGif = useMemo(() => isGifImage(galleryItemToFileInfo(item)), [item]);
+    const autoplay = useMemo(() => isGifImage(galleryItemToFileInfo(item)), [item]);
 
     return (
         <TransfrormerProvider sharedValues={sharedValues}>
             <ImageTransformer
+                autoplay={autoplay}
                 cacheKey={item.cacheKey}
                 isPageActive={isPageActive}
                 targetDimensions={targetDimensions}
                 height={targetHeight}
                 isSvg={item.extension === 'svg'}
-                isGif={isGif}
                 onPageStateChange={onPageStateChange}
                 source={item.uri}
                 width={targetWidth}

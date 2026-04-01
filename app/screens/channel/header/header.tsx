@@ -5,6 +5,7 @@ import React, {useCallback, useEffect, useMemo} from 'react';
 import {useIntl} from 'react-intl';
 import {Keyboard, Platform, Text, View} from 'react-native';
 
+import {useAgentsConfig} from '@agents/store/agents_config';
 import {getCallsConfig} from '@calls/state';
 import {CHANNEL_ACTIONS_OPTIONS_HEIGHT} from '@components/channel_actions/channel_actions';
 import CompassIcon from '@components/compass_icon';
@@ -56,6 +57,7 @@ type ChannelProps = {
     playbooksActiveRuns: number;
     isPlaybooksEnabled: boolean;
     activeRunId?: string;
+    isChannelAutotranslated: boolean;
 
     // searchTerm: string;
 };
@@ -108,6 +110,7 @@ const ChannelHeader = ({
     hasPlaybookRuns,
     isPlaybooksEnabled,
     activeRunId,
+    isChannelAutotranslated,
 }: ChannelProps) => {
     const intl = useIntl();
     const isTablet = useIsTablet();
@@ -117,6 +120,7 @@ const ChannelHeader = ({
     const serverUrl = useServerUrl();
 
     const callsConfig = getCallsConfig(serverUrl);
+    const {pluginEnabled: agentsEnabled} = useAgentsConfig(serverUrl);
 
     // NOTE: callsEnabledInChannel will be true/false (not undefined) based on explicit state + the DefaultEnabled system setting
     //   which ultimately comes from channel/index.tsx, and observeIsCallsEnabledInChannel
@@ -157,8 +161,8 @@ const ChannelHeader = ({
                 break;
         }
 
-        navigateToScreen(Screens.CHANNEL_INFO, {channelId, title});
-    }), [channelId, channelType, intl]));
+        navigateToScreen(Screens.CHANNEL_INFO, {channelId, title, groupCallsAllowed});
+    }), [channelId, channelType, groupCallsAllowed, intl]));
 
     const onChannelQuickAction = useCallback(() => {
         // When calls is enabled, we need space to move the "Copy Link" from a button to an option
@@ -169,7 +173,10 @@ const ChannelHeader = ({
         if (hasPlaybookRuns && !isDMorGM) {
             items += 1;
         }
-        const height = CHANNEL_ACTIONS_OPTIONS_HEIGHT + SEPARATOR_HEIGHT + (2 * MARGIN) + (items * ITEM_HEIGHT);
+        if (agentsEnabled) {
+            items += 1; // Ask Agents action (shown in all channel types)
+        }
+        const height = CHANNEL_ACTIONS_OPTIONS_HEIGHT + SEPARATOR_HEIGHT + MARGIN + (items * ITEM_HEIGHT);
 
         const renderContent = () => {
             return (
@@ -183,7 +190,7 @@ const ChannelHeader = ({
         };
 
         bottomSheet(renderContent, [1, height]);
-    }, [callsAvailable, isDMorGM, hasPlaybookRuns, channelId]);
+    }, [callsAvailable, isDMorGM, hasPlaybookRuns, agentsEnabled, channelId]);
 
     const openPlaybooksRuns = useCallback(() => {
         // If no active runs, create a new one instead
@@ -281,6 +288,19 @@ const ChannelHeader = ({
         return undefined;
     }, [memberCount, customStatus, isCustomStatusExpired, theme.sidebarHeaderTextColor, styles.customStatusContainer, styles.customStatusEmoji, styles.customStatusText, styles.subtitle, isCustomStatusEnabled]);
 
+    const titleCompanion = useMemo(() => {
+        if (isChannelAutotranslated) {
+            return (
+                <CompassIcon
+                    name='translate'
+                    size={16}
+                    color={changeOpacity(theme.sidebarHeaderTextColor, 0.72)}
+                />
+            );
+        }
+        return undefined;
+    }, [isChannelAutotranslated, theme.sidebarHeaderTextColor]);
+
     useEffect(() => {
         const asyncEffect = async () => {
             if (isPlaybooksEnabled && !EphemeralStore.getChannelPlaybooksSynced(serverUrl, channelId)) {
@@ -304,6 +324,7 @@ const ChannelHeader = ({
                 subtitle={subtitle}
                 subtitleCompanion={subtitleCompanion}
                 title={title}
+                titleCompanion={titleCompanion}
             />
             <View style={contextStyle}>
                 <RoundedHeaderContext/>

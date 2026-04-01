@@ -35,9 +35,9 @@ const styles = StyleSheet.create({
 });
 
 interface ImageTransformerProps extends Omit<GalleryPagerItem, 'index' | 'item' | 'isPagerInProgress'> {
+    autoplay?: boolean;
     cacheKey: string;
     enabled?: boolean;
-    isGif: boolean;
     isSvg: boolean;
     source: ImageSource | string;
     targetDimensions: { width: number; height: number };
@@ -45,8 +45,8 @@ interface ImageTransformerProps extends Omit<GalleryPagerItem, 'index' | 'item' 
 
 const ImageTransformer = (
     {
-        cacheKey, enabled = true, height, isPageActive,
-        onPageStateChange, source, isGif, isSvg,
+        autoplay, cacheKey, enabled = true, height, isPageActive,
+        onPageStateChange, source, isSvg,
         targetDimensions, width, pagerPanGesture, pagerTapGesture, lightboxPanGesture,
     }: ImageTransformerProps) => {
     const imageSource = typeof source === 'string' ? {uri: source} : source;
@@ -61,10 +61,7 @@ const ImageTransformer = (
 
     const setInteractionsEnabled = useCallback((value: boolean) => {
         interactionsEnabled.value = value;
-
-        // SharedValue does not trigger re-renders
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [interactionsEnabled]);
 
     const onLoadImageSuccess = useCallback(() => {
         setInteractionsEnabled(true);
@@ -144,8 +141,8 @@ const ImageTransformer = (
     } else {
         element = (
             <ExpoImage
-                id={`${cacheKey}${isGif ? '_gif' : ''}`}
-                autoplay={true}
+                id={cacheKey}
+                autoplay={autoplay}
                 onLoad={onLoadImageSuccess}
                 source={imageSource}
                 style={{width, height}}

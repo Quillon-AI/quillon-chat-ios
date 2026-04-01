@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {useIntl} from 'react-intl';
 import {View} from 'react-native';
 
@@ -14,6 +14,7 @@ import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
+import useDidMount from '@hooks/did_mount';
 import {navigateBack} from '@screens/navigation';
 import {logDebug} from '@utils/log';
 import {alertTeamAddError} from '@utils/navigation';
@@ -98,13 +99,12 @@ export default function JoinTeam({
         }
     }, [serverUrl, intl]);
 
-    useEffect(() => {
+    useDidMount(() => {
         loadTeams();
         return () => {
             mounted.current = false;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 
     const onClosePressed = useCallback(() => {
         navigateBack();

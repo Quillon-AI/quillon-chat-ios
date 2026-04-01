@@ -38,6 +38,7 @@ export default function AttachmentQuickAction({
     onUploadFiles,
     maxFilesReached,
     maxFileCount,
+    showAttachLogs,
     testID = '',
 }: QuickActionAttachmentProps) {
     const theme = useTheme();
@@ -52,11 +53,12 @@ export default function AttachmentQuickAction({
             onUploadFiles,
             maxFilesReached,
             canUploadFiles: !disabled,
+            showAttachLogs,
             testID,
             fileCount,
             maxFileCount,
         });
-    }, [blurAndDismissKeyboard, onUploadFiles, maxFilesReached, disabled, testID, fileCount, maxFileCount]);
+    }, [blurAndDismissKeyboard, onUploadFiles, maxFilesReached, disabled, showAttachLogs, testID, fileCount, maxFileCount]);
 
     const actionTestID = disabled ? `${testID}.disabled` : testID;
 
