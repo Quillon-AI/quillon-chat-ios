@@ -309,19 +309,22 @@ class ChannelScreen {
     scheduleMessageForTomorrow = async () => {
         // Wait for the picker option to appear before tapping — the long-press send button
         // triggers the sheet asynchronously and the option may not be in the hierarchy yet.
-        await waitFor(this.scheduleMessageTomorrowOption).toExist().withTimeout(timeouts.TEN_SEC);
+        // Use HALF_MIN: on a loaded CI runner the scheduling sheet can take > 10s to render.
+        await waitFor(this.scheduleMessageTomorrowOption).toExist().withTimeout(timeouts.HALF_MIN);
         await this.scheduleMessageTomorrowOption.tap();
         await expect(this.scheduledPostOptionTomorrowSelected).toBeVisible();
     };
 
     scheduleMessageForMonday = async () => {
-        await waitFor(this.scheduleMessageOnMondayOption).toExist().withTimeout(timeouts.TEN_SEC);
+        // Use HALF_MIN: on a loaded CI runner the scheduling sheet can take > 10s to render.
+        await waitFor(this.scheduleMessageOnMondayOption).toExist().withTimeout(timeouts.HALF_MIN);
         await this.scheduleMessageOnMondayOption.tap();
         await expect(this.scheduledPostOptionMondaySelected).toBeVisible();
     };
 
     scheduleMessageForNextMonday = async () => {
-        await waitFor(this.scheduledPostOptionNextMonday).toExist().withTimeout(timeouts.TEN_SEC);
+        // Use HALF_MIN: on a loaded CI runner the scheduling sheet can take > 10s to render.
+        await waitFor(this.scheduledPostOptionNextMonday).toExist().withTimeout(timeouts.HALF_MIN);
         await this.scheduledPostOptionNextMonday.tap();
         await expect(this.scheduledPostOptionNextMondaySelected).toBeVisible();
     };

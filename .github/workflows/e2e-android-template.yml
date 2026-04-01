@@ -70,7 +70,7 @@ on:
         description: "Android API level"
         required: false
         type: string
-        default: "34"
+        default: "35"
     outputs:
       STATUS:
         value: ${{ jobs.generate-report.outputs.STATUS }}
@@ -243,7 +243,7 @@ jobs:
         run: |
           for attempt in 1 2 3; do
             echo "SDK install attempt $attempt..."
-            if yes | sdkmanager --install "platform-tools" "emulator" "platforms;android-34" "system-images;android-34;google_apis;x86_64"; then
+            if yes | sdkmanager --install "platform-tools" "emulator" "platforms;android-35" "system-images;android-35;google_apis;x86_64"; then
               echo "SDK install succeeded on attempt $attempt"
               break
             fi
@@ -264,7 +264,7 @@ jobs:
             /usr/local/lib/android/sdk/system-images
             /usr/local/lib/android/sdk/emulator
             ~/.android/avd
-          key: android-emulator-${{ runner.os }}-${{ runner.arch }}-api-34
+          key: android-emulator-${{ runner.os }}-${{ runner.arch }}-api-35
           restore-keys: |
             android-emulator-${{ runner.os }}-${{ runner.arch }}-
 

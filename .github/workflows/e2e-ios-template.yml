@@ -352,6 +352,21 @@ jobs:
           xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
           echo "✅ App installed: $APP_PATH"
 
+          # Pre-grant app permissions so Detox never calls `simctl privacy` at runtime.
+          # device.launchApp({permissions}) runs one `simctl privacy` command per key
+          # synchronously before simctl launch. On 3-core macOS-15 runners with iOS 26.x,
+          # this takes 6–9s per permission × 4 keys = 24–36s of overhead on EVERY test
+          # file's beforeAll. Under VM neighbour CPU contention this can reach 40–50s,
+          # pushing the total launch budget past the 90s cap and causing ~9/20 shards to
+          # time out. Permissions granted here persist through clearIOSAppData() (which only
+          # clears the data container, not privacy settings), so they never need re-applying.
+          echo "Pre-granting app permissions..."
+          xcrun simctl privacy "$SIMULATOR_ID" grant notifications com.mattermost.rnbeta || true
+          xcrun simctl privacy "$SIMULATOR_ID" deny camera com.mattermost.rnbeta || true
+          xcrun simctl privacy "$SIMULATOR_ID" deny medialibrary com.mattermost.rnbeta || true
+          xcrun simctl privacy "$SIMULATOR_ID" deny photos com.mattermost.rnbeta || true
+          echo "✅ Permissions pre-granted"
+
           # Pre-warm: launch the app once to create its data container and establish a
           # clean SpringBoard registration. A fresh simctl install creates a
           # "pending-install" record in launchd; without a launch→kill cycle, the first
@@ -412,8 +427,10 @@ jobs:
           # Open Simulator.app in background to speed up UI rendering
           open -a Simulator --args -CurrentDeviceUDID "$SIMULATOR_ID"
 
-          # Give Simulator.app time to fully initialize UI (iOS 26.2 needs more time)
-          sleep 5
+          # Give Simulator.app time to fully initialize UI — iOS 26.x simulators need
+          # at least 10s after open before the first launchApp() reliably completes
+          # within the 90s Detox cap. 5s caused ~9/20 shards to hit launch timeouts.
+          sleep 10
 
           echo "SIMULATOR_ID=$SIMULATOR_ID" >> $GITHUB_ENV
 

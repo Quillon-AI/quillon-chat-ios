@@ -79,16 +79,18 @@ describe('Messaging - Message Post', () => {
     });
 
     it('MM-T4782_2 - should be able to post a long message', async () => {
-        // # Open a channel screen, post a long message, and a short message after
+        // # Open a channel screen and post a long message
         const longMessage = 'The quick brown fox jumps over the lazy dog.'.repeat(40);
         await ChannelScreen.open(channelsCategory, testChannel.name);
         await ChannelScreen.postMessage(longMessage);
         const {post} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
-        await ChannelScreen.postMessage('short message');
 
+        // * Verify show more button is visible while the long post is still the most recent
+        // (posting a short message after would scroll the long post off-screen and virtualize it,
+        // removing the show_more element from the view hierarchy entirely)
         const {postListPostItem, postListPostItemShowLessButton, postListPostItemShowMoreButton} = ChannelScreen.getPostListPostItem(post.id, longMessage);
-        await expect(postListPostItem).toExist();
-        await expect(postListPostItemShowMoreButton).toExist();
+        await expect(postListPostItem).toBeVisible();
+        await expect(postListPostItemShowMoreButton).toBeVisible();
 
         // # Tap on show more button on long message post
         await postListPostItemShowMoreButton.tap();
@@ -97,7 +99,8 @@ describe('Messaging - Message Post', () => {
         // * Verify long message post displays show less button (chevron up button)
         await expect(postListPostItemShowLessButton).toBeVisible();
 
-        // # Go back to channel list screen
+        // # Post a short message and go back to channel list screen
+        await ChannelScreen.postMessage('short message');
         await ChannelScreen.back();
     });
 

@@ -79,24 +79,28 @@ class ChannelListScreen {
         const unreads = this.getChannelItemDisplayName('unreads', channelName);
         const favorites = this.getChannelItemDisplayName('favorites', channelName);
 
-        // Fast path: channel is in 'channels' category (the common case). Use the full
-        // timeout so slow CI runners have enough time for the sidebar to render.
-        try {
-            await waitFor(channels).toExist().withTimeout(timeout);
-            return;
-        } catch {
-            // Not in channels — may be in unreads or favorites
-        }
+        // Split the budget evenly: channels and unreads each get half the timeout.
+        // Channels created via API often have unread posts and land in 'unreads' rather
+        // than 'channels'. Giving the full timeout to 'channels' first burned 30s before
+        // the 2s fallback for 'unreads' was tried — causing widespread CI timeouts.
+        const halfTimeout = Math.floor(timeout / 2);
 
-        // Fallback: check unreads and favorites with a short probe each
-        /* eslint-disable no-await-in-loop -- sequential fallback probes */
-        for (const el of [unreads, favorites]) {
+        /* eslint-disable no-await-in-loop -- sequential category probes */
+        for (const el of [channels, unreads]) {
             try {
-                await waitFor(el).toExist().withTimeout(timeouts.TWO_SEC);
+                await waitFor(el).toExist().withTimeout(halfTimeout);
                 return;
             } catch {
-                // try next
+                // Not in this category — try the next
             }
+        }
+
+        // favorites is rare; give it a short probe
+        try {
+            await waitFor(favorites).toExist().withTimeout(timeouts.TWO_SEC);
+            return;
+        } catch {
+            // not found
         }
         /* eslint-enable no-await-in-loop */
         throw new Error('Sidebar channel display name not visible');

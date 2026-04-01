@@ -167,27 +167,27 @@ beforeAll(async () => {
     }
 
     const isFirstFile = !process.env.DETOX_SETUP_DONE;
-    const launchPermissions = {notifications: 'YES', camera: 'NO', medialibrary: 'NO', photos: 'NO'} as const;
     const launchArgs = {detoxDisableSynchronization: 'YES'};
 
     // Each launch-and-verify cycle is bounded so a hung device.launchApp() or
     // waitFor(server.screen) can't eat the entire 240s Jest hook timeout.
     //
-    // Why 90s: Detox's launchApp({newInstance, permissions}) runs permission-setting
-    // commands synchronously inside this timeout before simctl launch runs.
-    // On iOS 26.x CI runners (3-core macos-15), setting all 4 permissions takes
-    // 24–35s, leaving 20–31s for simctl launch (14–26s) + WebSocket connect (~8s).
-    // With PER_ATTEMPT_MS=55s the budget was routinely exceeded, causing the first
-    // attempt to always fail and cascading all 3 retries into timeouts.
-    // Observed worst case: 35s (perms) + 26s (launch) + 8s (WS) = 69s.
-    // 90s gives a 21s safety margin above the worst case.
-    const PER_ATTEMPT_MS = 90_000;
+    // Why 55s: permissions are now pre-granted in the CI workflow via `simctl privacy`
+    // so Detox no longer runs permission commands inside launchApp(). The budget is:
+    // simctl launch (14–26s) + WebSocket connect (~8s) = worst case ~34s.
+    // 55s gives a comfortable 21s safety margin. (Previously 90s was needed because
+    // 4 × simctl privacy calls added 24–35s before simctl launch even started.)
+    const PER_ATTEMPT_MS = 55_000;
     const APP_READY_TIMEOUT = 30_000;
 
     async function launchAndVerify(): Promise<void> {
         await device.launchApp({
             newInstance: true,
-            permissions: launchPermissions,
+            // permissions intentionally omitted — pre-granted once in the CI workflow via
+            // `xcrun simctl privacy` after app install. Running simctl privacy on every
+            // beforeAll was adding 24–35s per test file on iOS 26.x CI runners.
+            // clearIOSAppData() does not reset privacy settings, so pre-granted permissions
+            // persist for the full shard run.
             launchArgs,
         });
         grantAndroidNotificationPermission();

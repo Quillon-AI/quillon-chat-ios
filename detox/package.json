@@ -47,9 +47,9 @@
   "scripts": {
     "e2e:android-create-emulator": "./create_android_emulator.sh",
     "e2e:android-build": "./scripts/run_detox.sh build -c android.emu.debug",
-    "e2e:android-test": "./scripts/run_detox.sh test -c android.emu.debug --record-logs failing --take-screenshots failing",
+    "e2e:android-test": "npm run detox:config-gen && ./scripts/run_detox.sh test -c android.emu.debug --record-logs failing --take-screenshots failing",
     "e2e:android-build-release": "./scripts/run_detox.sh build -c android.emu.release",
-    "e2e:android-test-release": "./scripts/run_detox.sh test -c android.emu.release --record-logs failing --take-screenshots failing",
+    "e2e:android-test-release": "npm run detox:config-gen && ./scripts/run_detox.sh test -c android.emu.release --record-logs failing --take-screenshots failing",
     "e2e:ios-build": "IOS=true ./scripts/run_detox.sh build -c ios.sim.debug",
     "e2e:ios-test": "IOS=true ./scripts/run_detox.sh test -c ios.sim.debug --record-logs failing --take-screenshots failing",
     "e2e:ios-ipad-test": "IOS=true ./scripts/run_detox.sh test -c ios.ipad.debug --record-logs failing --take-screenshots failing",
