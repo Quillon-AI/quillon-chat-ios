@@ -348,7 +348,10 @@ describe('Channels - Archive and Archived Channels', () => {
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
-        await wait(timeouts.ONE_SEC);
+
+        // Wait for the channel item to appear after search — fixed 1s sleep was
+        // insufficient on API 35 where the archived list renders more slowly.
+        await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
@@ -393,7 +396,10 @@ describe('Channels - Archive and Archived Channels', () => {
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
-        await wait(timeouts.ONE_SEC);
+
+        // Wait for the channel item to appear after search — fixed 1s sleep was
+        // insufficient on API 35 where the archived list renders more slowly.
+        await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
@@ -446,7 +452,10 @@ describe('Channels - Archive and Archived Channels', () => {
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
-        await wait(timeouts.ONE_SEC);
+
+        // Wait for the channel item to appear after search — fixed 1s sleep was
+        // insufficient on API 35 where the archived list renders more slowly.
+        await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel is in read-only state
@@ -496,7 +505,10 @@ describe('Channels - Archive and Archived Channels', () => {
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
-        await wait(timeouts.ONE_SEC);
+
+        // Wait for the channel item to appear after search — fixed 1s sleep was
+        // insufficient on API 35 where the archived list renders more slowly.
+        await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel is in read-only state
@@ -537,7 +549,10 @@ describe('Channels - Archive and Archived Channels', () => {
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
-        await wait(timeouts.ONE_SEC);
+
+        // Wait for the channel item to appear after search — fixed 1s sleep was
+        // insufficient on API 35 where the archived list renders more slowly.
+        await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
@@ -689,7 +704,10 @@ describe('Channels - Archive and Archived Channels', () => {
         await ChannelDropdownMenuScreen.archivedChannelsItem.tap();
         await wait(timeouts.ONE_SEC);
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
-        await wait(timeouts.ONE_SEC);
+
+        // Wait for the channel item to appear after search — fixed 1s sleep was
+        // insufficient on API 35 where the archived list renders more slowly.
+        await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state

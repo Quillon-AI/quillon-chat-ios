@@ -84,7 +84,11 @@ wait_for_emulator() {
         boot_elapsed=$((boot_elapsed + 10))
     done
     echo "Emulator is fully booted."
-    sleep 15
+
+    # API 35 emulators take longer to stabilize the instrumentation layer after
+    # sys.boot_completed — 15s was insufficient, causing the first Detox app
+    # launch to fail with "No activities in stage RESUMED".
+    sleep 30
     adb shell pm list packages > /dev/null 2>&1
     echo "Emulator is fully ready."
 }

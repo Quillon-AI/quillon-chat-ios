@@ -148,7 +148,9 @@ describe('Channels', () => {
         await expect(ChannelInfoScreen.channelInfoScreen).not.toBeVisible();
 
         // * Verify we're back at channel list
-        await ChannelListScreen.toBeVisible();
+        // Use ONE_MIN: post-archive navigation on API 35 emulators can take >30s
+        // (the default HALF_MIN) to dismiss the settings stack and render the list.
+        await ChannelListScreen.toBeVisible(timeouts.ONE_MIN);
 
         // * Verify archived channel is not visible in the list
         await expect(ChannelListScreen.getChannelItemDisplayName(channelsCategory, archiveChannel.name)).not.toBeVisible();

@@ -142,14 +142,15 @@ class ChannelListScreen {
         return element(by.id(`${this.testID.teamItemPrefix}${teamId}.team_icon.display_name_abbreviation`));
     };
 
-    toBeVisible = async () => {
-        // iOS 26.2 on macos-15 CI runners takes longer than 10s to settle the channel
+    toBeVisible = async (timeout = timeouts.HALF_MIN) => {
+        // iOS 26.x on macos-15 CI runners takes longer than 10s to settle the channel
         // list screen after login navigation (React Native bridge + Metro warm-up).
         // Android CI emulators are also slow — use HALF_MIN for both so we never race.
         // Use toExist() (not toBeVisible()) because Android edge-to-edge rendering
         // can cause the channel list screen to exist but not meet the 50% visibility
         // threshold, which cascades into every subsequent test in the suite.
-        const timeout = timeouts.HALF_MIN;
+        // Callers that need a longer wait (e.g. post-archive navigation on API 35)
+        // can pass an explicit timeout.
         try {
             await waitFor(this.channelListScreen).toExist().withTimeout(timeout);
         } catch (firstError) {
