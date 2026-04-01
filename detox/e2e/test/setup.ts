@@ -172,12 +172,10 @@ beforeAll(async () => {
     // Each launch-and-verify cycle is bounded so a hung device.launchApp() or
     // waitFor(server.screen) can't eat the entire 240s Jest hook timeout.
     //
-    // Why 55s: permissions are now pre-granted in the CI workflow via `simctl privacy`
-    // so Detox no longer runs permission commands inside launchApp(). The budget is:
-    // simctl launch (14–26s) + WebSocket connect (~8s) = worst case ~34s.
-    // 55s gives a comfortable 21s safety margin. (Previously 90s was needed because
-    // 4 × simctl privacy calls added 24–35s before simctl launch even started.)
-    const PER_ATTEMPT_MS = 55_000;
+    // Why 90s: on iOS 26.x CI runners (3-core macos-15), simctl launch takes 14–26s
+    // and WebSocket connect takes ~8s. Under CPU contention these can spike higher.
+    // 90s gives sufficient headroom for worst-case conditions.
+    const PER_ATTEMPT_MS = 90_000;
     const APP_READY_TIMEOUT = 30_000;
 
     async function launchAndVerify(): Promise<void> {
