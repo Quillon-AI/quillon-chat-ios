@@ -8,7 +8,7 @@ import {SYSTEM_IDENTIFIERS} from '@constants/database';
 import {DRAFT_SCREEN_TAB_DRAFTS, DRAFT_SCREEN_TAB_SCHEDULED_POSTS} from '@constants/draft';
 import {PostTypes} from '@constants/post';
 import DatabaseManager from '@database/manager';
-import {navigateToScreen, dismissAllRoutesAndPopToScreen} from '@screens/navigation';
+import {dismissAllRoutesAndPopToScreen} from '@screens/navigation';
 import {NavigationStore} from '@store/navigation_store';
 import {isTablet} from '@utils/helpers';
 
@@ -338,12 +338,14 @@ describe('draft actions', () => {
 
         it('should not call navigateToScreen on non-tablet when server url is a non existent URL', async () => {
             jest.mocked(isTablet).mockReturnValue(false);
+            const dismissAllRoutesAndPopToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
+            const waitUntilScreenHasLoadedMock = jest.mocked(NavigationStore.waitUntilScreenHasLoaded);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
-            const navigateToScreenMock = jest.mocked(navigateToScreen);
 
             await switchToGlobalDrafts('nonexistent');
 
-            expect(navigateToScreenMock).not.toHaveBeenCalled();
+            expect(dismissAllRoutesAndPopToScreenMock).not.toHaveBeenCalled();
+            expect(waitUntilScreenHasLoadedMock).not.toHaveBeenCalled();
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
