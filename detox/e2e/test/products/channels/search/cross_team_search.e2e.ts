@@ -27,7 +27,7 @@ import {
     ServerScreen,
     TeamDropdownMenuScreen,
 } from '@support/ui/screen';
-import {isAndroid, timeouts, wait} from '@support/utils';
+import {isAndroid, timeouts, wait, waitForElementToExist} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 describe('Search - Cross Team Search', () => {
@@ -162,9 +162,11 @@ describe('Search - Cross Team Search', () => {
         await SearchMessagesScreen.teamPickerButton.tap();
 
         // On Android edge-to-edge the dropdown item can render with <50% visible area
-        // due to system bar insets. Use toExist() on Android to bypass the threshold.
+        // due to system bar insets. Use polling waitForElementToExist on Android to bypass
+        // both the 50% threshold and bridge-idle synchronization that blocks waitFor().toExist()
+        // when the team picker sheet animation keeps the bridge busy on API 35 CI emulators.
         if (isAndroid()) {
-            await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toExist().withTimeout(timeouts.HALF_MIN);
+            await waitForElementToExist(TeamDropdownMenuScreen.getAllTeamsItem(), timeouts.HALF_MIN);
         } else {
             await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toBeVisible().withTimeout(timeouts.TEN_SEC);
         }

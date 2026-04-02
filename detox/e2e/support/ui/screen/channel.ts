@@ -17,7 +17,7 @@ import {
     PostOptionsScreen,
     ThreadScreen,
 } from '@support/ui/screen';
-import {isAndroid, isIos, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
+import {isAndroid, isIos, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible, waitForElementToExist} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ChannelScreen {
@@ -143,9 +143,18 @@ class ChannelScreen {
         return this.postList.getPostMessageAtIndex(index);
     };
 
-    toBeVisible = async (timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC) => {
+    toBeVisible = async (timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC) => {
         await wait(timeouts.ONE_SEC);
-        await waitFor(this.channelScreen).toExist().withTimeout(timeout);
+
+        // On Android the channel screen navigation (especially after DM/GM creation) keeps
+        // the JS bridge (mqt_js) busy, causing waitFor().toExist() bridge-idle sync to block
+        // much longer than the timeout. Use polling waitForElementToExist on Android to avoid
+        // this. On iOS, the standard waitFor() is reliable enough.
+        if (isAndroid()) {
+            await waitForElementToExist(this.channelScreen, timeout);
+        } else {
+            await waitFor(this.channelScreen).toExist().withTimeout(timeout);
+        }
 
         return this.channelScreen;
     };

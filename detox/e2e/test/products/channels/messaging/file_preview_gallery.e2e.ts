@@ -24,8 +24,8 @@ import {
     LoginScreen,
     ServerScreen,
 } from '@support/ui/screen';
-import {isAndroid, timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {isAndroid, timeouts, wait, waitForElementToExist} from '@support/utils';
+import {expect, waitFor} from 'detox';
 
 // Dismiss the gallery and wait for the overlay to fully unmount before proceeding.
 // The gallery view sits on top of the channel navigation header — tapping Back
@@ -133,8 +133,14 @@ describe('Messaging - File Preview Gallery', () => {
         // * Verify file preview gallery is open (close button appears when gallery is mounted)
         // Use the close button testID rather than by.text('1 of 1') — FormattedText inside
         // AnimatedSafeAreaView is not reliably found via by.text() on Android.
+        // Use polling waitForElementToExist on Android to avoid bridge-idle synchronization
+        // blocking waitFor().toExist() while the gallery animation keeps the bridge busy.
         const galleryCloseButton = element(by.id('gallery.header.close.button'));
-        await waitFor(galleryCloseButton).toExist().withTimeout(timeouts.TEN_SEC);
+        if (isAndroid()) {
+            await waitForElementToExist(galleryCloseButton, timeouts.HALF_MIN);
+        } else {
+            await waitFor(galleryCloseButton).toExist().withTimeout(timeouts.TEN_SEC);
+        }
 
         // # Dismiss the gallery and wait for overlay to clear
         await dismissGallery();

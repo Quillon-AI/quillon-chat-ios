@@ -23,7 +23,7 @@ import {
     HomeScreen,
 } from '@support/ui/screen';
 import {getRandomId, timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 describe('Channels', () => {
     const serverOneDisplayName = 'Server 1';
@@ -159,6 +159,8 @@ describe('Channels', () => {
         await ChannelListScreen.toBeVisible();
 
         // * Verify archived channel is not visible in the list
-        await expect(ChannelListScreen.getChannelItemDisplayName(channelsCategory, archiveChannel.name)).not.toBeVisible();
+        // Use waitFor with a timeout: on Android the channel list sidebar re-render after
+        // archiving can take a moment, so a plain expect() can see the stale entry.
+        await waitFor(ChannelListScreen.getChannelItemDisplayName(channelsCategory, archiveChannel.name)).not.toBeVisible().withTimeout(timeouts.TEN_SEC);
     });
 });

@@ -102,7 +102,11 @@ describe('Account - Settings - Auto-Responder Notification Settings', () => {
 
         // * Verify on notification settings screen and automatic replies is disabled
         await NotificationSettingsScreen.toBeVisible();
-        await expect(NotificationSettingsScreen.automaticRepliesOptionInfo).toHaveText('Off');
+
+        // Use waitFor instead of expect to tolerate Android UI update latency.
+        // After navigating back, the automaticRepliesOptionInfo text may briefly
+        // show a stale value on API 35 CI emulators before the DB write completes.
+        await waitFor(NotificationSettingsScreen.automaticRepliesOptionInfo).toHaveText('Off').withTimeout(timeouts.TEN_SEC);
 
         // * Go back to auto-responder notification settings screen
         await AutoResponderNotificationSettingsScreen.open();

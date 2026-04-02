@@ -162,7 +162,6 @@ export async function longPressWithScrollRetry(
     checkElement: Detox.NativeElement,
     maxAttempts = 5,
 ): Promise<void> {
-    const {waitFor: detoxWaitFor} = require('detox');
     /* eslint-disable no-await-in-loop */
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         // Scroll a small amount to settle the UI and dismiss any keyboard.
@@ -182,10 +181,12 @@ export async function longPressWithScrollRetry(
         await wait(waitDuration);
         await target.longPress(pressDuration);
         try {
-            // TEN_SEC is sufficient: if the long-press lands the options sheet
-            // opens within ~1s. HALF_MIN (30s) per attempt risks blowing the
-            // 240s Jest per-test limit when all 5 attempts are needed.
-            await detoxWaitFor(checkElement).toExist().withTimeout(timeouts.TEN_SEC);
+            // Use polling waitForElementToExist instead of waitFor().toExist() to avoid
+            // bridge-idle synchronization blocking on Android API 35 CI emulators.
+            // waitFor().toExist() uses Espresso's IdlingResource sync and blocks until
+            // the JS bridge (mqt_js) is idle — which can take much longer than TEN_SEC
+            // when the post options sheet animation keeps the bridge busy after a gesture.
+            await waitForElementToExist(checkElement, timeouts.TEN_SEC);
             return;
         } catch {
             if (attempt === maxAttempts) {
@@ -213,14 +214,15 @@ export async function longPressWithRetry(
     checkElement: Detox.NativeElement,
     maxAttempts = 5,
 ): Promise<void> {
-    const {waitFor: detoxWaitFor} = require('detox');
     /* eslint-disable no-await-in-loop */
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         // Use a longer press duration on Android where gestures are less reliable.
         const pressDuration = isAndroid() ? timeouts.FOUR_SEC : timeouts.TWO_SEC;
         await target.longPress(pressDuration);
         try {
-            await detoxWaitFor(checkElement).toExist().withTimeout(timeouts.TEN_SEC);
+            // Use polling waitForElementToExist instead of waitFor().toExist() to avoid
+            // bridge-idle synchronization blocking on Android API 35 CI emulators.
+            await waitForElementToExist(checkElement, timeouts.TEN_SEC);
             return;
         } catch {
             if (attempt === maxAttempts) {

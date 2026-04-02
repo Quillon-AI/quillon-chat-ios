@@ -3,7 +3,7 @@
 
 import {ProfilePicture} from '@support/ui/component';
 import {ChannelListScreen} from '@support/ui/screen';
-import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
+import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible, waitForElementToExist} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class CreateDirectMessageScreen {
@@ -65,25 +65,30 @@ class CreateDirectMessageScreen {
     };
 
     toBeVisible = async () => {
-        // Android CI emulators can have a stuck BridgeIdlingResource after a previous
-        // test failure, causing waitFor to block until the timeout even though the screen
-        // is rendering. Use ONE_MIN on Android (vs HALF_MIN on iOS) to give enough
-        // headroom for both normal slow-boot cases and post-failure bridge recovery.
-        const dmScreenTimeout = isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN;
-        await waitFor(this.createDirectMessageScreen).toExist().withTimeout(dmScreenTimeout);
-
-        // Wait for the search input to be ready.
-        // On iOS a RNSVGGroup (part of the plus-menu icon animation) sits on top of the
-        // input immediately after navigation and intercepts taps even though the element
-        // is in the hierarchy. Waiting for the input to report as visible gives the SVG
-        // layer time to finish its animation, and the extra 500 ms ensures it has cleared.
-        // On Android edge-to-edge displays the search input can render partially off-screen
-        // (<50% visible) due to system bar insets immediately after navigation. Use toExist()
-        // on Android so we don't fail the 50% threshold check — interactability is confirmed
-        // by the subsequent replaceText call.
         if (isAndroid()) {
-            await waitFor(this.searchInput).toExist().withTimeout(timeouts.TEN_SEC);
+            // Android CI emulators have the JS bridge (mqt_js) perpetually busy while the
+            // DM screen animates in. waitFor().toExist().withTimeout() uses Espresso's
+            // IdlingResource synchronization and blocks indefinitely even though the screen
+            // IS rendering. The root SafeAreaView (testID=create_direct_message.screen) is
+            // from react-native-safe-area-context and its layout can time out on CI, causing
+            // its tag to not be set when we check.
+            //
+            // Strategy: disable sync, wait for the search input (a plain RN View that tags
+            // reliably) with polling, then re-enable sync. The search bar renders after the
+            // SafeAreaView layout, so finding it implies the screen is fully ready.
+            await device.disableSynchronization();
+            try {
+                await waitForElementToExist(this.searchInput, timeouts.ONE_MIN);
+            } finally {
+                await device.enableSynchronization();
+            }
         } else {
+            // Wait for the search input to be ready on iOS.
+            // A RNSVGGroup (part of the plus-menu icon animation) sits on top of the
+            // input immediately after navigation and intercepts taps even though the element
+            // is in the hierarchy. Waiting for the input to be visible gives the SVG layer
+            // time to finish its animation, and the extra 500ms ensures it has cleared.
+            await waitFor(this.createDirectMessageScreen).toExist().withTimeout(timeouts.HALF_MIN);
             await waitFor(this.searchInput).toBeVisible().withTimeout(timeouts.TEN_SEC);
         }
         await wait(timeouts.HALF_SEC);
