@@ -22,7 +22,9 @@ exports[`Thread item in the channel list Threads Component should match snapshot
   accessible={true}
   collapsable={false}
   focusable={true}
+  onBlur={[Function]}
   onClick={[Function]}
+  onFocus={[Function]}
   onResponderGrant={[Function]}
   onResponderMove={[Function]}
   onResponderRelease={[Function]}
@@ -30,9 +32,9 @@ exports[`Thread item in the channel list Threads Component should match snapshot
   onResponderTerminationRequest={[Function]}
   onStartShouldSetResponder={[Function]}
   style={
-    {
-      "opacity": 1,
-    }
+    [
+      false,
+    ]
   }
   testID="channel_list.threads.button"
 >
@@ -115,7 +117,9 @@ exports[`Thread item in the channel list Threads Component should match snapshot
   accessible={true}
   collapsable={false}
   focusable={true}
+  onBlur={[Function]}
   onClick={[Function]}
+  onFocus={[Function]}
   onResponderGrant={[Function]}
   onResponderMove={[Function]}
   onResponderRelease={[Function]}
@@ -123,9 +127,9 @@ exports[`Thread item in the channel list Threads Component should match snapshot
   onResponderTerminationRequest={[Function]}
   onStartShouldSetResponder={[Function]}
   style={
-    {
-      "opacity": 1,
-    }
+    [
+      false,
+    ]
   }
   testID="channel_list.threads.button"
 >

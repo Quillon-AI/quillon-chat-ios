@@ -66,10 +66,10 @@ const TabletTitle = ({action, count, enabled = true, iconName, onPress, testID, 
                         {title}
                     </Text>
                 </View>
-                {Boolean(action) &&
+                {Boolean(action && onPress) &&
                 <View style={styles.actionContainer}>
                     <NavigationButton
-                        text={action!}
+                        text={action}
                         disabled={!enabled}
                         onPress={onPress!}
                         testID={`${testID}.${action!.toLocaleLowerCase()}.button`}

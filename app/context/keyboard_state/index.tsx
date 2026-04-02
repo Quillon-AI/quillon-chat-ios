@@ -64,7 +64,7 @@ const KeyboardStateContext = createContext<KeyboardStateContextValue | undefined
 
 type KeyboardStateProviderProps = PropsWithChildren<{
     tabBarHeight: number;
-    enabled?: boolean; // Whether keyboard events should be processed (default: true)
+    enabled?: boolean; // Whether keyboard events should be processed (default: false)
 }>;
 
 export function KeyboardStateProvider({children, tabBarHeight, enabled = false}: KeyboardStateProviderProps) {
