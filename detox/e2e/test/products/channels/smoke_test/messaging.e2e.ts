@@ -144,7 +144,9 @@ describe('Smoke Test - Messaging', () => {
         await expect(postListPostItem).toBeVisible();
 
         // # Open post options for message, open emoji picker screen, and add a reaction
-        await element(by.id(`channel.post_list.post.${post.id}`)).longPress();
+        // Use openPostOptionsFor (longPressWithScrollRetry) instead of a raw longPress so that
+        // the gesture is retried on Android if PostOptionsScreen doesn't appear on the first attempt.
+        await ChannelScreen.openPostOptionsFor(post.id, resolvedMessage);
         await EmojiPickerScreen.open(true);
         await EmojiPickerScreen.searchInput.replaceText('clown_face');
         await EmojiPickerScreen.searchInput.tapReturnKey();
