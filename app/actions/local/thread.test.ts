@@ -233,7 +233,7 @@ describe('createThreadFromNewPost', () => {
         expect(models?.length).toBe(2); // thread, thread participant
     });
 
-    it('should not set is_following locally — server handles follow state via WebSocket events', async () => {
+    it('should set is_following=true locally when the current user posts a reply', async () => {
         await operator.handleUsers({users: [user], prepareRecordsOnly: false});
         await operator.handleThreads({threads: [{...threads[0], is_following: false}], prepareRecordsOnly: false, teamId: team.id});
         await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_USER_ID, value: user.id}], prepareRecordsOnly: false});
@@ -243,7 +243,7 @@ describe('createThreadFromNewPost', () => {
         const savedThread = await operator.database.get<ThreadModel>('Thread').find(rootPost.id);
 
         expect(error).toBeUndefined();
-        expect(savedThread.isFollowing).toBe(false);
+        expect(savedThread.isFollowing).toBe(true);
     });
 
     it('should update reply_count when creating thread from new reply post', async () => {
