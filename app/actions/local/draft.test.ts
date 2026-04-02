@@ -287,7 +287,7 @@ describe('draft actions', () => {
 
             await switchToGlobalDrafts(serverUrl);
 
-            expect(emitSpy).toHaveBeenCalledWith(Navigation.NAVIGATION_HOME, Screens.GLOBAL_DRAFTS, {});
+            expect(emitSpy).toHaveBeenCalledWith(Navigation.NAVIGATION_HOME, Screens.GLOBAL_DRAFTS, {initialTab: undefined});
         });
 
         it('if prepareRecordsOnly is true, should emit navigation event on tablet for Scheduled post tab and also call batchRecord', async () => {
@@ -371,7 +371,7 @@ describe('draft actions', () => {
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
-        it('should call dismissAllRoutesAndPopToScreen from navigation store if Global draft is alreday present', async () => {
+        it('should call dismissAllRoutesAndPopToScreen from navigation store if Global draft is already present', async () => {
             jest.mocked(NavigationStore.getScreensInStack).mockReturnValue([Screens.GLOBAL_DRAFTS, Screens.CHANNEL, Screens.THREAD]);
 
             await switchToGlobalDrafts(serverUrl, teamId, DRAFT_SCREEN_TAB_SCHEDULED_POSTS);
