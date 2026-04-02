@@ -177,10 +177,16 @@ beforeAll(async () => {
     // Each launch-and-verify cycle is bounded so a hung device.launchApp() or
     // waitFor(server.screen) can't eat the entire 240s Jest hook timeout.
     //
-    // Why 90s: on iOS 26.x CI runners (3-core macos-15), simctl launch takes 14–26s
-    // and WebSocket connect takes ~8s. Under CPU contention these can spike higher.
+    // Why 90s (iPhone): on iOS 26.x CI runners (3-core macos-15), simctl launch takes
+    // 14–26s and WebSocket connect takes ~8s. Under CPU contention these can spike higher.
     // 90s gives sufficient headroom for worst-case conditions.
-    const PER_ATTEMPT_MS = 90_000;
+    //
+    // Why 110s (iPad): iPad Pro 13-inch (M5) simulator is heavier than iPhone 17 Pro —
+    // simctl launch + WebSocket connect observed at 60–90s on macos-15 CI runners.
+    // 110s per attempt × 2 attempts = 220s + 3s pause = 223s < 240s Jest beforeAll limit.
+    // DEVICE_NAME is injected from the CI workflow input (inputs.ios_device_name).
+    const isIpadDevice = process.env.DEVICE_NAME?.toLowerCase().includes('ipad') ?? false;
+    const PER_ATTEMPT_MS = isIpadDevice ? 110_000 : 90_000;
 
     // Android CI emulators cold-start more slowly than iOS simulators, especially
     // after adb shell pm clear wipes the data directory. Use a longer ready-timeout
