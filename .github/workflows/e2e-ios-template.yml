@@ -360,11 +360,18 @@ jobs:
           # pushing the total launch budget past the 90s cap and causing ~9/20 shards to
           # time out. Permissions granted here persist through clearIOSAppData() (which only
           # clears the data container, not privacy settings), so they never need re-applying.
+          #
+          # NOTE: Only `grant notifications` is applied here. The `deny camera/medialibrary/
+          # photos` commands were removed because on iOS 26.x:
+          #   - `deny medialibrary` returns "Unknown action 'deny'" (unsupported action)
+          #   - `deny camera` throws NSPOSIXErrorDomain code=1 on freshly installed apps
+          # Both errors corrupt the simulator's TCC database, preventing Detox's WebSocket
+          # from ever completing its handshake — causing ALL tests to fail with
+          # "[launch attempt 2] timed out after 90s".
+          # The app's Info.plist does not request camera/photos/medialibrary access at
+          # startup, so no denial is needed to suppress permission dialogs.
           echo "Pre-granting app permissions..."
           xcrun simctl privacy "$SIMULATOR_ID" grant notifications com.mattermost.rnbeta || true
-          xcrun simctl privacy "$SIMULATOR_ID" deny camera com.mattermost.rnbeta || true
-          xcrun simctl privacy "$SIMULATOR_ID" deny medialibrary com.mattermost.rnbeta || true
-          xcrun simctl privacy "$SIMULATOR_ID" deny photos com.mattermost.rnbeta || true
           echo "✅ Permissions pre-granted"
 
           # Pre-warm: launch the app once to create its data container and establish a
