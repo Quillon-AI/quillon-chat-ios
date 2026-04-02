@@ -277,6 +277,47 @@ export async function waitForElementToBeVisible(
 }
 
 /**
+ * Poll for element non-existence without Detox bridge-idle synchronization.
+ *
+ * On Android, waitFor().not.toExist().withTimeout() blocks until bridge-idle
+ * before evaluating. After pressBack() or dismiss animations the bridge stays
+ * busy, so the 10-second timeout can expire before the check even runs and the
+ * catch block silently swallows the error. This helper polls expect().not.toExist()
+ * directly, giving the element a chance to disappear across multiple poll intervals.
+ *
+ * @param {Detox.NativeElement} detoxElement - The Detox element to wait for disappearance
+ * @param {number} timeout - Maximum time to wait in milliseconds (default: HALF_MIN)
+ * @param {number} pollInterval - How often to check in milliseconds (default: 500ms)
+ *
+ * @example
+ * await waitForElementToNotExist(tutorialOverlay, timeouts.TEN_SEC);
+ */
+export async function waitForElementToNotExist(
+    detoxElement: Detox.NativeElement,
+    timeout: number = timeouts.HALF_MIN,
+    pollInterval: number = timeouts.HALF_SEC,
+): Promise<void> {
+    const {expect: detoxExpect} = require('detox');
+    const startTime = Date.now();
+    /* eslint-disable no-await-in-loop */
+    while (Date.now() - startTime < timeout) {
+        try {
+            await detoxExpect(detoxElement).not.toExist();
+            return; // Element no longer exists
+        } catch (error) {
+            if ((Date.now() - startTime) + pollInterval >= timeout) {
+                throw error;
+            }
+            await wait(pollInterval);
+        }
+    }
+    /* eslint-enable no-await-in-loop */
+    // Final check - will throw if still exists
+    const {expect: detoxExpectFinal} = require('detox');
+    await detoxExpectFinal(detoxElement).not.toExist();
+}
+
+/**
  * Poll for element existence without Detox bridge-idle synchronization.
  *
  * On Android the JS bridge (mqt_js) is often busy during animations and
