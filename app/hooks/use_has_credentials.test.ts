@@ -4,9 +4,8 @@
 import {renderHook} from '@testing-library/react-hooks';
 import {waitFor} from '@testing-library/react-native';
 
+import {useHasCredentials} from '@hooks/use_has_credentials';
 import {getAllServerCredentials} from '@init/credentials';
-
-import {useHasCredentials} from './use_has_credentials';
 
 jest.mock('@init/credentials');
 

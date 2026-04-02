@@ -25,23 +25,24 @@ export function useNavigationHeader(options: {
 }) {
     const navigation = useNavigation();
     const router = useRouter();
+    const {showWhenPushed, showWhenRoot, headerOptions, presentation, gestureEnabled, animation} = options;
 
     useEffect(() => {
         // Check if this screen can go back (i.e., it's not the root)
         const canGoBack = router.canGoBack();
 
         // Determine if header should be shown
-        const shouldShowHeader = canGoBack ? options.showWhenPushed : options.showWhenRoot;
+        const shouldShowHeader = canGoBack ? showWhenPushed : showWhenRoot;
 
         // Set navigation options
         navigation.setOptions({
             headerShown: shouldShowHeader ?? false,
-            ...(shouldShowHeader && options.headerOptions),
-            ...(options.presentation && {presentation: options.presentation}),
-            ...(options.gestureEnabled !== undefined && {gestureEnabled: options.gestureEnabled}),
-            ...(options.animation && {animation: options.animation}),
+            ...(shouldShowHeader && headerOptions),
+            ...(options.presentation && {presentation}),
+            ...(options.gestureEnabled !== undefined && {gestureEnabled}),
+            ...(options.animation && {animation}),
         });
-    }, [navigation, router, options]);
+    }, [navigation, router, options, showWhenPushed, showWhenRoot, headerOptions, presentation, gestureEnabled, animation]);
 }
 
 /**

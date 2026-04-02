@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import React, {useCallback, useMemo} from 'react';
-import {Text, TouchableOpacity, View} from 'react-native';
+import {Text, Pressable, View} from 'react-native';
 
 import {switchToGlobalDrafts} from '@actions/local/draft';
 import {
@@ -115,7 +115,8 @@ const DraftsButton: React.FC<DraftListProps> = ({
     }, [customStyles, isActive, styles]);
 
     return (
-        <TouchableOpacity
+        <Pressable
+            style={({pressed}) => [pressed && {opacity: 0.72}]}
             onPress={handlePress}
             testID='channel_list.drafts.button'
         >
@@ -172,7 +173,7 @@ const DraftsButton: React.FC<DraftListProps> = ({
                     }
                 </View>
             </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 };
 

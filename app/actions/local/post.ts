@@ -120,7 +120,7 @@ export const sendEphemeralPost = async (serverUrl: string, message: string, chan
 async function preparePostDeletion(database: Database, post: PostModel | Post) {
     const removeModels: Model[] = [];
 
-    if (post.type === Post.POST_TYPES.COMBINED_USER_ACTIVITY && post.props?.system_post_ids) {
+    if (post.type === Post.POST_TYPES.COMBINED_USER_ACTIVITY) {
         const systemPostIds = getPostIdsForCombinedUserActivityPost(post.id);
         for await (const id of systemPostIds) {
             const postModel = await getPostById(database, id);

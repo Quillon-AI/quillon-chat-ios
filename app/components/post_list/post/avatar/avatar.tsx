@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import React, {useCallback, type ReactNode} from 'react';
-import {Platform, StyleSheet, TouchableOpacity, View} from 'react-native';
+import {Platform, StyleSheet, Pressable, View} from 'react-native';
 
 import {buildAbsoluteUrl} from '@actions/remote/file';
 import CompassIcon from '@components/compass_icon';
@@ -110,9 +110,12 @@ const Avatar = ({author, enablePostIconOverride, isAutoReponse, location, post}:
 
     if (!fromWebHook) {
         component = (
-            <TouchableOpacity onPress={openProfile}>
+            <Pressable
+                style={({pressed}) => [pressed && {opacity: 0.72}]}
+                onPress={openProfile}
+            >
                 {component}
-            </TouchableOpacity>
+            </Pressable>
         );
     }
 

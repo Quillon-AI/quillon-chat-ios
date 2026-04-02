@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import React, {useCallback, useMemo} from 'react';
-import {TouchableOpacity, View} from 'react-native';
+import {Pressable, View} from 'react-native';
 
 import {switchToGlobalThreads} from '@actions/local/thread';
 import Badge from '@components/badge';
@@ -113,7 +113,8 @@ const ThreadsButton = ({
     }, [customStyles, isActive, onCenterBg, styles, unreads, isOnHome]);
 
     return (
-        <TouchableOpacity
+        <Pressable
+            style={({pressed}) => [pressed && {opacity: 0.72}]}
             onPress={handlePress}
             testID='channel_list.threads.button'
         >
@@ -133,7 +134,7 @@ const ThreadsButton = ({
                     visible={mentions > 0}
                 />
             </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 };
 

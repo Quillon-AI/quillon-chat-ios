@@ -230,7 +230,7 @@ export default class UserModel extends Model implements UserModelInterface {
     toAPI(): UserProfile {
         return {
             id: this.id,
-            create_at: Date.now(),
+            create_at: 0,
             update_at: this.updateAt,
             delete_at: this.deleteAt,
             username: this.username,

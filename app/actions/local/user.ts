@@ -175,6 +175,38 @@ export const getCurrentUserLocale = async (serverUrl: string): Promise<string> =
 export const getExistingUserProfilesByIdWithFallback = async (serverUrl: string, userIds: string[]): Promise<Record<string, UserProfile>> => {
     const result: Record<string, UserProfile> = {};
 
+    const fakeUser = (id: string): UserProfile => ({
+        email: '',
+        locale: DEFAULT_LOCALE,
+        username: '',
+        first_name: '',
+        last_name: '',
+        create_at: 0,
+        delete_at: 0,
+        roles: 'system_user',
+        auth_service: '',
+        id,
+        nickname: '',
+        notify_props: {
+            channel: 'false',
+            comments: 'root',
+            desktop: 'default',
+            desktop_sound: 'false',
+            email: 'false',
+            first_name: 'false',
+            highlight_keys: '',
+            mention_keys: '',
+            push: 'default',
+            push_status: 'away',
+            calls_desktop_sound: 'true',
+            calls_mobile_notification_sound: '',
+            calls_mobile_sound: 'true',
+            calls_notification_sound: '',
+        },
+        position: '',
+        update_at: 0,
+    });
+
     try {
         const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
         const users = await queryUsersById(database, userIds).fetch();
@@ -189,13 +221,13 @@ export const getExistingUserProfilesByIdWithFallback = async (serverUrl: string,
                 result[id] = user;
             } else {
                 // Fallback for users not found in database
-                result[id] = {id, username: '', first_name: '', last_name: ''} as UserProfile;
+                result[id] = fakeUser(id);
             }
         }
     } catch (error) {
         logError('Failed getExistingUserProfilesByIdWithFallback', error);
         for (const id of userIds) {
-            result[id] = {id, username: '', first_name: '', last_name: ''} as UserProfile;
+            result[id] = fakeUser(id);
         }
     }
 
