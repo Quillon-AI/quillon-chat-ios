@@ -371,12 +371,12 @@ describe('draft actions', () => {
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
-        it('should call popto from navigation store if Global draft is alreay present', async () => {
-            NavigationStore.state.screenStack = [Screens.GLOBAL_DRAFTS, Screens.CHANNEL, Screens.THREAD];
+        it('should call dismissAllRoutesAndPopToScreen from navigation store if Global draft is alreday present', async () => {
+            jest.mocked(NavigationStore.getScreensInStack).mockReturnValue([Screens.GLOBAL_DRAFTS, Screens.CHANNEL, Screens.THREAD]);
 
             await switchToGlobalDrafts(serverUrl, teamId, DRAFT_SCREEN_TAB_SCHEDULED_POSTS);
 
-            expect(dismissAllRoutesAndPopToScreen).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: DRAFT_SCREEN_TAB_SCHEDULED_POSTS});
+            expect(dismissAllRoutesAndPopToScreen).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS);
         });
     });
 
