@@ -37,9 +37,6 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         alignItems: 'center',
         paddingBottom: 5,
     },
-    enabled: {
-        color: theme.sidebarHeaderTextColor,
-    },
     titleContainer: {
         alignItems: 'center',
         flex: 1,
@@ -66,12 +63,12 @@ const TabletTitle = ({action, count, enabled = true, iconName, onPress, testID, 
                         {title}
                     </Text>
                 </View>
-                {Boolean(action && onPress) &&
+                {action && onPress &&
                 <View style={styles.actionContainer}>
                     <NavigationButton
                         text={action}
                         disabled={!enabled}
-                        onPress={onPress!}
+                        onPress={onPress}
                         testID={`${testID}.${action!.toLocaleLowerCase()}.button`}
                         count={count}
                         iconName={iconName}

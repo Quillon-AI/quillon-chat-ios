@@ -57,7 +57,7 @@ function NavigationButton({
             hitSlop={hitSlop}
             testID={testID}
             android_ripple={{borderless, radius: rippleRadius}}
-            style={(pressed) => [styles.container, pressed && {opacity: 0.72}]}
+            style={({pressed}) => [styles.container, pressed && {opacity: 0.72}]}
         >
 
             {Boolean(text) && <Text style={[styles.title, colorStyle]}>{text}</Text>}
