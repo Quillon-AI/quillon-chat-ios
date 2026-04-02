@@ -61,7 +61,6 @@ function getExpoRouterPath(screen: AvailableScreens, props?: any): string | unde
  */
 export function navigateToScreen(screen: AvailableScreens, props?: Record<string, unknown>, reset = false) {
     try {
-        // Try Expo Router first
         if (router) {
             const route = getExpoRouterPath(screen, props);
             if (route) {

@@ -323,27 +323,27 @@ describe('draft actions', () => {
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
-        it('should call goToScreen on non-tablet', async () => {
+        it('should call dismissAllRoutesAndPopToScreen on non-tablet', async () => {
             jest.mocked(isTablet).mockReturnValue(false);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
 
-            const goToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
+            const dismissAllRoutesAndPopToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
 
             await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
             await switchToGlobalDrafts(serverUrl);
 
-            expect(goToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {});
+            expect(dismissAllRoutesAndPopToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {});
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
-        it('should not call goToScreen on non-tablet when server url is a non existent URL', async () => {
+        it('should not call navigateToScreen on non-tablet when server url is a non existent URL', async () => {
             jest.mocked(isTablet).mockReturnValue(false);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
-            const goToScreenMock = jest.mocked(navigateToScreen);
+            const navigateToScreenMock = jest.mocked(navigateToScreen);
 
             await switchToGlobalDrafts('nonexistent');
 
-            expect(goToScreenMock).not.toHaveBeenCalled();
+            expect(navigateToScreenMock).not.toHaveBeenCalled();
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
@@ -361,13 +361,13 @@ describe('draft actions', () => {
         it('should pass initialTab param when provided', async () => {
             jest.mocked(isTablet).mockReturnValue(false);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
-            const goToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
+            const dismissAllRoutesAndPopToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
 
             await switchToGlobalDrafts(serverUrl, teamId, DRAFT_SCREEN_TAB_SCHEDULED_POSTS);
-            expect(goToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: DRAFT_SCREEN_TAB_SCHEDULED_POSTS});
+            expect(dismissAllRoutesAndPopToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: DRAFT_SCREEN_TAB_SCHEDULED_POSTS});
 
             await switchToGlobalDrafts(serverUrl, teamId, DRAFT_SCREEN_TAB_DRAFTS);
-            expect(goToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: DRAFT_SCREEN_TAB_DRAFTS});
+            expect(dismissAllRoutesAndPopToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: DRAFT_SCREEN_TAB_DRAFTS});
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
