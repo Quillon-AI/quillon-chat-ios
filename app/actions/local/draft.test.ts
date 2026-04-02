@@ -27,7 +27,7 @@ import {
 import type ServerDataOperator from '@database/operator/server_data_operator';
 import type DraftModel from '@typings/database/models/servers/draft';
 
-let operator: ServerDataOperator;
+let operator: ServerDataOperator | undefined;
 const serverUrl = 'baseHandler.test.com';
 const channelId = 'id1';
 const teamId = 'tId1';
@@ -71,7 +71,7 @@ jest.mock('@store/navigation_store', () => ({
 describe('draft actions', () => {
     beforeEach(async () => {
         await DatabaseManager.init([serverUrl]);
-        operator = DatabaseManager.serverDatabases[serverUrl]!.operator;
+        operator = DatabaseManager.serverDatabases[serverUrl]?.operator;
     });
 
     afterEach(async () => {
@@ -91,7 +91,7 @@ describe('draft actions', () => {
         });
 
         it('handle no file', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
             const {error} = await updateDraftFile(serverUrl, channelId, '', fileInfo, false);
             expect(error).toBeTruthy();
@@ -99,13 +99,13 @@ describe('draft actions', () => {
         });
 
         it('update draft file', async () => {
-            await operator.handleDraft({drafts: [{...draft, files: [{...fileInfo, localPath: 'path0'}]}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{...draft, files: [{...fileInfo, localPath: 'path0'}]}], prepareRecordsOnly: false});
 
             const {draft: draftModel, error} = await updateDraftFile(serverUrl, channelId, '', fileInfo);
             expect(error).toBeUndefined();
             expect(draftModel).toBeDefined();
             expect(draftModel?.files?.length).toBe(1);
-            expect(draftModel?.files![0].localPath).toBe('path1');
+            expect(draftModel?.files?.[0].localPath).toBe('path1');
         });
     });
 
@@ -122,7 +122,7 @@ describe('draft actions', () => {
         });
 
         it('handle no file', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
             const {error} = await removeDraftFile(serverUrl, channelId, '', 'clientid', false);
             expect(error).toBeTruthy();
@@ -130,7 +130,7 @@ describe('draft actions', () => {
         });
 
         it('remove draft file', async () => {
-            await operator.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
 
             const {draft: draftModel, error} = await removeDraftFile(serverUrl, channelId, '', 'clientid');
             expect(error).toBeUndefined();
@@ -138,7 +138,7 @@ describe('draft actions', () => {
         });
 
         it('remove draft file, no message', async () => {
-            await operator.handleDraft({drafts: [{channel_id: channel.id, files: [fileInfo], root_id: '', update_at: Date.now()}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{channel_id: channel.id, files: [fileInfo], root_id: '', update_at: Date.now()}], prepareRecordsOnly: false});
 
             const {draft: draftModel, error} = await removeDraftFile(serverUrl, channelId, '', 'clientid', false);
             expect(error).toBeUndefined();
@@ -166,7 +166,7 @@ describe('draft actions', () => {
         });
 
         it('update draft message', async () => {
-            await operator.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
 
             const result = await updateDraftMessage(serverUrl, channelId, '', 'newmessage') as {draft: DraftModel; error: unknown};
             expect(result.error).toBeUndefined();
@@ -175,7 +175,7 @@ describe('draft actions', () => {
         });
 
         it('update draft message, same message', async () => {
-            await operator.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
 
             const result = await updateDraftMessage(serverUrl, channelId, '', 'test', false) as {draft: DraftModel; error: unknown};
             expect(result.error).toBeUndefined();
@@ -184,7 +184,7 @@ describe('draft actions', () => {
         });
 
         it('update draft message, no file', async () => {
-            await operator.handleDraft({drafts: [{channel_id: channel.id, files: [], root_id: '', update_at: Date.now()}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{channel_id: channel.id, files: [], root_id: '', update_at: Date.now()}], prepareRecordsOnly: false});
 
             const result = await updateDraftMessage(serverUrl, channelId, '', 'newmessage', false) as {draft: DraftModel; error: unknown};
             expect(result.error).toBeUndefined();
@@ -207,7 +207,7 @@ describe('draft actions', () => {
         });
 
         it('add draft files', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
             const result = await addFilesToDraft(serverUrl, channelId, '', [fileInfo]) as {draft: DraftModel; error: unknown};
             expect(result.error).toBeUndefined();
@@ -230,7 +230,7 @@ describe('draft actions', () => {
         });
 
         it('remove draft', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
             const result = await removeDraft(serverUrl, channelId);
             expect(result.error).toBeUndefined();
@@ -238,7 +238,7 @@ describe('draft actions', () => {
         });
 
         it('remove draft with root id', async () => {
-            await operator.handleDraft({drafts: [{...draft, root_id: 'postid'}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{...draft, root_id: 'postid'}], prepareRecordsOnly: false});
 
             const result = await removeDraft(serverUrl, channelId, 'postid');
             expect(result.error).toBeUndefined();
@@ -265,7 +265,7 @@ describe('draft actions', () => {
         });
 
         it('update draft priority', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
             const result = await updateDraftPriority(serverUrl, channelId, '', postPriority) as {draft: DraftModel; error: unknown};
             expect(result.error).toBeUndefined();
@@ -283,7 +283,7 @@ describe('draft actions', () => {
             jest.mocked(isTablet).mockReturnValue(true);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
 
-            await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
+            await operator?.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
 
             await switchToGlobalDrafts(serverUrl);
 
@@ -292,6 +292,11 @@ describe('draft actions', () => {
 
         it('if prepareRecordsOnly is true, should emit navigation event on tablet for Scheduled post tab and also call batchRecord', async () => {
             jest.mocked(isTablet).mockReturnValue(true);
+            if (!operator) {
+                expect(operator).toBeDefined();
+                return;
+            }
+
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
             const batchRecordSpy = jest.spyOn(operator, 'batchRecords');
 
@@ -316,7 +321,7 @@ describe('draft actions', () => {
             jest.mocked(isTablet).mockReturnValue(true);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
 
-            await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: ''}], prepareRecordsOnly: false});
+            await operator?.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: ''}], prepareRecordsOnly: false});
 
             await switchToGlobalDrafts(serverUrl);
 
@@ -329,10 +334,10 @@ describe('draft actions', () => {
 
             const dismissAllRoutesAndPopToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
 
-            await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
+            await operator?.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
             await switchToGlobalDrafts(serverUrl);
 
-            expect(dismissAllRoutesAndPopToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {});
+            expect(dismissAllRoutesAndPopToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: undefined});
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
@@ -404,7 +409,7 @@ describe('draft actions', () => {
         });
 
         it('handle update image metadata', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
             const result = await updateDraftMarkdownImageMetadata({
                 serverUrl,
                 channelId,
@@ -429,7 +434,7 @@ describe('updateDraftBoRConfig', () => {
 
     beforeEach(async () => {
         await DatabaseManager.init([serverUrl]);
-        operator = DatabaseManager.serverDatabases[serverUrl]!.operator;
+        operator = DatabaseManager.serverDatabases[serverUrl]?.operator;
     });
 
     afterEach(async () => {
@@ -451,7 +456,7 @@ describe('updateDraftBoRConfig', () => {
     });
 
     it('update draft BoR config with enabled true', async () => {
-        await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+        await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
         const result = await updateDraftBoRConfig(serverUrl, channelId, '', postBoRConfig) as {draft: DraftModel; error: unknown};
         expect(result.error).toBeUndefined();
@@ -462,7 +467,7 @@ describe('updateDraftBoRConfig', () => {
     });
 
     it('update draft BoR config with enabled false', async () => {
-        await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+        await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
         const disabledBoRConfig = {...postBoRConfig, enabled: false};
         const result = await updateDraftBoRConfig(serverUrl, channelId, '', disabledBoRConfig) as {draft: DraftModel; error: unknown};
