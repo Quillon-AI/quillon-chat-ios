@@ -69,7 +69,7 @@ const TabletTitle = ({action, count, enabled = true, iconName, onPress, testID, 
                         text={action}
                         disabled={!enabled}
                         onPress={onPress}
-                        testID={`${testID}.${action!.toLocaleLowerCase()}.button`}
+                        testID={`${testID}.${action.toLocaleLowerCase()}.button`}
                         count={count}
                         iconName={iconName}
                     />
