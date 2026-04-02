@@ -12,7 +12,7 @@ import {
 } from '@support/ui/component';
 import {PostOptionsScreen} from '@support/ui/screen';
 import {isAndroid, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 class ThreadScreen {
     testID = {
@@ -21,12 +21,16 @@ class ThreadScreen {
         backButton: 'screen.back.button',
         followButton: 'thread.follow_thread.button',
         followingButton: 'thread.following_thread.button',
+        scheduledPostTooltipCloseButton: 'scheduled_post.tooltip.close.button',
+        scheduledPostTooltipCloseButtonAdminAccount: 'scheduled_post_tutorial_tooltip.close',
     };
 
     threadScreen = element(by.id(this.testID.threadScreen));
     backButton = element(by.id(this.testID.backButton));
     followButton = element(by.id(this.testID.followButton));
     followingButton = element(by.id(this.testID.followingButton));
+    scheduledPostTooltipCloseButton = element(by.id(this.testID.scheduledPostTooltipCloseButton));
+    scheduledPostTooltipCloseButtonAdminAccount = element(by.id(this.testID.scheduledPostTooltipCloseButtonAdminAccount));
 
     // convenience props
     atInputQuickAction = InputQuickAction.getAtInputQuickAction(this.testID.threadScreenPrefix);
@@ -84,8 +88,26 @@ class ThreadScreen {
         return this.postList.getPostMessageAtIndex(index);
     };
 
+    dismissScheduledPostTooltip = async () => {
+        // Try to close scheduled post tooltip if it exists (try both regular and admin account versions)
+        try {
+            await waitFor(this.scheduledPostTooltipCloseButton).toBeVisible().withTimeout(timeouts.FOUR_SEC);
+            await this.scheduledPostTooltipCloseButton.tap();
+            await wait(timeouts.HALF_SEC);
+        } catch {
+            // Try admin account version
+            try {
+                await waitFor(this.scheduledPostTooltipCloseButtonAdminAccount).toBeVisible().withTimeout(timeouts.FOUR_SEC);
+                await this.scheduledPostTooltipCloseButtonAdminAccount.tap();
+                await wait(timeouts.HALF_SEC);
+            } catch {
+                // Tooltip not visible, continue
+            }
+        }
+    };
+
     toBeVisible = async () => {
-        const timeout = isAndroid() ? timeouts.TWENTY_SEC : timeouts.TEN_SEC;
+        const timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC;
         await waitFor(this.threadScreen).toExist().withTimeout(timeout);
 
         return this.threadScreen;
@@ -142,6 +164,12 @@ class ThreadScreen {
     };
 
     longPressSendButton = async () => {
+        // # Dismiss the scheduled-post tooltip before long-pressing the send button.
+        // On Android the tooltip overlay intercepts the long-press gesture, preventing
+        // the scheduling sheet from opening. Dismissing it first ensures the press lands
+        // on the actual send button element.
+        await this.dismissScheduledPostTooltip();
+
         // # Long press send button
         await this.sendButton.longPress();
     };

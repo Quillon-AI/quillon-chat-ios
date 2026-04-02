@@ -100,7 +100,11 @@ class CreateDirectMessageScreen {
         // alert dimming overlays left by previous tests.
         await waitFor(ChannelListScreen.headerPlusButton).toExist().withTimeout(timeouts.HALF_MIN);
         await ChannelListScreen.headerPlusButton.tap();
-        await wait(timeouts.ONE_SEC);
+
+        // Wait for the bottom-sheet menu to animate open before tapping the item.
+        // On Android a fixed ONE_SEC sleep is insufficient — the sheet can still be
+        // mid-animation, causing the tap to land on the backdrop and dismiss it instead.
+        await waitFor(ChannelListScreen.openDirectMessageItem).toExist().withTimeout(timeouts.TEN_SEC);
         await ChannelListScreen.openDirectMessageItem.tap();
         await this.toBeVisible();
 

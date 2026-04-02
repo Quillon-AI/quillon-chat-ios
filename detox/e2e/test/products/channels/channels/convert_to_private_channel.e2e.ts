@@ -25,12 +25,18 @@ describe('Channels - Convert to Private Channel', () => {
     const siteOneDisplayName = 'Server 1';
 
     beforeAll(async () => {
-        // # Ensure a clean app state regardless of what the previous suite left behind
-        await device.launchApp({newInstance: true});
+        // # Ensure a clean app state regardless of what the previous suite left behind.
+        // Disable Detox synchronization during app init: after newInstance the JS bridge
+        // (mqt_js) is busy bootstrapping React Native, causing BridgeIdlingResource to
+        // block indefinitely and LoginScreen.toBeVisible() to time out on Android CI.
+        await device.launchApp({newInstance: true, launchArgs: {detoxDisableSynchronization: 'YES'}});
 
         // # Log in to server as admin
         await ServerScreen.connectToServer(siteTwoUrl, siteOneDisplayName);
         await LoginScreen.loginAsAdmin(getAdminAccount());
+
+        // Re-enable synchronization now that the app has settled past the init bridge burst.
+        await device.enableSynchronization();
 
         // Wait for the channel list header plus button to be fully visible and hittable
         // before any test attempts to tap it. A fixed TWO_SEC sleep was insufficient on

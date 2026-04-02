@@ -17,7 +17,7 @@ import {
     PostOptionsScreen,
     ThreadScreen,
 } from '@support/ui/screen';
-import {isAndroid, isIos, longPressWithScrollRetry, timeouts, wait} from '@support/utils';
+import {isAndroid, isIos, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ChannelScreen {
@@ -211,7 +211,13 @@ class ChannelScreen {
 
     openPostOptionsFor = async (postId: string, text: string) => {
         const {postListPostItem} = this.getPostListPostItem(postId, text);
-        await waitFor(postListPostItem).toBeVisible().withTimeout(timeouts.TEN_SEC);
+
+        // Poll for the post to become visible without waiting for idle bridge.
+        // On Android the JS bridge (mqt_js) is often busy during animations and
+        // channel-load transitions. waitFor().toBeVisible().withTimeout() blocks
+        // until bridge idle before evaluating, causing BridgeIdlingResource timeouts
+        // on CI emulators. Use the polling helper instead.
+        await waitForElementToBeVisible(postListPostItem, timeouts.HALF_MIN);
 
         // On Android, wait for UI to settle after channel navigation or posting.
         // The longPressWithScrollRetry (5 attempts, 3s delay) handles the rest.
@@ -264,6 +270,12 @@ class ChannelScreen {
     };
 
     longPressSendButton = async () => {
+        // # Dismiss the scheduled-post tooltip before long-pressing the send button.
+        // On Android the tooltip overlay intercepts the long-press gesture, preventing
+        // the scheduling sheet from opening. Dismissing it first ensures the press lands
+        // on the actual send button element.
+        await this.dismissScheduledPostTooltip();
+
         // # Long press send button
         await this.sendButton.longPress();
     };

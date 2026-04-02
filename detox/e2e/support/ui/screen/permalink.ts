@@ -35,7 +35,9 @@ class PermalinkScreen {
         // to fail. Use toExist() on Android — the screen is present and interactive even
         // when the container's bounding rect is partially covered by the navigation bar.
         if (isAndroid()) {
-            await waitFor(this.permalinkScreen).toExist().withTimeout(timeouts.TEN_SEC);
+            // Use HALF_MIN: permalink navigation involves modal dismissal + screen push,
+            // which keeps the bridge busy longer than TEN_SEC on Android API 35 CI emulators.
+            await waitFor(this.permalinkScreen).toExist().withTimeout(timeouts.HALF_MIN);
         } else {
             await expect(this.permalinkScreen).toBeVisible();
         }
