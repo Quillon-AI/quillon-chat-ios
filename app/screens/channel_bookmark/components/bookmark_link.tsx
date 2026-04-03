@@ -4,6 +4,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useIntl} from 'react-intl';
 import {Platform, View} from 'react-native';
+import urlParse from 'url-parse';
 
 import FloatingTextInput from '@components/floating_input/floating_text_input_label';
 import FormattedText from '@components/formatted_text';
@@ -23,31 +24,43 @@ type HeadRaceResult = {url: string} | {timedOut: true} | {failed: true};
 
 async function resolveBookmarkTargetUrl(text: string): Promise<{url: string} | {failed: true}> {
     const trimmed = text.trim();
+
+    // Use a single shared timeout across both HTTPS and HTTP attempts so the total
+    // wait is bounded by LINK_METADATA_TIMEOUT_MS (not 2x that for sequential tries).
+    let timeoutId: NodeJS.Timeout;
+    const timeout = new Promise<HeadRaceResult>((resolve) => {
+        timeoutId = setTimeout(() => resolve({timedOut: true}), LINK_METADATA_TIMEOUT_MS);
+    });
+
     const raceHead = (useHttp: boolean): Promise<HeadRaceResult> =>
         Promise.race([
             getUrlAfterRedirect(text, useHttp).then((r): HeadRaceResult =>
                 (r.url ? {url: r.url} : {failed: true}),
             ),
-            new Promise<HeadRaceResult>((resolve) => {
-                setTimeout(() => resolve({timedOut: true}), LINK_METADATA_TIMEOUT_MS);
-            }),
+            timeout,
         ]);
 
-    const first = await raceHead(false);
-    if ('timedOut' in first) {
-        return {url: sanitizeUrl(trimmed, false)};
+    try {
+        // Try HTTPS first; fall back to HTTP only if it explicitly fails (not on timeout).
+        const first = await raceHead(false);
+        if ('timedOut' in first) {
+            return {url: sanitizeUrl(trimmed, false)};
+        }
+        if ('url' in first) {
+            return first;
+        }
+
+        const second = await raceHead(true);
+        if ('timedOut' in second) {
+            return {url: sanitizeUrl(trimmed, false)};
+        }
+        if ('url' in second) {
+            return second;
+        }
+        return {failed: true};
+    } finally {
+        clearTimeout(timeoutId!);
     }
-    if ('url' in first) {
-        return first;
-    }
-    const second = await raceHead(true);
-    if ('timedOut' in second) {
-        return {url: sanitizeUrl(trimmed, false)};
-    }
-    if ('url' in second) {
-        return second;
-    }
-    return {failed: true};
 }
 
 type Props = {
@@ -65,13 +78,13 @@ const getComparableUrl = (value: string) => {
         return '';
     }
 
-    try {
-        const parsed = new URL(trimmed);
+    const parsed = urlParse(trimmed);
+    if (parsed.host) {
         const pathname = parsed.pathname.replace(/\/+$/, '');
-        return `${parsed.protocol}//${parsed.host}${pathname}${parsed.search}${parsed.hash}`;
-    } catch {
-        return trimmed.replace(/\/+$/, '');
+        return `${parsed.protocol}//${parsed.host}${pathname}${parsed.query}${parsed.hash}`;
     }
+
+    return trimmed.replace(/\/+$/, '');
 };
 
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({

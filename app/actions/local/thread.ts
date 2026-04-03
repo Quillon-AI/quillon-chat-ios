@@ -187,6 +187,7 @@ export async function createThreadFromNewPost(serverUrl: string, post: Post, pre
                     const threadModels = await prepareThreadsFromReceivedPosts(operator, [{
                         ...await rootPost.toApi(),
                         reply_count: post.reply_count,
+                        is_following: true,
                     }], false);
                     models.push(...threadModels);
                 }

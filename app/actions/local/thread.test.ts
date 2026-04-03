@@ -233,11 +233,30 @@ describe('createThreadFromNewPost', () => {
         expect(models?.length).toBe(2); // thread, thread participant
     });
 
-    it('should set is_following=true locally when the current user posts a reply', async () => {
+    it('should set is_following=true locally when the current user posts a reply (existing thread)', async () => {
         await operator.handleUsers({users: [user], prepareRecordsOnly: false});
         await operator.handleThreads({threads: [{...threads[0], is_following: false}], prepareRecordsOnly: false, teamId: team.id});
         await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_USER_ID, value: user.id}], prepareRecordsOnly: false});
         const post = TestHelper.fakePost({channel_id: channelId, user_id: user.id, id: 'postid', create_at: 1, root_id: rootPost.id});
+
+        const {error} = await createThreadFromNewPost(serverUrl, post, false);
+        const savedThread = await operator.database.get<ThreadModel>('Thread').find(rootPost.id);
+
+        expect(error).toBeUndefined();
+        expect(savedThread.isFollowing).toBe(true);
+    });
+
+    it('should set is_following=true when thread record does not exist yet (only root post in DB)', async () => {
+        // Only store the root post — no Thread record — to exercise the else-branch in createThreadFromNewPost.
+        await operator.handleUsers({users: [user], prepareRecordsOnly: false});
+        await operator.handlePosts({
+            actionType: ActionType.POSTS.RECEIVED_IN_CHANNEL,
+            order: [rootPost.id],
+            posts: [rootPost],
+            prepareRecordsOnly: false,
+        });
+        await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_USER_ID, value: user.id}], prepareRecordsOnly: false});
+        const post = TestHelper.fakePost({channel_id: channelId, user_id: user.id, id: 'postid3', create_at: 3, root_id: rootPost.id, reply_count: 1});
 
         const {error} = await createThreadFromNewPost(serverUrl, post, false);
         const savedThread = await operator.database.get<ThreadModel>('Thread').find(rootPost.id);
@@ -306,6 +325,29 @@ describe('processReceivedThreads', () => {
         expect(error).toBeUndefined();
         expect(models).toBeDefined();
         expect(models?.length).toBe(4); // post, thread, thread participant, thread in team
+    });
+
+    it('should not crash when thread has missing post or participants fields', async () => {
+        await operator.handleTeam({teams: [team], prepareRecordsOnly: false});
+        await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
+
+        const threadWithMissingFields = [
+            {
+                id: rootPost.id,
+                reply_count: 0,
+                last_reply_at: 0,
+                last_viewed_at: 0,
+                is_following: false,
+                unread_replies: 0,
+                unread_mentions: 0,
+
+                // post and participants intentionally omitted to exercise null guards
+            } as unknown as Thread,
+        ];
+
+        const {models, error} = await processReceivedThreads(serverUrl, threadWithMissingFields, team.id);
+        expect(error).toBeUndefined();
+        expect(models).toBeDefined();
     });
 
 });

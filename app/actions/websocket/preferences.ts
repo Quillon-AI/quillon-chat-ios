@@ -29,6 +29,8 @@ export async function handlePreferenceChangedEvent(serverUrl: string, msg: WebSo
         const {database, operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
         const preference: PreferenceType = JSON.parse(msg.data.preference);
         const preferences = filterStaleSavedPostPreferences(serverUrl, [preference]);
+
+        // Empty only when the single preference was a stale SAVED_POST re-save — safe to skip.
         if (!preferences.length) {
             return;
         }
@@ -63,6 +65,10 @@ export async function handlePreferencesChangedEvent(serverUrl: string, msg: WebS
     try {
         const {database, operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
         const preferences: PreferenceType[] = filterStaleSavedPostPreferences(serverUrl, JSON.parse(msg.data.preferences));
+
+        // filterStaleSavedPostPreferences only removes SAVED_POST entries with value='true' that
+        // are in the recently-unsaved set; all other preference categories pass through unchanged.
+        // An empty result here means the entire batch was stale SAVED_POST re-saves — safe to skip.
         if (!preferences.length) {
             return;
         }

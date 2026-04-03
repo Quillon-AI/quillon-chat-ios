@@ -1,8 +1,6 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-/* eslint-disable max-lines */
-
 import {Preferences} from '@constants';
 import {SYSTEM_IDENTIFIERS} from '@constants/database';
 import DatabaseManager from '@database/manager';
@@ -57,7 +55,6 @@ const mockClient = {
 };
 
 beforeAll(() => {
-    // eslint-disable-next-line
     // @ts-ignore
     NetworkManager.getClient = () => mockClient;
 });
@@ -160,6 +157,25 @@ describe('preferences', () => {
         expect(result.preference).toBeDefined();
         expect(EphemeralStore.addRecentlyUnsavedSavedPost).toHaveBeenCalledWith(serverUrl, post1.id);
         expect(prefModel.destroyPermanently).toHaveBeenCalledTimes(1);
+    });
+
+    it('deleteSavedPost - does not mark ephemeral store when API call fails', async () => {
+        await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_USER_ID, value: user1.id}], prepareRecordsOnly: false});
+
+        const prefModel = {
+            user_id: user1.id,
+            name: post1.id,
+            category: Preferences.CATEGORIES.SAVED_POST,
+            value: 'true',
+            destroyPermanently: jest.fn(),
+        } as unknown as PreferenceModel;
+        (querySavedPostsPreferences as jest.Mock).mockReturnValueOnce({fetch: jest.fn(() => [prefModel])});
+        mockClient.deletePreferences.mockImplementationOnce(jest.fn(throwFunc));
+
+        const result = await deleteSavedPost(serverUrl, post1.id);
+        expect(result.error).toBeDefined();
+        expect(EphemeralStore.addRecentlyUnsavedSavedPost).not.toHaveBeenCalled();
+        expect(prefModel.destroyPermanently).not.toHaveBeenCalled();
     });
 
     it('openChannelIfNeeded - handle not found database', async () => {

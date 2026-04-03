@@ -201,6 +201,7 @@ const FloatingInputContainer = ({
             <Pressable
                 accessible={Platform.OS === 'ios' ? false : undefined}
                 onPress={handlePressOnContainer}
+                style={({pressed}) => (pressed ? {opacity: 0.72} : undefined)}
             >
                 <Animated.Text
                     style={[styles.label, textAnimatedTextStyle]}

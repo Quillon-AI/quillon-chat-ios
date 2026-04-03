@@ -94,6 +94,12 @@ export const observePostAuthor = (database: Database, post: PostModel) => {
 };
 
 const getServerUrlForDatabase = (database: Database) => {
+    // Primary match: direct object-identity comparison (works in all normal call paths).
+    // Secondary match: compare internal WatermelonDB adapter `dbName` as a fallback for
+    // cases where the Database instance is re-wrapped. `dbName` is not part of the public
+    // WatermelonDB API — if the library changes its internals this fallback silently returns
+    // undefined and callers fall back to the non-server-aware observable (no crash, no data
+    // loss — the 2-minute TTL on unsaved posts still self-heals).
     const databaseName = (database.adapter as {dbName?: string}).dbName;
 
     return Object.entries(DatabaseManager.serverDatabases).find(([, serverDatabase]) => {

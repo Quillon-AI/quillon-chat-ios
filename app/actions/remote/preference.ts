@@ -131,8 +131,8 @@ export const deleteSavedPost = async (serverUrl: string, postId: string) => {
         };
 
         if (postPreferenceRecord) {
-            EphemeralStore.addRecentlyUnsavedSavedPost(serverUrl, postId);
             await client.deletePreferences(userId, [pref]);
+            EphemeralStore.addRecentlyUnsavedSavedPost(serverUrl, postId);
             await postPreferenceRecord.destroyPermanently();
         }
 
