@@ -229,18 +229,6 @@ beforeAll(async () => {
         });
         grantAndroidNotificationPermission();
 
-        // Belt-and-suspenders sync disable: the launchArg `detoxDisableSynchronization:'YES'`
-        // instructs the app's native layer to disable idle tracking, but on iOS 26.x the
-        // app SDK sometimes reports a persistent "work item pending on Main Queue" before
-        // that instruction is processed. Calling device.disableSynchronization() here sends
-        // the disable command via the already-established Detox WebSocket connection — this
-        // is guaranteed to take effect before the polling loop below runs any assertions.
-        // Without this, detoxExpect().toExist() blocks indefinitely waiting for main-queue
-        // idle even though we never want that wait during the launch detection phase.
-        if (device.getPlatform() === 'ios') {
-            await device.disableSynchronization();
-        }
-
         // Wait for EITHER server.screen (clean state) or channel_list.screen
         // (logged-in state, meaning pm clear did not take effect).
         // We poll with short waitFor() calls so we detect either outcome quickly
@@ -294,13 +282,7 @@ beforeAll(async () => {
             );
         }
 
-        // detectedScreen === 'server' → happy path.
-        // Re-enable Detox synchronization so that the actual test assertions
-        // (waitFor().toExist().withTimeout()) operate normally. Sync was disabled
-        // only for the launch detection phase to unblock the main-queue idle check.
-        if (device.getPlatform() === 'ios') {
-            await device.enableSynchronization();
-        }
+        // detectedScreen === 'server' → happy path, fall through.
     }
 
     if (isFirstFile) {
