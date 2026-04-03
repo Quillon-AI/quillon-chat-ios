@@ -4,20 +4,13 @@ import React
 @objc public class RNUtilsWrapper: NSObject {
     @objc public weak var delegate: RNUtilsDelegate? = nil
     @objc private var hasRegisteredLoad = false
-    private var debounceTimer: DispatchSourceTimer?
-
+    private var debounceWorkItem: DispatchWorkItem?
+    
     deinit {
-        debounceTimer?.cancel()
-        debounceTimer = nil
-        let removeObservers = {
+        DispatchQueue.main.sync {
             guard let w = UIApplication.shared.delegate?.window, let window = w else { return }
             window.removeObserver(self, forKeyPath: "frame")
             NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
-        }
-        if Thread.isMainThread {
-            removeObservers()
-        } else {
-            DispatchQueue.main.sync(execute: removeObservers)
         }
     }
     
@@ -51,43 +44,39 @@ import React
         return windowWidth >= screenWidth * (2.0 / 3.0)
     }
     
-    // DispatchSourceTimer instead of DispatchWorkItem + asyncAfter for cleaner GCD
-    // resource lifecycle: a cancelled timer source does not leave pending work items
-    // on the queue, whereas a cancelled DispatchWorkItem scheduled via asyncAfter
-    // remains in the queue until its timer fires.
     private func sendDimensionsChangedDebounced() {
-        debounceTimer?.cancel()
-        debounceTimer = nil
-
-        let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.setEventHandler { [weak self] in
+        debounceWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
-            let (screen, bounds) = self.getWindowSize()
-            guard let screen = screen, let bounds = bounds else { return }
+            let (screen, bounds) = getWindowSize()
+            guard let screen = screen, let bounds = bounds else {return}
 
+            // Determine which dimensions to use
             var width: CGFloat = 0
             var height: CGFloat = 0
 
             if UIDevice.current.userInterfaceIdiom == .pad {
+                // On iPad, use window bounds for Split View/Stage Manager
                 width = bounds.width
                 height = bounds.height
             } else {
+                // On iPhone, use screen bounds for reliability
                 width = screen.width
                 height = screen.height
             }
 
-            self.isSplitView(screen: screen, bounds: bounds)
-
-            if width == 0 || height == 0 { return }
-            self.delegate?.sendEvent(name: "DimensionsChanged", result: [
+            isSplitView(screen: screen, bounds: bounds)
+            
+            if width == 0 || height == 0 {
+                return
+            }
+            delegate?.sendEvent(name: "DimensionsChanged", result: [
                 "width": width,
-                "height": height,
+                "height": height
             ])
         }
-        // Non-repeating: fires once at deadline, no manual cancel needed.
-        timer.schedule(deadline: .now() + 0.1)
-        timer.resume()
-        debounceTimer = timer
+        debounceWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: workItem)
     }
     
     @objc public func captureEvents() {
@@ -260,46 +249,41 @@ import React
     }
     
     @objc public func isRunningInSplitView() -> Dictionary<String, Any> {
-        if Thread.isMainThread {
+        let queue = DispatchQueue.main
+            let group = DispatchGroup()
+            var shouldBeConsideredFullScreen = true
+            group.enter()
+            queue.async(group: group) { [weak self] in
+              shouldBeConsideredFullScreen = self?.isRunningInFullScreen() ?? true
+              group.leave()
+            }
+            group.wait()
             return [
-                "isSplit": !isRunningInFullScreen(),
-                "isTablet": UIDevice.current.userInterfaceIdiom == .pad,
+              "isSplit": !shouldBeConsideredFullScreen,
+              "isTablet": UIDevice.current.userInterfaceIdiom == .pad,
             ]
-        }
-        let group = DispatchGroup()
-        var shouldBeConsideredFullScreen = true
-        group.enter()
-        DispatchQueue.main.async(group: group) { [weak self] in
-            shouldBeConsideredFullScreen = self?.isRunningInFullScreen() ?? true
-            group.leave()
-        }
-        group.wait()
-        return [
-            "isSplit": !shouldBeConsideredFullScreen,
-            "isTablet": UIDevice.current.userInterfaceIdiom == .pad,
-        ]
     }
     
     @objc public func getWindowDimensions() -> Dictionary<String, Any> {
-        if Thread.isMainThread {
-            let (_, frame) = getWindowSize()
-            if let frame = frame {
-                return ["width": frame.width, "height": frame.height]
+        let queue = DispatchQueue.main
+            let group = DispatchGroup()
+            var dimensions = [
+                "width": 0.0,
+                "height": 0.0
+            ]
+            group.enter()
+            queue.async(group: group) { [weak self] in
+                if let (_, frame) = self?.getWindowSize(),
+                   let frame = frame {
+                    dimensions = [
+                        "width": frame.width,
+                        "height": frame.height
+                    ]
+                }
+              group.leave()
             }
-            return ["width": 0.0, "height": 0.0]
-        }
-        let group = DispatchGroup()
-        var dimensions: [String: Double] = ["width": 0.0, "height": 0.0]
-        group.enter()
-        DispatchQueue.main.async(group: group) { [weak self] in
-            if let (_, frame) = self?.getWindowSize(),
-               let frame = frame {
-                dimensions = ["width": frame.width, "height": frame.height]
-            }
-            group.leave()
-        }
-        group.wait()
-        return dimensions
+            group.wait()
+            return dimensions
     }
 
     @objc public func setHasRegisteredLoad() {
