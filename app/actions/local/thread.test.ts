@@ -326,8 +326,6 @@ describe('processReceivedThreads', () => {
         expect(models).toBeDefined();
         expect(models?.length).toBe(4); // post, thread, thread participant, thread in team
     });
-
-
 });
 
 describe('markTeamThreadsAsRead', () => {
