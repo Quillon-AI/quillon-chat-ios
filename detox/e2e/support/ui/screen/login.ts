@@ -3,7 +3,7 @@
 
 import {serverOneUrl} from '@support/test_config';
 import {ChannelListScreen, ServerScreen} from '@support/ui/screen';
-import {isAndroid, retryWithReload, timeouts, wait} from '@support/utils';
+import {isAndroid, retryWithReload, timeouts, wait, waitForElementToExist} from '@support/utils';
 import {expect} from 'detox';
 
 class LoginScreen {
@@ -45,8 +45,17 @@ class LoginScreen {
     toBeVisible = async () => {
         // Android CI emulators can be slow after app launch — use a longer timeout.
         const timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC;
-        await waitFor(this.loginScreen).toExist().withTimeout(timeout);
-        await waitFor(this.usernameInput).toExist().withTimeout(timeout);
+
+        // On Android, use the polling helper instead of waitFor().toExist() to avoid
+        // BridgeIdlingResource blocking when the JS bridge is still busy after
+        // a cold-start (newInstance) launch or device.reloadReactNative().
+        if (isAndroid()) {
+            await waitForElementToExist(this.loginScreen, timeout);
+            await waitForElementToExist(this.usernameInput, timeout);
+        } else {
+            await waitFor(this.loginScreen).toExist().withTimeout(timeout);
+            await waitFor(this.usernameInput).toExist().withTimeout(timeout);
+        }
         return this.loginScreen;
     };
 

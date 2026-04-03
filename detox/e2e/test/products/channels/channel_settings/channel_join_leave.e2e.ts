@@ -40,6 +40,9 @@ describe('Channels', () => {
     let testChannel: any;
     let privateChannel: any;
 
+    // Pass an explicit timeout (8 min) so that on a slow Android CI shard the hook does
+    // not exceed the global testTimeout (240s). The hook creates two channels, adds users,
+    // connects to the server, and logs in — which can take > 4 min under load.
     beforeAll(async () => {
         const {user, channel, team} = await Setup.apiInit(siteOneUrl);
         testUser = user;
@@ -54,7 +57,7 @@ describe('Channels', () => {
         await Channel.apiAddUserToChannel(siteOneUrl, testUser.id, privateChannel.id);
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(testUser);
-    });
+    }, 480000);
 
     afterAll(async () => {
         await HomeScreen.logout();

@@ -22,7 +22,7 @@ import {
     ServerScreen,
     HomeScreen,
 } from '@support/ui/screen';
-import {getRandomId, timeouts, wait} from '@support/utils';
+import {getRandomId, isAndroid, timeouts, wait, waitForElementToNotExist} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 describe('Channels', () => {
@@ -159,8 +159,15 @@ describe('Channels', () => {
         await ChannelListScreen.toBeVisible();
 
         // * Verify archived channel is not visible in the list
-        // Use waitFor with a timeout: on Android the channel list sidebar re-render after
-        // archiving can take a moment, so a plain expect() can see the stale entry.
-        await waitFor(ChannelListScreen.getChannelItemDisplayName(channelsCategory, archiveChannel.name)).not.toBeVisible().withTimeout(timeouts.TEN_SEC);
+        // On Android, waitFor().not.toBeVisible() blocks on bridge-idle before evaluating —
+        // after the back() navigation the bridge is still busy, causing the 10s budget to
+        // expire before the check runs. Use polling waitForElementToNotExist (bypasses
+        // bridge-idle) on Android; keep the standard waitFor for iOS.
+        const archivedChannelItem = ChannelListScreen.getChannelItemDisplayName(channelsCategory, archiveChannel.name);
+        if (isAndroid()) {
+            await waitForElementToNotExist(archivedChannelItem, timeouts.HALF_MIN);
+        } else {
+            await waitFor(archivedChannelItem).not.toBeVisible().withTimeout(timeouts.TEN_SEC);
+        }
     });
 });

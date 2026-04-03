@@ -154,20 +154,12 @@ describe('Channels - Channel List', () => {
     });
 
     it('MM-T4728_5 - should be able to go to create direct message screen', async () => {
-        // # Tap on plus menu button and tap on open a direct message item
-        await ChannelListScreen.headerPlusButton.tap();
-        await wait(timeouts.ONE_SEC);
-        await ChannelListScreen.openDirectMessageItem.tap();
+        // # Open create direct message screen using the page object which handles
+        // Android synchronization correctly (disables sync before the navigation tap).
+        await CreateDirectMessageScreen.open();
 
         // * Verify on create direct message screen
         await CreateDirectMessageScreen.toBeVisible();
-
-        try {
-            await CreateDirectMessageScreen.closeTutorial();
-        } catch (error) {
-            // eslint-disable-next-line no-console
-            console.error('Failed to close tutorial:', error);
-        }
 
         // # Go back to channel list screen
         await CreateDirectMessageScreen.close();
