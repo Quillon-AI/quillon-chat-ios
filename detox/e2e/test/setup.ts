@@ -177,16 +177,18 @@ beforeAll(async () => {
     // Each launch-and-verify cycle is bounded so a hung device.launchApp() or
     // waitFor(server.screen) can't eat the entire 240s Jest hook timeout.
     //
-    // Why 90s (iPhone): on iOS 26.x CI runners (3-core macos-15), simctl launch takes
-    // 14–26s and WebSocket connect takes ~8s. Under CPU contention these can spike higher.
-    // 90s gives sufficient headroom for worst-case conditions.
+    // Why 120s (iPhone): `notifications: 'YES'` triggers applesimutils --restartSB
+    // which restarts SpringBoard (~20–30s) before simctl launch. Adding SpringBoard
+    // restart (30s) + simctl launch (26s) + WebSocket connect (8s) = 64s worst-case.
+    // 120s gives 56s headroom above the observed worst case.
     //
-    // Why 110s (iPad): iPad Pro 13-inch (M5) simulator is heavier than iPhone 17 Pro —
-    // simctl launch + WebSocket connect observed at 60–90s on macos-15 CI runners.
-    // 110s per attempt × 2 attempts = 220s + 3s pause = 223s < 240s Jest beforeAll limit.
+    // Why 120s (iPad): same restartSB overhead. iPad Pro 13-inch (M5) simctl launch
+    // takes up to 90s on CI — restartSB adds 30s on top. Total worst-case ~120s per
+    // attempt. With 2 attempts: 240s + 3s pause = 243s > 240s Jest limit. Keep
+    // MAX_LAUNCH_ATTEMPTS=2 but use 110s for iPad (110s × 2 = 220s < 240s).
     // DEVICE_NAME is injected from the CI workflow input (inputs.ios_device_name).
     const isIpadDevice = process.env.DEVICE_NAME?.toLowerCase().includes('ipad') ?? false;
-    const PER_ATTEMPT_MS = isIpadDevice ? 110_000 : 90_000;
+    const PER_ATTEMPT_MS = isIpadDevice ? 110_000 : 120_000;
 
     // Android CI emulators cold-start more slowly than iOS simulators, especially
     // after adb shell pm clear wipes the data directory. Use a longer ready-timeout
@@ -220,11 +222,20 @@ beforeAll(async () => {
         await device.launchApp({
             newInstance: true,
 
-            // permissions intentionally omitted — pre-granted once in the CI workflow via
-            // `xcrun simctl privacy` after app install. Running simctl privacy on every
-            // beforeAll was adding 24–35s per test file on iOS 26.x CI runners.
-            // clearIOSAppData() does not reset privacy settings, so pre-granted permissions
-            // persist for the full shard run.
+            // On iOS CI (SIMULATOR_ID is set by the workflow), pass `notifications: 'YES'` so
+            // Detox uses `applesimutils --restartSB --setPermissions notifications=YES`. The
+            // `--restartSB` restarts iOS SpringBoard (~20–30s), flushing all stale system state
+            // from the previous app session. Without this restart, iOS 26.x CI runners leave a
+            // persistent work item on the main queue that blocks Detox's internal `waitForActive`
+            // handshake indefinitely, causing every beforeAll to time out at 90s.
+            //
+            // Gated on SIMULATOR_ID (CI-only env var) because on iOS 26.3.x local simulators
+            // --restartSB unregisters the app binary, breaking subsequent simctl launch calls.
+            // Local machines have sufficient resources that waitForActive completes without help.
+            //
+            // camera/medialibrary/photos omitted — their deny counterparts corrupt the TCC
+            // database on iOS 26.x (see commit 0d08de97c).
+            ...(device.getPlatform() === 'ios' && process.env.SIMULATOR_ID? {permissions: {notifications: 'YES'}}: {}),
             launchArgs,
         });
         grantAndroidNotificationPermission();
