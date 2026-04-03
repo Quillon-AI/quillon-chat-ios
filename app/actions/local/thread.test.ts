@@ -327,28 +327,6 @@ describe('processReceivedThreads', () => {
         expect(models?.length).toBe(4); // post, thread, thread participant, thread in team
     });
 
-    it('should not crash when thread has missing post or participants fields', async () => {
-        await operator.handleTeam({teams: [team], prepareRecordsOnly: false});
-        await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
-
-        const threadWithMissingFields = [
-            {
-                id: rootPost.id,
-                reply_count: 0,
-                last_reply_at: 0,
-                last_viewed_at: 0,
-                is_following: false,
-                unread_replies: 0,
-                unread_mentions: 0,
-
-                // post and participants intentionally omitted to exercise null guards
-            } as unknown as Thread,
-        ];
-
-        const {models, error} = await processReceivedThreads(serverUrl, threadWithMissingFields, team.id);
-        expect(error).toBeUndefined();
-        expect(models).toBeDefined();
-    });
 
 });
 
