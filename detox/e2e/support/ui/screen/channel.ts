@@ -146,15 +146,13 @@ class ChannelScreen {
     toBeVisible = async (timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC) => {
         await wait(timeouts.ONE_SEC);
 
-        // On Android the channel screen navigation (especially after DM/GM creation) keeps
-        // the JS bridge (mqt_js) busy, causing waitFor().toExist() bridge-idle sync to block
-        // much longer than the timeout. Use polling waitForElementToExist on Android to avoid
-        // this. On iOS, the standard waitFor() is reliable enough.
-        if (isAndroid()) {
-            await waitForElementToExist(this.channelScreen, timeout);
-        } else {
-            await waitFor(this.channelScreen).toExist().withTimeout(timeout);
-        }
+        // Use polling waitForElementToExist on both platforms to avoid bridge-idle sync stalls.
+        // On Android, channel navigation (DM/GM creation, Browse Channels tap) keeps the JS
+        // bridge (mqt_js) busy. On iOS, navigating from Browse Channels to a channel
+        // (especially archived channels) triggers concurrent modal dismissal + channel push +
+        // network fetches that keep the bridge busy, causing waitFor().toExist() to block for
+        // the full timeout waiting for bridge-idle that never arrives within 30s.
+        await waitForElementToExist(this.channelScreen, timeout);
 
         return this.channelScreen;
     };

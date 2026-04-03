@@ -10,7 +10,6 @@
 import {Channel, Post, Setup, System} from '@support/server_api';
 import {serverOneUrl, siteOneUrl} from '@support/test_config';
 import {
-    AddMembersScreen,
     BrowseChannelsScreen,
     ChannelScreen,
     ChannelListScreen,
@@ -583,7 +582,7 @@ describe('Channels - Archive and Archived Channels', () => {
             } catch {
                 // Tutorial may not appear if already dismissed in a previous run
             }
-            await AddMembersScreen.dismissTutorial();
+            await ManageChannelMembersScreen.closeTutorial();
         }
 
         // * Verify there is no manage/remove button available (cannot remove members from archived channel)

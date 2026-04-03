@@ -3,7 +3,7 @@
 
 import {Alert, ProfilePicture} from '@support/ui/component';
 import {ChannelInfoScreen} from '@support/ui/screen';
-import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
+import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible, waitForElementToExist} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ManageChannelMembersScreen {
@@ -50,10 +50,12 @@ class ManageChannelMembersScreen {
     };
 
     toBeVisible = async () => {
-        // Use HALF_MIN on Android: the manage members screen navigates through a stack
-        // push and network/DB fetch that keeps the bridge busy longer on API 35 CI emulators.
+        // Use polling on both platforms: navigating to ManageChannelMembersScreen triggers
+        // a stack push and network/DB fetch for the member list. This keeps the JS bridge
+        // busy, causing waitFor().toExist() bridge-idle sync to block for the full timeout
+        // (especially for archived channels where member fetch is a distinct API path).
         const timeout = isAndroid() ? timeouts.HALF_MIN : timeouts.TEN_SEC;
-        await waitFor(this.manageMembersScreen).toExist().withTimeout(timeout);
+        await waitForElementToExist(this.manageMembersScreen, timeout);
 
         return this.manageMembersScreen;
     };
