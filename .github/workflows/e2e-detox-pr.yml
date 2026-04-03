@@ -49,7 +49,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  INTUNE_ENABLED: 'true'
+  INTUNE_ENABLED: 'false'
   DETOX_AWS_S3_BUCKET: "mattermost-detox-report"
 
 jobs:
