@@ -229,60 +229,40 @@ beforeAll(async () => {
         });
         grantAndroidNotificationPermission();
 
-        // Wait for EITHER server.screen (clean state) or channel_list.screen
-        // (logged-in state, meaning pm clear did not take effect).
-        // We poll with short waitFor() calls so we detect either outcome quickly
-        // without blocking for the full APP_READY_TIMEOUT on each individual check.
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const {expect: detoxExpect} = require('detox');
+        // Wait for server.screen (clean state). Use waitFor().withTimeout() which
+        // has Detox-enforced timeout — unlike expect().toExist() which blocks
+        // indefinitely when EarlGrey waits for main queue idle (iOS 26.x has a
+        // persistent pending work item that prevents idle).
         const serverScreenEl = element(by.id('server.screen'));
-        const channelListEl = element(by.id('channel_list.screen'));
 
-        let detectedScreen: 'server' | 'channel_list' | null = null;
-        const pollInterval = 1_000;
-        const deadline = Date.now() + APP_READY_TIMEOUT;
-
-        while (Date.now() < deadline) {
-            try {
-                // eslint-disable-next-line no-await-in-loop
-                await detoxExpect(serverScreenEl).toExist();
-                detectedScreen = 'server';
-                break;
-            } catch { /* not yet */ }
-            try {
-                // eslint-disable-next-line no-await-in-loop
-                await detoxExpect(channelListEl).toExist();
-                detectedScreen = 'channel_list';
-                break;
-            } catch { /* not yet */ }
-            // eslint-disable-next-line no-await-in-loop
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
-        }
-
-        if (detectedScreen === 'channel_list') {
-            // The app launched in a logged-in state — pm clear did not take effect.
-            // Force-stop + pm clear + relaunch to get a truly clean state.
-            console.warn(
-                '[launchAndVerify] App launched in logged-in state (channel_list visible). ' +
-                'pm clear did not take effect. Retrying with force-stop + pm clear.',
-            );
-            await forceAndroidDataClear();
-            await device.launchApp({newInstance: true, launchArgs});
-            grantAndroidNotificationPermission();
-
-            // Now wait strictly for server.screen — if it still doesn't appear, let the
-            // outer retry loop handle it.
+        try {
             await waitFor(serverScreenEl).toExist().withTimeout(APP_READY_TIMEOUT);
-        } else if (detectedScreen === null) {
-
-            // Neither screen appeared within APP_READY_TIMEOUT — throw so the retry
-            // loop can attempt a fresh launch.
-            throw new Error(
-                `[launchAndVerify] Neither server.screen nor channel_list.screen appeared within ${APP_READY_TIMEOUT / 1000}s`,
-            );
+        } catch {
+            // On Android, pm clear can silently fail, leaving the app in a logged-in
+            // state (channel_list visible instead of server.screen). Detect and recover.
+            if (device.getPlatform() === 'android') {
+                const channelListEl = element(by.id('channel_list.screen'));
+                try {
+                    await waitFor(channelListEl).toExist().withTimeout(5_000);
+                    console.warn(
+                        '[launchAndVerify] App launched in logged-in state (channel_list visible). ' +
+                        'pm clear did not take effect. Retrying with force-stop + pm clear.',
+                    );
+                    await forceAndroidDataClear();
+                    await device.launchApp({newInstance: true, launchArgs});
+                    grantAndroidNotificationPermission();
+                    await waitFor(serverScreenEl).toExist().withTimeout(APP_READY_TIMEOUT);
+                } catch {
+                    throw new Error(
+                        `[launchAndVerify] Neither server.screen nor channel_list.screen appeared within ${APP_READY_TIMEOUT / 1000}s`,
+                    );
+                }
+            } else {
+                throw new Error(
+                    `[launchAndVerify] server.screen did not appear within ${APP_READY_TIMEOUT / 1000}s`,
+                );
+            }
         }
-
-        // detectedScreen === 'server' → happy path, fall through.
     }
 
     if (isFirstFile) {
