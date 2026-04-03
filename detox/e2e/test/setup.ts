@@ -294,7 +294,13 @@ beforeAll(async () => {
             );
         }
 
-        // detectedScreen === 'server' → happy path, nothing more to do
+        // detectedScreen === 'server' → happy path.
+        // Re-enable Detox synchronization so that the actual test assertions
+        // (waitFor().toExist().withTimeout()) operate normally. Sync was disabled
+        // only for the launch detection phase to unblock the main-queue idle check.
+        if (device.getPlatform() === 'ios') {
+            await device.enableSynchronization();
+        }
     }
 
     if (isFirstFile) {
