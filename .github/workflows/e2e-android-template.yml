@@ -361,21 +361,31 @@ jobs:
 
       - name: Determine Status
         id: determine-status
+        env:
+          FAILURES: ${{ steps.summary.outputs.FAILURES }}
+          TESTCASE_FAILURE_FATAL: ${{ inputs.testcase_failure_fatal }}
         run: |
-          FAILURES="${{ steps.summary.outputs.FAILURES }}"
           if [[ "$FAILURES" == "-1" ]]; then
             echo "STATUS=failure" >> ${GITHUB_OUTPUT}
-          elif [[ "$FAILURES" -gt 0 && "${{ inputs.testcase_failure_fatal }}" == "true" ]]; then
+          elif [[ "$FAILURES" -gt 0 && "$TESTCASE_FAILURE_FATAL" == "true" ]]; then
             echo "STATUS=failure" >> ${GITHUB_OUTPUT}
           else
             echo "STATUS=success" >> ${GITHUB_OUTPUT}
           fi
 
       - name: Generate Summary
+        env:
+          TOTAL: ${{ steps.summary.outputs.TOTAL }}
+          PASSES: ${{ steps.summary.outputs.PASSES }}
+          FAILURES: ${{ steps.summary.outputs.FAILURES }}
+          SKIPPED: ${{ steps.summary.outputs.SKIPPED }}
+          ERRORS: ${{ steps.summary.outputs.ERRORS }}
+          PERCENTAGE: ${{ steps.summary.outputs.PERCENTAGE }}
+          TARGET_URL: ${{ steps.set-url.outputs.TARGET_URL }}
         run: |
           echo "| Tests | Passed :white_check_mark: | Failed :x: | Skipped :fast_forward: | Errors :warning: | " >> ${GITHUB_STEP_SUMMARY}
           echo "|:---:|:---:|:---:|:---:|:---:|" >> ${GITHUB_STEP_SUMMARY}
-          echo "| ${{ steps.summary.outputs.TOTAL }} | ${{ steps.summary.outputs.PASSES }} | ${{ steps.summary.outputs.FAILURES }} | ${{ steps.summary.outputs.SKIPPED }} | ${{ steps.summary.outputs.ERRORS }} |" >> ${GITHUB_STEP_SUMMARY}
+          echo "| ${TOTAL} | ${PASSES} | ${FAILURES} | ${SKIPPED} | ${ERRORS} |" >> ${GITHUB_STEP_SUMMARY}
           echo "" >> ${GITHUB_STEP_SUMMARY}
-          echo "You can check the full report [here](${{ steps.set-url.outputs.TARGET_URL }})" >> ${GITHUB_STEP_SUMMARY}
-          echo "There was **${{ steps.summary.outputs.PERCENTAGE }}%** success rate." >> ${GITHUB_STEP_SUMMARY}
+          echo "You can check the full report [here](${TARGET_URL})" >> ${GITHUB_STEP_SUMMARY}
+          echo "There was **${PERCENTAGE}%** success rate." >> ${GITHUB_STEP_SUMMARY}
