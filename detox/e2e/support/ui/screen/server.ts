@@ -113,8 +113,15 @@ class ServerScreen {
     };
 
     enterPreauthSecret = async (secret: string) => {
-        await waitFor(this.preauthSecretInput).toExist().withTimeout(timeouts.TEN_SEC);
-        await this.preauthSecretInput.replaceText(secret);
+        // On Android, secureTextEntry={true} causes Espresso to match two native
+        // views under the same testID (the ReactEditText wrapper + the inner EditText).
+        // Use atIndex(0) to unambiguously target the first match and avoid the
+        // "AmbiguousMatcher" failure. On iOS there is always exactly one match.
+        const input = isAndroid()
+            ? element(by.id(this.testID.preauthSecretInput)).atIndex(0)
+            : this.preauthSecretInput;
+        await waitFor(input).toExist().withTimeout(timeouts.TEN_SEC);
+        await input.replaceText(secret);
     };
 
     connectToServerWithPreauthSecret = async (serverUrl: string, serverDisplayName: string, preauthSecret: string) => {

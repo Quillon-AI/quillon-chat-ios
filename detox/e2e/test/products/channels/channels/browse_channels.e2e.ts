@@ -160,25 +160,33 @@ describe('Channels - Browse Channels', () => {
         await BrowseChannelsScreen.close();
     });
 
-    // TODO: review flow — test needs server ExperimentalViewArchivedChannels=true to work
-    it.skip('MM-T4729_5 - should be able to browse an archived channel', async () => {
-        // # Archive a channel, open browse channels screen, tap on channel dropdown, tap on archived channels menu item, and search for the archived channel
+    it('MM-T4729_5 - should be able to browse an archived channel', async () => {
+        // # Enable archived channel visibility on the server, then reload so the app
+        // picks up the new config (the ChannelDropdown only renders when this is true)
+        await System.apiUpdateConfig(siteOneUrl, {ServiceSettings: {ExperimentalViewArchivedChannels: true}});
+        await device.reloadReactNative();
+        await ChannelListScreen.toBeVisible();
+
+        // # Create a channel, add the test user, then archive it
         const {channel: archivedChannel} = await Channel.apiCreateChannel(siteOneUrl, {teamId: testTeam.id});
         await Channel.apiAddUserToChannel(siteOneUrl, testUser.id, archivedChannel.id);
         await Channel.apiDeleteChannel(siteOneUrl, archivedChannel.id);
+
+        // # Open browse channels screen and switch to archived channels view
         await BrowseChannelsScreen.open();
-        await wait(timeouts.ONE_SEC);
+        await BrowseChannelsScreen.channelDropdownTextPublic.tap();
+        await waitFor(element(by.id('browse_channels.dropdown_slideup_item.archived_channels'))).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        await element(by.id('browse_channels.dropdown_slideup_item.archived_channels')).tap();
+
+        // # Search for the archived channel by name
         await BrowseChannelsScreen.searchInput.replaceText(archivedChannel.name);
 
-        // * Verify search returns the archived channel item
-        await wait(timeouts.ONE_SEC);
+        // * Verify the archived channel appears in results
+        await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toBeVisible().withTimeout(timeouts.TEN_SEC);
 
-        // * Verify empty search state for browse channels
-        await wait(timeouts.ONE_SEC);
-        await expect(element(by.text(`No matches found for \u201C${archivedChannel.name}\u201D`))).toBeVisible();
-
-        // # Go back to channel list screen
+        // # Go back to channel list screen and restore server config
         await BrowseChannelsScreen.close();
+        await System.apiUpdateConfig(siteOneUrl, {ServiceSettings: {ExperimentalViewArchivedChannels: false}});
     });
 
     it('MM-T4729_6 - should not be able to browse a joined public channel', async () => {
