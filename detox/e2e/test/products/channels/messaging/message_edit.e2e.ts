@@ -80,6 +80,12 @@ describe('Messaging - Message Edit', () => {
 
         await expect(EditPostScreen.editPostScreen).not.toBeVisible();
 
+        // # Scroll the post list to dismiss keyboard and ensure the edited post is fully visible.
+        // On iOS the keyboard + channel intro header can push the post below the 75% visibility
+        // threshold, causing toBeVisible() to fail.
+        await ChannelScreen.getFlatPostList().scroll(100, 'up', 0.5, 0.5);
+        await wait(timeouts.ONE_SEC);
+
         const {postListPostItem: updatedPostListPostItem} = ChannelScreen.getPostListPostItem(post.id);
         await expect(updatedPostListPostItem).toBeVisible();
 
@@ -114,6 +120,12 @@ describe('Messaging - Message Edit', () => {
         const updatedMessage = `${message} edit`;
         await EditPostScreen.messageInput.replaceText(updatedMessage);
         await EditPostScreen.closeButton.tap();
+
+        // # Scroll the post list to dismiss keyboard and ensure the post is fully visible.
+        // On iOS the keyboard + channel intro header can push the post below the 75% visibility
+        // threshold, causing toBeVisible() to fail.
+        await ChannelScreen.getFlatPostList().scroll(100, 'up', 0.5, 0.5);
+        await wait(timeouts.ONE_SEC);
 
         // * Verify post message is not updated
         await expect(postListPostItem).toBeVisible();
@@ -157,6 +169,12 @@ describe('Messaging - Message Edit', () => {
         await EditPostScreen.saveButton.tap();
 
         await expect(EditPostScreen.editPostScreen).not.toBeVisible();
+
+        // # Scroll the thread post list to dismiss keyboard and ensure the edited reply is fully visible.
+        // On iOS the keyboard can push the reply post below the visibility threshold or make it
+        // not hittable at its visible point.
+        await ThreadScreen.getFlatPostList().scroll(100, 'up', 0.5, 0.5);
+        await wait(timeouts.ONE_SEC);
 
         // * Verify reply post message is updated and displays edited indicator '(edited)'
         const {postListPostItem: updatedReplyPostListPostItem} = ThreadScreen.getPostListPostItem(replyPost.id);

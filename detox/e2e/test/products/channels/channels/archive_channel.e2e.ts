@@ -695,13 +695,15 @@ describe('Channels - Archive and Archived Channels', () => {
         await PermalinkScreen.jumpToRecentMessages();
 
         // * Verify the archived channel opens in read-only state
-        await ChannelScreen.toBeVisible();
-        await expect(ChannelScreen.postDraftArchived).toBeVisible();
+        // The permalink→channel transition involves dismissing the permalink modal and
+        // pushing the channel screen, which on iOS creates a UITransitionView overlay.
+        await waitForArchivedChannelScreen();
 
         // * Verify the close channel button is visible (confirming archived/read-only state)
-        await expect(
+        await waitForElementToBeVisible(
             ChannelScreen.postDraftArchivedCloseChannelButton,
-        ).toBeVisible();
+            timeouts.TEN_SEC,
+        );
 
         // # Navigate back to channel list
         // On Android the permalink→channel navigation stack returns to Search on close;
@@ -816,19 +818,17 @@ describe('Channels - Archive and Archived Channels', () => {
         // # Tap on the archived channel to open it
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
-        // * Verify the channel screen is visible
-        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
+        // * Verify the archived channel screen is visible in read-only state
+        await waitForArchivedChannelScreen();
 
         // * Verify main thread has no active post input box
         await expect(ChannelScreen.postInput).not.toBeVisible();
 
-        // * Verify the archived post draft view is shown instead (channel is read-only)
-        await expect(ChannelScreen.postDraftArchived).toBeVisible();
-
         // * Verify the close channel button is visible
-        await expect(
+        await waitForElementToBeVisible(
             ChannelScreen.postDraftArchivedCloseChannelButton,
-        ).toBeVisible();
+            timeouts.TEN_SEC,
+        );
 
         // # Navigate back: channel → Browse Channels → channel list
         await closeBrowseChannelsChannel();
