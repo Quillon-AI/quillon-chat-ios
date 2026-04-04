@@ -154,7 +154,7 @@ export default function BrowseChannels(props: Props) {
             setHeaderButtons(true);
             setAdding(false);
         } else {
-            switchToChannelById(serverUrl, channel.id, currentTeamId);
+            await switchToChannelById(serverUrl, channel.id, currentTeamId);
             close();
         }
     }, [setHeaderButtons, serverUrl, currentTeamId, intl]);
