@@ -71,8 +71,11 @@ describe('Search - Cross Team Search', () => {
         }
         townSquareChannel = townSquareChannelResult;
 
-        // # Enable cross-team search so the "All teams" option appears in the team picker
-        await System.apiUpdateConfig(siteOneUrl, {SearchSettings: {EnableCrossTeamSearch: true}});
+        // # Enable cross-team search so the "All teams" option appears in the team picker.
+        // The setting lives under ServiceSettings (not SearchSettings) — see
+        // github.com/mattermost/mattermost PR #30518 which moved this from a feature
+        // flag to ServiceSettings.EnableCrossTeamSearch in v10.7.
+        await System.apiUpdateConfig(siteOneUrl, {ServiceSettings: {EnableCrossTeamSearch: true}});
 
         // # Log in to server
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
