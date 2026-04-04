@@ -127,9 +127,18 @@ class ThreadScreen {
         // Poll for the post to become visible without waiting for idle bridge
         await waitForElementToBeVisible(postListPostItem, timeouts.TEN_SEC);
 
-        // On Android, wait for UI to settle before longPress.
-        // The longPressWithScrollRetry (5 attempts, 3s delay) handles the rest.
+        // On Android, dismiss the keyboard before long-pressing. The soft keyboard
+        // stays open after postMessage() and intercepts the long-press gesture on
+        // API 35 — the post options bottom sheet never appears because Android's
+        // gesture system routes the touch to the keyboard's window instead of the
+        // post list. A swipe gesture on the post list triggers keyboardDismissMode
+        // 'on-drag' which reliably dismisses the keyboard. Detox's scroll() API
+        // may use programmatic scrolling that doesn't trigger on-drag dismissal,
+        // whereas swipe() performs a real touch gesture.
         if (isAndroid()) {
+            try {
+                await this.postList.getFlatList().swipe('up', 'fast', 0.3);
+            } catch { /* ignore — list may be too short */ }
             await wait(timeouts.TWO_SEC);
         }
 

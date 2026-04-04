@@ -164,30 +164,27 @@ export async function longPressWithScrollRetry(
 ): Promise<void> {
     /* eslint-disable no-await-in-loop */
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        // Scroll a small amount to settle the UI and dismiss any keyboard.
-        // 50px is enough to trigger gesture-responder re-registration without
-        // scrolling past the target post.
-        try {
-            await scrollTarget.scroll(50, 'down', 0.5, 0.5);
-        } catch {
-            // scroll('down') failed — the list is already at the bottom boundary.
-            // On Android, the soft keyboard may still be open because the 50px scroll
-            // never fired. Recover with two steps:
-            //   1. swipe('down') = finger down = content scrolls UP = shows older messages.
-            //      This reliably fires a touch event that dismisses the keyboard,
-            //      even though it temporarily moves the newest post off-screen.
-            //   2. scroll(100, 'down') = content back DOWN = newest post visible again.
-            //      This succeeds now because step 1 moved the list away from the bottom.
-            // For very short lists where all items fit on screen, step 1 fires a touch
-            // event (dismissing the keyboard) but content doesn't move; step 2 is a no-op.
-            if (isAndroid()) {
-                try {
-                    await scrollTarget.swipe('down', 'slow', 0.2);
-                } catch { /* ignore */ }
-                try {
-                    await scrollTarget.scroll(100, 'down', 0.5, 0.5);
-                } catch { /* ignore — short list stays in place */ }
-            }
+        // Dismiss keyboard and settle the UI before long-pressing.
+        //
+        // On Android, the post list uses keyboardDismissMode='on-drag' which only
+        // triggers on real touch gestures, NOT on programmatic scroll. Detox's
+        // scroll() API can use programmatic scrolling that bypasses on-drag, so the
+        // keyboard stays open even after a successful scroll(). Use swipe() first
+        // (a real gesture) to reliably dismiss the keyboard, then scroll to settle.
+        //
+        // On iOS, a small scroll is sufficient to re-register the gesture responder
+        // and dismiss the keyboard via the interactive dismiss mode.
+        if (isAndroid()) {
+            try {
+                await scrollTarget.swipe('down', 'slow', 0.2);
+            } catch { /* ignore — list may be too short or already at edge */ }
+            try {
+                await scrollTarget.scroll(100, 'down', 0.5, 0.5);
+            } catch { /* ignore — list may be at the bottom boundary */ }
+        } else {
+            try {
+                await scrollTarget.scroll(50, 'down', 0.5, 0.5);
+            } catch { /* ignore — list may be at the bottom boundary */ }
         }
 
         // On iOS 26.2 the gesture responder takes longer to become available after
