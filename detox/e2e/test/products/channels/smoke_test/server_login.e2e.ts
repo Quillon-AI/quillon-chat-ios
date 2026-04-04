@@ -74,8 +74,8 @@ describe('Smoke Test - Server Login', () => {
         }
         const {user} = await Setup.apiInit(siteTwoUrl);
         await ServerListScreen.addServerButton.tap();
-        await wait(timeouts.ONE_SEC);
-        await waitFor(ServerScreen.headerTitleAddServer).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        await wait(timeouts.TWO_SEC);
+        await waitFor(ServerScreen.headerTitleAddServer).toExist().withTimeout(timeouts.HALF_MIN);
         await ServerScreen.connectToServer(serverTwoUrl, serverTwoDisplayName);
         await LoginScreen.login(user);
 

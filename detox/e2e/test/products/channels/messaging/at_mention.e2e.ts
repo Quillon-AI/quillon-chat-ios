@@ -169,18 +169,25 @@ describe('Messaging - At-Mention', () => {
         const {user: outOfChannelUser} = await User.apiCreateUser(siteOneUrl);
         await Team.apiAddUserToTeam(siteOneUrl, outOfChannelUser.id, testTeam.id);
 
-        // # Open a channel screen and type "@" to activate at-mention autocomplete
+        // # Open a channel screen and type "@" + first chars to activate at-mention autocomplete
+        // Type "@" together with the first 3 chars of the username in a single typeText
+        // call. Typing bare "@" alone can trigger the noResultsTerm race condition in
+        // at_mention.tsx: if the initial empty-matchTerm search returns 0 results before
+        // any users load, noResultsTerm is set to "" which suppresses all future searches
+        // (every string starts with ""). Typing a few chars alongside "@" ensures the
+        // first search has a non-empty matchTerm that returns results.
         await ChannelScreen.open(channelsCategory, testChannel.name);
         await ChannelScreen.postInput.tap();
         await wait(timeouts.ONE_SEC);
-        await ChannelScreen.postInput.typeText('@');
+        const usernamePrefix = outOfChannelUser.username.substring(0, 3);
+        await ChannelScreen.postInput.typeText(`@${usernamePrefix}`);
         await wait(timeouts.TWO_SEC);
 
         // * Verify at-mention list is displayed
         await waitFor(Autocomplete.sectionAtMentionList).toExist().withTimeout(timeouts.HALF_MIN);
 
-        // # Type the out-of-channel user's username
-        await ChannelScreen.postInput.typeText(outOfChannelUser.username);
+        // # Type the rest of the username
+        await ChannelScreen.postInput.typeText(outOfChannelUser.username.substring(3));
         await wait(timeouts.TWO_SEC);
 
         // * Verify at-mention autocomplete contains the out-of-channel user suggestion

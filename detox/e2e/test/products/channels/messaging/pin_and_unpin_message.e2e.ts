@@ -214,6 +214,14 @@ describe('Messaging - Pin and Unpin Message', () => {
         //   Re-open the channel to reset scroll to newest messages, ensuring newerPost2 is visible.
         await ChannelScreen.back();
         await ChannelScreen.open(channelsCategory, testChannel.name);
+
+        // Scroll up slightly to bring newerPost2 into the fully visible area.
+        // After pinning, a system post ("X pinned a message") is added, pushing
+        // newerPost2 down where the message input bar clips it below the 75%
+        // visibility threshold on iOS 26.x (safe area insets reduce visible area).
+        try {
+            await ChannelScreen.getFlatPostList().scroll(100, 'up', 0.5, 0.5);
+        } catch { /* list may be too short */ }
         await expect(newerPost2Item).toBeVisible();
 
         // # Open channel info and navigate to pinned messages screen
