@@ -11,6 +11,7 @@ import {
     Channel,
     Post,
     Setup,
+    System,
     Team,
     User,
 } from '@support/server_api';
@@ -51,6 +52,11 @@ describe('Scheduled Draft,', () => {
         }
         await Team.apiAddUserToTeam(siteOneUrl, testOtherUser.id, testTeam.id);
         await Channel.apiAddUserToChannel(siteOneUrl, testOtherUser.id, testChannel.id);
+
+        // # Ensure the ScheduledPosts feature is enabled on the server so that
+        // long-pressing the send button opens the schedule picker instead of
+        // sending the message immediately.
+        await System.apiUpdateConfig(siteOneUrl, {ServiceSettings: {ScheduledPosts: true}});
 
         // # Log in to server
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
