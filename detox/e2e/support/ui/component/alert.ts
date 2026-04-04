@@ -76,7 +76,7 @@ class Alert {
     dismissChannelRemoveOrArchiveAlert = async () => {
         try {
             // Check for "Removed from channel" first
-            await waitFor(this.removedFromChannelTitle).toBeVisible().withTimeout(timeouts.TWO_SEC);
+            await waitFor(this.removedFromChannelTitle).toBeVisible().withTimeout(timeouts.FOUR_SEC);
             await this.okButton.tap();
             return;
         } catch { /* not present */ }

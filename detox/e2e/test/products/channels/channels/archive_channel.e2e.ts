@@ -603,18 +603,18 @@ describe('Channels - Archive and Archived Channels', () => {
         // # Open channel info
         await ChannelInfoScreen.open();
 
-        // # Tap on the Members option to open the manage members screen
+        // # Tap on the Members option to open the manage members screen.
+        // On Android, the tutorial modal creates a separate native Dialog window
+        // that blocks Espresso from finding the Members screen behind it. Dismiss
+        // the tutorial BEFORE calling toBeVisible().
         await waitFor(ChannelInfoScreen.membersOption).
             toExist().
             withTimeout(timeouts.TEN_SEC);
         await ChannelInfoScreen.membersOption.tap();
-        await ManageChannelMembersScreen.toBeVisible();
 
         if (isAndroid()) {
-            // The tutorial modal creates a foreground native window on Android,
-            // making background screen testIDs unfindable via toExist(). Wait for
-            // the tutorial text itself (it's in the foreground window) as a proxy
-            // that the Members screen has loaded, then dismiss via dismissTutorial().
+            // Wait for the tutorial text (in the foreground Dialog window) as a
+            // proxy that the Members screen has loaded, then dismiss it.
             try {
                 await waitFor(
                     element(by.text("Long-press on an item to view a user's profile")),
@@ -626,6 +626,7 @@ describe('Channels - Archive and Archived Channels', () => {
             }
             await ManageChannelMembersScreen.closeTutorial();
         }
+        await ManageChannelMembersScreen.toBeVisible();
 
         // * Verify there is no manage/remove button available (cannot remove members from archived channel)
         await expect(ManageChannelMembersScreen.manageButton).not.toBeVisible();
