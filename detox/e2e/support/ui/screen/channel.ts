@@ -18,7 +18,7 @@ import {
     ThreadScreen,
 } from '@support/ui/screen';
 import {isAndroid, isIos, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible, waitForElementToExist} from '@support/utils';
-import {expect, waitFor} from 'detox';
+import {by, element, expect, waitFor} from 'detox';
 
 class ChannelScreen {
     testID = {
@@ -303,8 +303,25 @@ class ChannelScreen {
         // on the actual send button element.
         await this.dismissScheduledPostTooltip();
 
-        // # Long press send button
-        await this.sendButton.longPress();
+        // # Disable Detox synchronization before the long press. On iOS 26 the main
+        // run loop never fully idles (the "Main Run Loop is awake" sync blocker),
+        // causing waitFor-based matchers and even longPress() to hang for 30s before
+        // timing out. On Android the JS bridge (mqt_js) stays busy after text input,
+        // producing the same effect. Disabling sync lets the gesture dispatch
+        // immediately; we then poll for the bottom sheet with waitForElementToExist.
+        await device.disableSynchronization();
+        try {
+            await this.sendButton.longPress();
+
+            // Wait for the schedule picker bottom sheet to appear using polling
+            // (does not depend on Detox idle-sync).
+            await waitForElementToExist(
+                element(by.id('scheduled_post_options_bottom_sheet')),
+                timeouts.HALF_MIN,
+            );
+        } finally {
+            await device.enableSynchronization();
+        }
     };
 
     hasPostMessage = async (postId: string, postMessage: string) => {
@@ -346,26 +363,26 @@ class ChannelScreen {
     };
 
     scheduleMessageForTomorrow = async () => {
-        // Wait for the picker option to appear before tapping — the long-press send button
-        // triggers the sheet asynchronously and the option may not be in the hierarchy yet.
-        // Use HALF_MIN: on a loaded CI runner the scheduling sheet can take > 10s to render.
-        await waitFor(this.scheduleMessageTomorrowOption).toExist().withTimeout(timeouts.HALF_MIN);
+        // Use polling helper instead of waitFor().toExist() — the latter depends on
+        // Detox idle-sync which can block on both iOS (main run loop) and Android
+        // (JS bridge busy). Polling checks the hierarchy directly.
+        await waitForElementToExist(this.scheduleMessageTomorrowOption, timeouts.HALF_MIN);
         await this.scheduleMessageTomorrowOption.tap();
-        await expect(this.scheduledPostOptionTomorrowSelected).toBeVisible();
+        await waitForElementToExist(this.scheduledPostOptionTomorrowSelected, timeouts.TEN_SEC);
     };
 
     scheduleMessageForMonday = async () => {
-        // Use HALF_MIN: on a loaded CI runner the scheduling sheet can take > 10s to render.
-        await waitFor(this.scheduleMessageOnMondayOption).toExist().withTimeout(timeouts.HALF_MIN);
+        // Use polling helper — see scheduleMessageForTomorrow for rationale.
+        await waitForElementToExist(this.scheduleMessageOnMondayOption, timeouts.HALF_MIN);
         await this.scheduleMessageOnMondayOption.tap();
-        await expect(this.scheduledPostOptionMondaySelected).toBeVisible();
+        await waitForElementToExist(this.scheduledPostOptionMondaySelected, timeouts.TEN_SEC);
     };
 
     scheduleMessageForNextMonday = async () => {
-        // Use HALF_MIN: on a loaded CI runner the scheduling sheet can take > 10s to render.
-        await waitFor(this.scheduledPostOptionNextMonday).toExist().withTimeout(timeouts.HALF_MIN);
+        // Use polling helper — see scheduleMessageForTomorrow for rationale.
+        await waitForElementToExist(this.scheduledPostOptionNextMonday, timeouts.HALF_MIN);
         await this.scheduledPostOptionNextMonday.tap();
-        await expect(this.scheduledPostOptionNextMondaySelected).toBeVisible();
+        await waitForElementToExist(this.scheduledPostOptionNextMondaySelected, timeouts.TEN_SEC);
     };
 
     /**
@@ -397,8 +414,9 @@ class ChannelScreen {
     };
 
     clickOnScheduledMessage = async () => {
+        await waitForElementToBeVisible(this.clickOnScheduledMessageButton, timeouts.TEN_SEC);
         await this.clickOnScheduledMessageButton.tap();
-        await waitFor(this.clickOnScheduledMessageButton).not.toBeVisible().withTimeout(timeouts.FOUR_SEC);
+        await wait(timeouts.TWO_SEC);
     };
 
     /*
