@@ -11,8 +11,8 @@ import {
     SendButton,
 } from '@support/ui/component';
 import {PostOptionsScreen} from '@support/ui/screen';
-import {isAndroid, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible} from '@support/utils';
-import {expect, waitFor} from 'detox';
+import {isAndroid, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible, waitForElementToExist} from '@support/utils';
+import {by, element, expect, waitFor} from 'detox';
 
 class ThreadScreen {
     testID = {
@@ -179,8 +179,22 @@ class ThreadScreen {
         // on the actual send button element.
         await this.dismissScheduledPostTooltip();
 
-        // # Long press send button
-        await this.sendButton.longPress();
+        // # Disable Detox synchronization before the long press. On iOS 26 the main
+        // run loop never fully idles, and on Android the JS bridge stays busy after
+        // text input. This causes longPress() to hang waiting for idle-sync. Disabling
+        // sync lets the gesture dispatch immediately; we then poll for the bottom sheet.
+        await device.disableSynchronization();
+        try {
+            await this.sendButton.longPress();
+
+            // Wait for the schedule picker bottom sheet using polling (no sync dependency).
+            await waitForElementToExist(
+                element(by.id('scheduled_post_options_bottom_sheet')),
+                timeouts.HALF_MIN,
+            );
+        } finally {
+            await device.enableSynchronization();
+        }
     };
 
     tapSendButton = async () => {
