@@ -131,17 +131,19 @@ describe('Messaging - Pin and Unpin Message', () => {
         await PostOptionsScreen.pinPostOption.tap();
 
         // * Verify pinned text is displayed on the post pre-header
-        await wait(timeouts.TWO_SEC);
+        // Use polling to wait for the pre-header to appear after pin operation.
+        // On Android the bridge stays busy during bottom sheet dismissal + network
+        // request + DB update + re-render, so a fixed wait() is unreliable.
         const {postListPostItemPreHeaderText} = ChannelScreen.getPostListPostItem(post.id, message);
-        await expect(postListPostItemPreHeaderText).toHaveText(pinnedText);
+        await waitFor(postListPostItemPreHeaderText).toHaveText(pinnedText).withTimeout(timeouts.TEN_SEC);
 
         // # Open post options for message and tap on unpin from channel option
         await openChannelPostOptionsForPin(post.id, message);
         await PostOptionsScreen.unpinPostOption.tap();
 
         // * Verify pinned text is not displayed on the post pre-header
-        await wait(timeouts.TWO_SEC);
-        await expect(postListPostItemPreHeaderText).not.toBeVisible();
+        // Wait for the pre-header element to disappear after unpin operation.
+        await waitFor(postListPostItemPreHeaderText).not.toExist().withTimeout(timeouts.TEN_SEC);
 
         // # Go back to channel list screen
         await ChannelScreen.back();
@@ -164,17 +166,17 @@ describe('Messaging - Pin and Unpin Message', () => {
         await PostOptionsScreen.pinPostOption.tap();
 
         // * Verify pinned text is displayed on the post pre-header
-        await wait(timeouts.TWO_SEC);
+        // Use polling to wait for the pre-header to appear after pin operation.
         const {postListPostItemPreHeaderText} = ThreadScreen.getPostListPostItem(post.id, message);
-        await expect(postListPostItemPreHeaderText).toHaveText(pinnedText);
+        await waitFor(postListPostItemPreHeaderText).toHaveText(pinnedText).withTimeout(timeouts.TEN_SEC);
 
         // # Open post options for message and tap on unpin from channel option
         await ThreadScreen.openPostOptionsFor(post.id, message);
         await PostOptionsScreen.unpinPostOption.tap();
 
         // * Verify pinned text is not displayed on the post pre-header
-        await wait(timeouts.TWO_SEC);
-        await expect(postListPostItemPreHeaderText).not.toBeVisible();
+        // Wait for the pre-header element to disappear after unpin operation.
+        await waitFor(postListPostItemPreHeaderText).not.toExist().withTimeout(timeouts.TEN_SEC);
 
         // # Go back to channel list screen
         await ThreadScreen.back();
@@ -201,11 +203,11 @@ describe('Messaging - Pin and Unpin Message', () => {
         // # Long press the older (not the most recent) post and pin it to channel
         await openChannelPostOptionsForPin(olderPost.id, olderMessage);
         await PostOptionsScreen.pinPostOption.tap();
-        await wait(timeouts.TWO_SEC);
 
         // * Verify the older message shows a Pinned pre-header (it is pinned)
+        // Use polling to wait for the pre-header to appear after pin operation.
         const {postListPostItemPreHeaderText} = ChannelScreen.getPostListPostItem(olderPost.id, olderMessage);
-        await expect(postListPostItemPreHeaderText).toHaveText(pinnedText);
+        await waitFor(postListPostItemPreHeaderText).toHaveText(pinnedText).withTimeout(timeouts.TEN_SEC);
 
         // * Verify the newer messages are still in the channel below the older pinned message.
         //   (i.e. the older message was not moved to the bottom of the channel)
@@ -232,7 +234,6 @@ describe('Messaging - Pin and Unpin Message', () => {
         await PinnedMessagesScreen.back();
         await ChannelInfoScreen.close();
         await Post.apiPinPost(siteOneUrl, secondPost.id);
-        await wait(timeouts.TWO_SEC);
 
         // # Open pinned messages screen again
         await ChannelInfoScreen.open();
@@ -245,10 +246,10 @@ describe('Messaging - Pin and Unpin Message', () => {
         // # Unpin the older message from the pinned messages screen
         await PinnedMessagesScreen.openPostOptionsFor(olderPost.id, olderMessage);
         await PostOptionsScreen.unpinPostOption.tap();
-        await wait(timeouts.ONE_SEC);
 
         // * Verify the unpinned message no longer appears in the pinned messages list
-        await expect(pinnedItem).not.toExist();
+        // Wait for the item to be removed after unpin operation.
+        await waitFor(pinnedItem).not.toExist().withTimeout(timeouts.TEN_SEC);
 
         // # Go back to channel list screen
         await PinnedMessagesScreen.back();
