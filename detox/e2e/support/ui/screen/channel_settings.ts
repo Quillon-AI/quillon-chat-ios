@@ -74,6 +74,7 @@ class ChannelSettingsScreen {
 
     convertToPrivateChannel = async (channelDisplayName: string, {confirm = true} = {}) => {
         await this.scrollView.tap({x: 1, y: 1});
+
         // Scroll down to reveal the convert option. The scroll can fail with
         // "Unable to scroll" if the settings content is short enough to fit
         // without scrolling (e.g. newly created channel with no custom settings).

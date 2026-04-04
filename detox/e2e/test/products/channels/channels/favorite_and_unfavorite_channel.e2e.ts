@@ -140,6 +140,7 @@ describe('Channels - Favorite and Unfavorite Channel', () => {
         await CreateDirectMessageScreen.open();
         await CreateDirectMessageScreen.closeTutorial();
         await CreateDirectMessageScreen.searchInput.replaceText(newUser.username);
+
         // Wait for the FlatList to commit the user item's testID to the native
         // view hierarchy before tapping — on Android the list render can lag
         // behind the search input, causing the testID lookup to fail.
