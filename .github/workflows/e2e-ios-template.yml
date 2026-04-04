@@ -560,6 +560,9 @@ jobs:
           DETOX_DEVICE_TYPE: ${{ env.DEVICE_NAME }}
           DETOX_OS_VERSION: ${{ env.DEVICE_OS_VERSION }}
           LOW_BANDWIDTH_MODE: ${{ inputs.low_bandwidth_mode }}
+          SITE_1_URL: ${{ env.SITE_1_URL }}
+          SITE_2_URL: ${{ env.SITE_2_URL }}
+          SITE_3_URL: ${{ env.SITE_3_URL }}
 
       - name: Cleanup Simulator State
         if: always()

@@ -48,6 +48,11 @@ describe('Channels - Unarchive Channel', () => {
         // Re-enable synchronization now that the app has settled past the init bridge burst.
         await device.enableSynchronization();
 
+        // Wait for config to sync after login. The app fetches config on login, but
+        // on CI the network request can take longer. Without this wait, the first
+        // channel operation may see stale config (ExperimentalViewArchivedChannels=false).
+        await wait(timeouts.TWO_SEC);
+
         // Wait for the channel list header plus button to be fully visible and hittable
         // before any test attempts to tap it. A fixed TWO_SEC sleep was insufficient on
         // iOS/Android CI where the navigation animation can take longer after relaunch.

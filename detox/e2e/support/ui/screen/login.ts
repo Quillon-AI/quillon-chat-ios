@@ -4,7 +4,7 @@
 import {serverOneUrl} from '@support/test_config';
 import {ChannelListScreen, ServerScreen} from '@support/ui/screen';
 import {isAndroid, retryWithReload, timeouts, wait, waitForElementToExist} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 class LoginScreen {
     testID = {
@@ -139,6 +139,18 @@ class LoginScreen {
 
                 // eslint-disable-next-line no-await-in-loop
                 await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
+
+                // Admin users see a "Server upgrade required" dialog when the server
+                // version is older than the minimum supported. Dismiss it so tests
+                // can interact with the channel list — this is what a real admin
+                // user would do.
+                try {
+                    // eslint-disable-next-line no-await-in-loop
+                    await waitFor(element(by.text('Dismiss'))).toBeVisible().withTimeout(timeouts.TWO_SEC);
+                    // eslint-disable-next-line no-await-in-loop
+                    await element(by.text('Dismiss')).tap();
+                } catch { /* dialog not present */ }
+
                 return;
             } catch (error) {
                 lastError = error;

@@ -79,8 +79,8 @@ function clearIOSAppData(): void {
     }
 
     // 2. Find the app's data container and delete its contents.
-    //    This wipes databases, caches, preferences — equivalent to a fresh install
-    //    but without touching the app binary.
+    //    This wipes caches, preferences — but NOT the database (which lives in
+    //    the App Group container, cleared separately in step 2b).
     try {
         const dataContainer = execSync(
             `xcrun simctl get_app_container "${simId}" ${BUNDLE_ID} data 2>/dev/null`,
@@ -94,6 +94,27 @@ function clearIOSAppData(): void {
         }
     } catch {
         console.warn('[clearIOSAppData] Could not clear data container (app may not be installed yet)');
+    }
+
+    // 2b. Clear the App Group container.
+    //     On iOS the WatermelonDB databases live in the App Group shared directory
+    //     (group.com.mattermost.rnbeta), NOT in the regular data container.
+    //     Without this, stale database files survive across test files — the app
+    //     relaunches with server entries from the previous test but no valid auth
+    //     token (keychain was cleared in step 3), causing fetchMyChannelsForTeam
+    //     to fail and the "Couldn't load" error screen to appear.
+    try {
+        const appGroupContainer = execSync(
+            `xcrun simctl get_app_container "${simId}" ${BUNDLE_ID} group.com.mattermost.rnbeta 2>/dev/null`,
+            {encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']},
+        ).trim();
+
+        if (appGroupContainer) {
+            execSync(`find "${appGroupContainer}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +`, {stdio: 'pipe'});
+            console.info(`[clearIOSAppData] Cleared App Group container: ${appGroupContainer}`);
+        }
+    } catch {
+        console.warn('[clearIOSAppData] Could not clear App Group container');
     }
 
     // 3. Clear the keychain (removes stored auth tokens, certificates)
