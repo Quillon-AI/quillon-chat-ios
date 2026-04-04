@@ -89,7 +89,7 @@ describe('Messaging - Channel Mention', () => {
         // Wait for navigation to complete instead of a fixed 1s sleep.
         // On Android the deep-link navigation from a channel mention can take longer
         // than 1s, causing the header assertion to read the old channel name.
-        await waitFor(ChannelScreen.headerTitle).toHaveText(targetChannel.display_name).withTimeout(timeouts.TEN_SEC);
+        await waitFor(ChannelScreen.headerTitle).toHaveText(targetChannel.display_name).withTimeout(timeouts.HALF_MIN);
 
         // * Verify redirected to target channel
         await expect(ChannelScreen.headerTitle).toHaveText(targetChannel.display_name);
