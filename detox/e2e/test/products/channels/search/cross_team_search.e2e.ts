@@ -11,6 +11,7 @@ import {
     Channel,
     Post,
     Setup,
+    System,
     Team,
 } from '@support/server_api';
 import {
@@ -69,6 +70,9 @@ describe('Search - Cross Team Search', () => {
             throw new Error("[beforeAll] Failed to get 'town-square' channel for Team Open");
         }
         townSquareChannel = townSquareChannelResult;
+
+        // # Enable cross-team search so the "All teams" option appears in the team picker
+        await System.apiUpdateConfig(siteOneUrl, {SearchSettings: {EnableCrossTeamSearch: true}});
 
         // # Log in to server
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);

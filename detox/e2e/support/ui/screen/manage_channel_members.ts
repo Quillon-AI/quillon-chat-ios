@@ -3,7 +3,7 @@
 
 import {Alert, ProfilePicture} from '@support/ui/component';
 import {ChannelInfoScreen} from '@support/ui/screen';
-import {isAndroid, isIos, timeouts, wait, waitForElementToBeVisible, waitForElementToExist} from '@support/utils';
+import {isAndroid, isIos, timeouts, wait, waitForElementToExist, waitForElementToNotExist} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ManageChannelMembersScreen {
@@ -61,10 +61,16 @@ class ManageChannelMembersScreen {
     };
 
     open = async () => {
-        // # Open channel info screen and tap on members option
+        // # Tap on members option to navigate to manage members screen.
+        // Wait for the element to be visible first to ensure it is on-screen and
+        // tappable before interacting with it.
+        // NOTE: Does NOT call toBeVisible() internally — on Android the tutorial
+        // modal fires immediately and creates a foreground native window that makes
+        // background screen testIDs unreachable. Callers must dismiss the tutorial
+        // (closeTutorial()) before calling toBeVisible().
+        await waitFor(ChannelInfoScreen.membersOption).toBeVisible().withTimeout(timeouts.TEN_SEC);
         await ChannelInfoScreen.membersOption.tap();
         await wait(timeouts.ONE_SEC);
-        return this.toBeVisible();
     };
 
     close = async () => {
@@ -91,11 +97,19 @@ class ManageChannelMembersScreen {
             if (isIos()) {
                 await waitFor(this.tutorialHighlight).toExist().withTimeout(timeouts.HALF_MIN);
                 await this.tutorialSwipeLeft.tap();
+                await waitFor(this.tutorialHighlight).not.toExist().withTimeout(timeouts.TEN_SEC);
             } else {
-                await waitForElementToBeVisible(this.tutorialHighlight, timeouts.HALF_MIN);
+                // On Android, TutorialHighlight uses a React Native Modal (separate Dialog window).
+                // Espresso searches the focused Dialog window, not the Activity. The 'tutorial_highlight'
+                // testID is on the Modal element itself and is never found. The 'tutorial_swipe_left'
+                // View inside the Modal IS accessible from the Dialog window.
+                await waitForElementToExist(this.tutorialSwipeLeft, timeouts.HALF_MIN);
                 await device.pressBack();
+
+                // Poll until the tutorial disappears; waitFor().not.toExist() blocks on bridge-idle
+                // after the pressBack dismiss animation and can spuriously time out.
+                await waitForElementToNotExist(this.tutorialSwipeLeft, timeouts.TEN_SEC);
             }
-            await waitFor(this.tutorialHighlight).not.toExist().withTimeout(timeouts.TEN_SEC);
         } catch {
             // Tutorial may not appear if already dismissed in a previous run
         }

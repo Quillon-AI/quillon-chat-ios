@@ -4,6 +4,7 @@
 import Bot from './bot';
 import Channel from './channel';
 import ChannelBookmark from './channel_bookmark';
+import Command from './command';
 import CustomProfileAttributes from './custom_profile_attributes';
 import Ldap from './ldap';
 import Playbooks from './playbooks';
@@ -16,6 +17,7 @@ import Status from './status';
 import System from './system';
 import Team from './team';
 import User from './user';
+import Webhook from './webhook';
 
 export {
     AgentsPlugin,
@@ -23,6 +25,7 @@ export {
     CallsPlugin,
     Channel,
     ChannelBookmark,
+    Command,
     CustomProfileAttributes,
     DemoPlugin,
     Ldap,
@@ -36,4 +39,5 @@ export {
     System,
     Team,
     User,
+    Webhook,
 };

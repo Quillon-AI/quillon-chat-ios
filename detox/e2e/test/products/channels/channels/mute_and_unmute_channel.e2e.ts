@@ -84,7 +84,7 @@ describe('Channels - Mute and Unmute Channel', () => {
         await wait(timeouts.FOUR_SEC);
 
         // # Tap on muted action to unmute the channel
-        await ChannelInfoScreen.unmuteAction.longPress();
+        await ChannelInfoScreen.unmuteAction.tap();
 
         // * Verify channel is unmuted
         await expect(ChannelInfoScreen.muteAction).toBeVisible();

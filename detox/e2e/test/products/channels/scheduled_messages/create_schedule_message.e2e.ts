@@ -28,7 +28,7 @@ import {
     DraftScreen,
     ThreadScreen,
 } from '@support/ui/screen';
-import {isIos, timeouts, wait} from '@support/utils';
+import {isAndroid, isIos, timeouts, wait} from '@support/utils';
 import {expect} from 'detox';
 
 describe('Scheduled Draft,', () => {
@@ -93,6 +93,19 @@ describe('Scheduled Draft,', () => {
         await ChannelScreen.open(channelsCategory, testChannel.name);
         await waitFor(ChannelScreen.postInput).toBeVisible().withTimeout(timeouts.FOUR_SEC);
         await ChannelScreen.postMessage(parentMessage);
+
+        // # On Android the keyboard stays open after postMessage when the post list is
+        // short (only a system message + this post), so scroll(50, 'down') in
+        // longPressWithScrollRetry silently fails and never dismisses the keyboard.
+        // Swipe the post list to fire a touch event that dismisses it before long-press.
+        if (isAndroid()) {
+            try {
+                await ChannelScreen.postList.getFlatList().swipe('down', 'slow', 0.1);
+            } catch {
+                // swipe failed — longPressWithScrollRetry retries will handle it
+            }
+            await wait(timeouts.ONE_SEC);
+        }
 
         // # Open reply thread
         const {post: parentPost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);

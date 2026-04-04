@@ -166,11 +166,28 @@ export async function longPressWithScrollRetry(
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         // Scroll a small amount to settle the UI and dismiss any keyboard.
         // 50px is enough to trigger gesture-responder re-registration without
-        // scrolling past the target post. Ignore if the list cannot scroll.
+        // scrolling past the target post.
         try {
             await scrollTarget.scroll(50, 'down', 0.5, 0.5);
         } catch {
-            // List is already at scroll boundary — proceed with longPress anyway
+            // scroll('down') failed — the list is already at the bottom boundary.
+            // On Android, the soft keyboard may still be open because the 50px scroll
+            // never fired. Recover with two steps:
+            //   1. swipe('down') = finger down = content scrolls UP = shows older messages.
+            //      This reliably fires a touch event that dismisses the keyboard,
+            //      even though it temporarily moves the newest post off-screen.
+            //   2. scroll(100, 'down') = content back DOWN = newest post visible again.
+            //      This succeeds now because step 1 moved the list away from the bottom.
+            // For very short lists where all items fit on screen, step 1 fires a touch
+            // event (dismissing the keyboard) but content doesn't move; step 2 is a no-op.
+            if (isAndroid()) {
+                try {
+                    await scrollTarget.swipe('down', 'slow', 0.2);
+                } catch { /* ignore */ }
+                try {
+                    await scrollTarget.scroll(100, 'down', 0.5, 0.5);
+                } catch { /* ignore — short list stays in place */ }
+            }
         }
 
         // On iOS 26.2 the gesture responder takes longer to become available after

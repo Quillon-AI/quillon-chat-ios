@@ -23,7 +23,7 @@ import {
     LoginScreen,
     ServerScreen,
 } from '@support/ui/screen';
-import {timeouts, wait} from '@support/utils';
+import {timeouts} from '@support/utils';
 import {expect} from 'detox';
 
 describe('Messaging - Channel Mention', () => {
@@ -79,8 +79,17 @@ describe('Messaging - Channel Mention', () => {
         const channelNameMention = `~${targetChannel.name}`;
         const channelDisplayNameMention = `~${targetChannel.display_name}`;
         await ChannelScreen.postMessage(channelNameMention);
-        await element(by.text(channelDisplayNameMention)).tap({x: 5, y: 10});
-        await wait(timeouts.ONE_SEC);
+
+        // Tap the channel mention using center coordinates (no offset). The previous
+        // approach used {x:5, y:10} which placed the tap 10px from the top of the
+        // mention text — close enough to overlap with the line above (T4875_1's mention)
+        // when both posts are grouped under the same author header in the post list.
+        await element(by.text(channelDisplayNameMention)).tap();
+
+        // Wait for navigation to complete instead of a fixed 1s sleep.
+        // On Android the deep-link navigation from a channel mention can take longer
+        // than 1s, causing the header assertion to read the old channel name.
+        await waitFor(ChannelScreen.headerTitle).toHaveText(targetChannel.display_name).withTimeout(timeouts.TEN_SEC);
 
         // * Verify redirected to target channel
         await expect(ChannelScreen.headerTitle).toHaveText(targetChannel.display_name);

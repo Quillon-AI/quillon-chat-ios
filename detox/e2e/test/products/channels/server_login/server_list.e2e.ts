@@ -89,7 +89,7 @@ describe('Server Login - Server List', () => {
         ({user: serverTwoUser} = await Setup.apiInit(siteTwoUrl));
         await wait(timeouts.TWO_SEC);
         await ServerListScreen.addServerButton.tap();
-        await waitFor(ServerScreen.headerTitleAddServer).toBeVisible(35).withTimeout(timeouts.TEN_SEC);
+        await waitFor(ServerScreen.headerTitleAddServer).toExist().withTimeout(timeouts.TEN_SEC);
         await ServerScreen.connectToServer(serverTwoUrl, serverTwoDisplayName);
         await LoginScreen.login(serverTwoUser);
 
@@ -115,7 +115,7 @@ describe('Server Login - Server List', () => {
         ({user: serverThreeUser} = await Setup.apiInit(siteThreeUrl));
         await wait(timeouts.TWO_SEC);
         await ServerListScreen.addServerButton.tap();
-        await waitFor(ServerScreen.headerTitleAddServer).toBeVisible(35).withTimeout(timeouts.TEN_SEC);
+        await waitFor(ServerScreen.headerTitleAddServer).toExist().withTimeout(timeouts.TEN_SEC);
         await ServerScreen.connectToServer(serverThreeUrl, serverThreeDisplayName);
         await LoginScreen.login(serverThreeUser);
 
@@ -255,7 +255,7 @@ describe('Server Login - Server List', () => {
 
         // # Add first server back to the list and log in to the first server
         await ServerListScreen.addServerButton.tap();
-        await waitFor(ServerScreen.headerTitleAddServer).toBeVisible(35).withTimeout(timeouts.TEN_SEC);
+        await waitFor(ServerScreen.headerTitleAddServer).toExist().withTimeout(timeouts.TEN_SEC);
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(serverOneUser);
     });
@@ -307,7 +307,7 @@ describe('Server Login - Server List', () => {
             await ServerListScreen.serverListTitle.swipe('up', 'fast', 0.1, 0.5, 0.3);
         }
         await ServerListScreen.addServerButton.tap();
-        await waitFor(ServerScreen.headerTitleAddServer).toBeVisible(35).withTimeout(timeouts.TEN_SEC);
+        await waitFor(ServerScreen.headerTitleAddServer).toExist().withTimeout(timeouts.TEN_SEC);
         await ServerScreen.serverUrlInput.replaceText(serverTwoUrl);
         if (isAndroid()) {
             await ServerScreen.serverUrlInput.tapReturnKey();

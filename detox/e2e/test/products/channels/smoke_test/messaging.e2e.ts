@@ -147,7 +147,7 @@ describe('Smoke Test - Messaging', () => {
         // Use openPostOptionsFor (longPressWithScrollRetry) instead of a raw longPress so that
         // the gesture is retried on Android if PostOptionsScreen doesn't appear on the first attempt.
         await ChannelScreen.openPostOptionsFor(post.id, resolvedMessage);
-        await EmojiPickerScreen.open(true);
+        await EmojiPickerScreen.open();
         await EmojiPickerScreen.searchInput.replaceText('clown_face');
         await EmojiPickerScreen.searchInput.tapReturnKey();
         await element(by.text('🤡')).tap();

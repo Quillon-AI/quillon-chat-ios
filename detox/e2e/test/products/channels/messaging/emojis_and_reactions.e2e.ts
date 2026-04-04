@@ -78,7 +78,7 @@ describe('Messaging - Emojis and Reactions', () => {
         await expect(PostOptionsScreen.getReactionEmoji('raised_hands')).toBeVisible();
 
         // # Open emoji picker screen and add a new reaction
-        await EmojiPickerScreen.open(true);
+        await EmojiPickerScreen.open();
         await device.disableSynchronization();
         await EmojiPickerScreen.searchInput.replaceText('clown_face');
         await EmojiPickerScreen.searchInput.tapReturnKey();
