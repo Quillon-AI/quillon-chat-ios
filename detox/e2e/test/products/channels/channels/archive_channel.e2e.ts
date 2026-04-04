@@ -42,6 +42,10 @@ import {expect, waitFor} from 'detox';
 async function closeBrowseChannelsChannel() {
     await ChannelScreen.back();
     await wait(timeouts.ONE_SEC);
+
+    // After the app awaits switchToChannelById, the Browse Channels modal may already
+    // be dismissed (dismissAllModalsAndPopToScreen closes it during navigation). Check
+    // whether Browse Channels is still on screen before trying to close it.
     if (isAndroid()) {
         // On Android the modal stack can collapse differently — use pressBack
         // which reliably dismisses the current screen regardless of stack depth.
@@ -53,7 +57,12 @@ async function closeBrowseChannelsChannel() {
             await device.pressBack();
         }
     } else {
-        await BrowseChannelsScreen.closeButton.tap();
+        try {
+            await waitFor(BrowseChannelsScreen.closeButton).toExist().withTimeout(timeouts.FOUR_SEC);
+            await BrowseChannelsScreen.closeButton.tap();
+        } catch {
+            // Browse Channels was already dismissed by switchToChannelById navigation
+        }
     }
 }
 
