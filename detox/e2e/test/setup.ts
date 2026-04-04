@@ -73,6 +73,14 @@ function clearIOSAppData(): void {
 
         if (appPid) {
             execSync(`xcrun simctl spawn "${simId}" kill -9 "${appPid}"`, {stdio: 'pipe'});
+
+            // Wait for the simulator to fully release the process and its file
+            // handles. Without this, the data wipe below can race with SQLite
+            // WAL/SHM file locks — the app's database files survive partially,
+            // causing WatermelonDB to recover stale server entries on next launch
+            // while the keychain (auth tokens) is already wiped. This produces
+            // the "Couldn't load" error screen on the next test file.
+            execSync('sleep 1', {stdio: 'pipe'});
         }
     } catch {
         // App might not be running — that's fine
@@ -290,9 +298,30 @@ beforeAll(async () => {
                     );
                 }
             } else {
-                throw new Error(
-                    `[launchAndVerify] server.screen did not appear within ${APP_READY_TIMEOUT / 1000}s`,
-                );
+                // On iOS, clearIOSAppData() can race with SQLite WAL file locks:
+                // the database files survive partially, causing the app to launch
+                // with stale server entries but no valid auth token. The app shows
+                // "Couldn't load" (channel_list.screen exists but channels don't
+                // load) instead of server.screen. Detect this and retry the wipe.
+                const channelListEl = element(by.id('channel_list.screen'));
+                try {
+                    await waitFor(channelListEl).toExist().withTimeout(5_000);
+                    console.warn(
+                        '[launchAndVerify] iOS app launched with stale state (channel_list visible). ' +
+                        'clearIOSAppData wipe incomplete. Re-clearing and relaunching.',
+                    );
+                    clearIOSAppData();
+                    await device.launchApp({
+                        newInstance: true,
+                        ...(process.env.SIMULATOR_ID ? {permissions: {notifications: 'YES'}} : {}),
+                        launchArgs,
+                    });
+                    await waitFor(serverScreenEl).toExist().withTimeout(APP_READY_TIMEOUT);
+                } catch {
+                    throw new Error(
+                        `[launchAndVerify] server.screen did not appear within ${APP_READY_TIMEOUT / 1000}s`,
+                    );
+                }
             }
         }
     }
