@@ -140,15 +140,34 @@ class LoginScreen {
                 // eslint-disable-next-line no-await-in-loop
                 await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN);
 
-                // Admin users see a "Server upgrade required" dialog when the server
-                // version is older than the minimum supported. Dismiss it so tests
-                // can interact with the channel list — this is what a real admin
-                // user would do.
+                // Admin users may see a "Server upgrade required" dialog when the
+                // server version is older than the minimum supported. There are two
+                // variants with different button text:
+                //   1. unsupportedServerAdminAlert (server/index.ts) — "Dismiss" button
+                //   2. GlobalEventHandler.onServerVersionChanged — "OK" button
+                // On Android, native alert buttons are rendered in uppercase
+                // ("DISMISS", "OK"). Try each variant to dismiss whichever appears.
                 try {
                     // eslint-disable-next-line no-await-in-loop
-                    await waitFor(element(by.text('Dismiss'))).toBeVisible().withTimeout(timeouts.TWO_SEC);
+                    const serverUpgradeTitle = element(by.text('Server upgrade required'));
                     // eslint-disable-next-line no-await-in-loop
-                    await element(by.text('Dismiss')).tap();
+                    await waitFor(serverUpgradeTitle).toBeVisible().withTimeout(timeouts.TWO_SEC);
+
+                    // Try "Dismiss" first (unsupportedServerAdminAlert variant)
+                    try {
+                        const dismissBtn = isAndroid() ? element(by.text('DISMISS')) : element(by.text('Dismiss'));
+                        // eslint-disable-next-line no-await-in-loop
+                        await waitFor(dismissBtn).toBeVisible().withTimeout(timeouts.ONE_SEC);
+                        // eslint-disable-next-line no-await-in-loop
+                        await dismissBtn.tap();
+                    } catch {
+                        // Try "OK" (GlobalEventHandler variant)
+                        try {
+                            const okBtn = isAndroid() ? element(by.text('OK')) : element(by.text('OK'));
+                            // eslint-disable-next-line no-await-in-loop
+                            await okBtn.tap();
+                        } catch { /* neither button found */ }
+                    }
                 } catch { /* dialog not present */ }
 
                 return;

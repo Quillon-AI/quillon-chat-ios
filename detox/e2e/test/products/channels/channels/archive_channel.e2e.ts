@@ -9,6 +9,7 @@
 
 import {Channel, Post, Setup, System} from '@support/server_api';
 import {serverOneUrl, siteOneUrl} from '@support/test_config';
+import {Alert} from '@support/ui/component';
 import {
     BrowseChannelsScreen,
     ChannelScreen,
@@ -27,11 +28,47 @@ import {
 } from '@support/ui/screen';
 import {
     isAndroid,
+    isIos,
     timeouts,
     wait,
     waitForElementToBeVisible,
+    waitForElementToExist,
 } from '@support/utils';
 import {expect, waitFor} from 'detox';
+
+/**
+ * Wait for the channel screen to appear after tapping a channel in Browse Channels.
+ *
+ * On iOS, tapping a channel in Browse Channels triggers concurrent modal dismissal
+ * and channel screen push, producing a UITransitionView overlay that blocks Detox's
+ * visibility/hittability checks. The bridge also stays busy during these transitions,
+ * causing standard waitFor().toExist() to block waiting for bridge-idle that never
+ * arrives within the timeout.
+ *
+ * This helper:
+ * 1. Disables Detox synchronization on iOS so polling waits aren't blocked by the busy bridge
+ * 2. Polls for the channel screen element to exist in the hierarchy
+ * 3. Waits for the UITransitionView overlay to clear by polling for postDraftArchived visibility
+ * 4. Re-enables synchronization
+ */
+async function waitForArchivedChannelScreen() {
+    if (isIos()) {
+        await device.disableSynchronization();
+    }
+    try {
+        // Wait for the channel screen element to appear in the hierarchy.
+        await waitForElementToExist(ChannelScreen.channelScreen, timeouts.ONE_MIN);
+
+        // Wait for the UITransitionView overlay from modal dismissal to clear.
+        // The archived post draft element is a reliable indicator that the channel
+        // has fully loaded and the transition animation is complete.
+        await waitForElementToBeVisible(ChannelScreen.postDraftArchived, timeouts.HALF_MIN);
+    } finally {
+        if (isIos()) {
+            await device.enableSynchronization();
+        }
+    }
+}
 
 /**
  * Navigate back from a channel that was opened via Browse Channels.
@@ -91,6 +128,12 @@ describe('Channels - Archive and Archived Channels', () => {
     });
 
     beforeEach(async () => {
+        // Dismiss any lingering "Removed from channel" or "Archived channel"
+        // dialogs that may have appeared asynchronously via WebSocket events
+        // from the previous test's channel archival. These native Alert dialogs
+        // block all Detox interactions until dismissed.
+        await Alert.dismissChannelRemoveOrArchiveAlert();
+
         // * Verify on channel list screen
         await ChannelListScreen.toBeVisible();
     });
@@ -317,16 +360,13 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify archived channel displays and is read-only (archived post draft shown)
-        // Use a longer timeout: navigating from the Browse Channels modal to a channel
-        // involves dismissing the modal and pushing a new screen, which can take >10s on
-        // slow iOS CI runners.
-        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
-        await expect(ChannelScreen.postDraftArchived).toBeVisible();
+        await waitForArchivedChannelScreen();
 
         // * Verify the close channel button is visible at the bottom
-        await expect(
+        await waitForElementToBeVisible(
             ChannelScreen.postDraftArchivedCloseChannelButton,
-        ).toBeVisible();
+            timeouts.TEN_SEC,
+        );
 
         // # Navigate back: channel → Browse Channels → channel list
         await closeBrowseChannelsChannel();
@@ -363,10 +403,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
-        // Use a longer timeout: navigating from Browse Channels modal to a channel
-        // involves dismissing the modal + pushing a new screen; can take >10s on slow CI.
-        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
-        await expect(ChannelScreen.postDraftArchived).toBeVisible();
+        await waitForArchivedChannelScreen();
 
         // # Open channel info
         await ChannelInfoScreen.open();
@@ -411,8 +448,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
-        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
-        await expect(ChannelScreen.postDraftArchived).toBeVisible();
+        await waitForArchivedChannelScreen();
 
         // # Open channel info and leave the channel
         await ChannelInfoScreen.open();
@@ -467,8 +503,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel is in read-only state
-        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
-        await expect(ChannelScreen.postDraftArchived).toBeVisible();
+        await waitForArchivedChannelScreen();
 
         // # Long-press on the post to open post options
         await ChannelScreen.openPostOptionsFor(post.id, message);
@@ -520,8 +555,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel is in read-only state
-        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
-        await expect(ChannelScreen.postDraftArchived).toBeVisible();
+        await waitForArchivedChannelScreen();
 
         // # Long-press on the post to open post options and verify reactions cannot be added
         await ChannelScreen.openPostOptionsFor(post.id, message);
@@ -564,8 +598,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
-        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
-        await expect(ChannelScreen.postDraftArchived).toBeVisible();
+        await waitForArchivedChannelScreen();
 
         // # Open channel info
         await ChannelInfoScreen.open();
@@ -719,8 +752,7 @@ describe('Channels - Archive and Archived Channels', () => {
         await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
 
         // * Verify the archived channel screen is visible in read-only state
-        await ChannelScreen.toBeVisible(timeouts.HALF_MIN);
-        await expect(ChannelScreen.postDraftArchived).toBeVisible();
+        await waitForArchivedChannelScreen();
 
         // # Long-press the post to open post options and save it
         await ChannelScreen.openPostOptionsFor(post.id, message);

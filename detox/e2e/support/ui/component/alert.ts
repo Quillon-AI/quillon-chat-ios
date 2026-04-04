@@ -1,7 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {isAndroid} from '@support/utils';
+import {isAndroid, timeouts} from '@support/utils';
+import {waitFor} from 'detox';
 
 class Alert {
     // alert titles
@@ -61,6 +62,31 @@ class Alert {
     yesButton2 = isAndroid() ? element(by.text('YES')) : element(by.label('Yes')).atIndex(1);
     continueAnywayButton = isAndroid() ? element(by.text('CONTINUE ANYWAY')) : element(by.label('Continue Anyway')).atIndex(0);
     sendButton = isAndroid() ? element(by.text('SEND')) : element(by.label('Send')).atIndex(1);
+
+    // alert titles for channel removal/archival dialogs
+    removedFromChannelTitle = isAndroid() ? element(by.text('Removed from channel')) : element(by.label('Removed from channel')).atIndex(0);
+    archivedChannelTitle = isAndroid() ? element(by.text('Archived channel')) : element(by.label('Archived channel')).atIndex(0);
+
+    /**
+     * Dismiss "Removed from channel" or "Archived channel" dialogs if present.
+     * These dialogs appear asynchronously via WebSocket events when a channel is
+     * archived or the user is removed from a channel. Both use an "OK" button.
+     * Safe to call even when no dialog is present — the catch block handles that.
+     */
+    dismissChannelRemoveOrArchiveAlert = async () => {
+        try {
+            // Check for "Removed from channel" first
+            await waitFor(this.removedFromChannelTitle).toBeVisible().withTimeout(timeouts.TWO_SEC);
+            await this.okButton.tap();
+            return;
+        } catch { /* not present */ }
+
+        try {
+            // Check for "Archived channel"
+            await waitFor(this.archivedChannelTitle).toBeVisible().withTimeout(timeouts.ONE_SEC);
+            await this.okButton.tap();
+        } catch { /* not present */ }
+    };
 }
 
 const alert = new Alert();
