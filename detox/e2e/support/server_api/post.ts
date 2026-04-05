@@ -81,7 +81,14 @@ export const apiGetPostsInChannel = async (baseUrl: string, channelId: string): 
  */
 export const apiGetLastPostInChannel = async (baseUrl: string, channelId: string): Promise<any> => {
     await wait(timeouts.TWO_SEC);
-    const {posts} = await apiGetPostsInChannel(baseUrl, channelId);
+    const response = await apiGetPostsInChannel(baseUrl, channelId);
+    if (response.error) {
+        return response;
+    }
+    const {posts} = response;
+    if (!posts?.length) {
+        return {error: {message: `No posts found in channel ${channelId}`}};
+    }
     return {post: posts[0]};
 };
 
