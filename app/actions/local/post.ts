@@ -1,6 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {Q, type Model} from '@nozbe/watermelondb';
+
 import {fetchPostAuthors} from '@actions/remote/post';
 import {ActionType, Post} from '@constants';
 import {MM_TABLES} from '@constants/database';
@@ -16,9 +18,9 @@ import {getPostIdsForCombinedUserActivityPost} from '@utils/post_list';
 
 import {updateLastPostAt, updateMyChannelLastFetchedAt} from './channel';
 
-import type {Model, Q} from '@nozbe/watermelondb';
 import type MyChannelModel from '@typings/database/models/servers/my_channel';
 import type PostModel from '@typings/database/models/servers/post';
+import type PostsInChannelModel from '@typings/database/models/servers/posts_in_channel';
 import type UserModel from '@typings/database/models/servers/user';
 
 const {SERVER: {DRAFT, FILE, POST, POSTS_IN_THREAD, REACTION, THREAD, THREAD_PARTICIPANT, THREADS_IN_TEAM}} = MM_TABLES;
@@ -417,5 +419,100 @@ export const updatePostTranslation = async (serverUrl: string, postId: string, l
     } catch (error) {
         logError('Failed updatePostTranslation', error);
         return {error};
+    }
+};
+
+const {POSTS_IN_CHANNEL} = MM_TABLES.SERVER;
+
+export const debugCreateOrphanedInterval = async (serverUrl: string, channelId: string) => {
+    if (!__DEV__) {
+        return;
+    }
+    try {
+        const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+
+        const logChunks = async (label: string) => {
+            const chunks = await database.get<PostsInChannelModel>(POSTS_IN_CHANNEL).query(
+                Q.where('channel_id', channelId),
+                Q.sortBy('latest', Q.desc),
+            ).fetch();
+            // eslint-disable-next-line no-console
+            console.log(`[debugOrphanedInterval] ${label} - ${chunks.length} chunks:`);
+            for (const chunk of chunks) {
+                // eslint-disable-next-line no-console
+                console.log(`  chunk ${chunk.id}: earliest=${chunk.earliest}, latest=${chunk.latest}`);
+            }
+            return chunks;
+        };
+
+        const chunksBefore = await logChunks('BEFORE');
+
+        if (!chunksBefore.length) {
+            // eslint-disable-next-line no-console
+            console.log('[debugOrphanedInterval] No existing chunks -- nothing to orphan from. Send some messages first.');
+            return;
+        }
+
+        const realChunk = chunksBefore[0];
+
+        const oneHourAgo = Date.now() - 3_600_000;
+        const shrunkLatest = Math.min(realChunk.latest, oneHourAgo);
+        const shrunkEarliest = Math.min(realChunk.earliest, shrunkLatest);
+
+        const updateModel = realChunk.prepareUpdate((record) => {
+            record.earliest = shrunkEarliest;
+            record.latest = shrunkLatest;
+        });
+
+        // eslint-disable-next-line no-console
+        console.log(`[debugOrphanedInterval] Shrinking real chunk to [${shrunkEarliest}, ${shrunkLatest}]`);
+
+        const orphanTimestamp = Date.now();
+
+        // eslint-disable-next-line no-console
+        console.log(`[debugOrphanedInterval] Creating orphaned interval at [${orphanTimestamp}, ${orphanTimestamp}]`);
+
+        await database.write(async () => {
+            const orphan = database.get<PostsInChannelModel>(POSTS_IN_CHANNEL).prepareCreate((record: any) => {
+                record._raw.channel_id = channelId;
+                record._raw.earliest = orphanTimestamp;
+                record._raw.latest = orphanTimestamp;
+            });
+            await database.batch(updateModel, orphan);
+        });
+
+        await logChunks('AFTER (orphaned interval created)');
+
+        // eslint-disable-next-line no-console
+        console.log('[debugOrphanedInterval] Done. Navigate away and back to see missing messages.');
+    } catch (error) {
+        logError('[debugOrphanedInterval]', error);
+    }
+};
+
+export const debugResetPostsInChannel = async (serverUrl: string, channelId: string) => {
+    if (!__DEV__) {
+        return;
+    }
+    try {
+        const {database, operator} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+
+        const chunks = await database.get(POSTS_IN_CHANNEL).query(
+            Q.where('channel_id', channelId),
+        ).fetch();
+
+        if (!chunks.length) {
+            // eslint-disable-next-line no-console
+            console.log(`[debugResetPostsInChannel] No PostsInChannel records for channel ${channelId}`);
+            return;
+        }
+
+        const toDestroy = chunks.map((chunk) => chunk.prepareDestroyPermanently());
+        await operator.batchRecords(toDestroy, 'debugResetPostsInChannel');
+
+        // eslint-disable-next-line no-console
+        console.log(`[debugResetPostsInChannel] Removed ${chunks.length} PostsInChannel records for channel ${channelId}. Navigate to the channel to re-fetch.`);
+    } catch (error) {
+        logError('[debugResetPostsInChannel]', error);
     }
 };

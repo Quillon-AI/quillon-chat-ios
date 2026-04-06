@@ -1,6 +1,9 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {NativeModules} from 'react-native';
+
+import {debugCreateOrphanedInterval, debugResetPostsInChannel} from '@actions/local/post';
 import {CallsManager} from '@calls/calls_manager';
 import DatabaseManager from '@database/manager';
 import {getAllServerCredentials} from '@init/credentials';
@@ -12,6 +15,7 @@ import NetworkManager from '@managers/network_manager';
 import SecurityManager from '@managers/security_manager';
 import SessionManager from '@managers/session_manager';
 import WebsocketManager from '@managers/websocket_manager';
+import {getCurrentChannelId} from '@queries/servers/system';
 import {registerScreens} from '@screens/index';
 import {registerNavigationListeners} from '@screens/navigation';
 import EphemeralStore from '@store/ephemeral_store';
@@ -70,4 +74,28 @@ export async function start() {
     await WebsocketManager.init(serverCredentials);
 
     initialLaunch();
+
+    if (__DEV__) {
+        NativeModules.DevSettings.addMenuItem('Create Orphaned PostsInChannel Interval', async () => {
+            const serverUrl = await DatabaseManager.getActiveServerUrl();
+            if (serverUrl) {
+                const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+                const channelId = await getCurrentChannelId(database);
+                if (channelId) {
+                    debugCreateOrphanedInterval(serverUrl, channelId);
+                }
+            }
+        });
+
+        NativeModules.DevSettings.addMenuItem('Reset PostsInChannel for Current Channel', async () => {
+            const serverUrl = await DatabaseManager.getActiveServerUrl();
+            if (serverUrl) {
+                const {database} = DatabaseManager.getServerDatabaseAndOperator(serverUrl);
+                const channelId = await getCurrentChannelId(database);
+                if (channelId) {
+                    debugResetPostsInChannel(serverUrl, channelId);
+                }
+            }
+        });
+    }
 }
