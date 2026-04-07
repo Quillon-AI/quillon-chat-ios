@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {useIntl} from 'react-intl';
 import {FlatList} from 'react-native';
 import {type Edge, SafeAreaView} from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
+import useDidMount from '@hooks/did_mount';
 import {navigateBack} from '@screens/navigation';
 import SettingsStore from '@store/settings_store';
 import {changeOpacity, getKeyboardAppearanceFromTheme, makeStyleSheetFromTheme} from '@utils/theme';
@@ -120,7 +121,7 @@ const SelectTimezones = ({currentTimezone}: SelectTimezonesProps) => {
         );
     }, [currentTimezone, onPressTimezone]);
 
-    useEffect(() => {
+    useDidMount(() => {
         // let's get all supported timezones
         const getSupportedTimezones = async () => {
             const allTzs = await getAllSupportedTimezones(serverUrl);
@@ -133,10 +134,7 @@ const SelectTimezones = ({currentTimezone}: SelectTimezonesProps) => {
             }
         };
         getSupportedTimezones();
-
-        // Only needed on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 
     useAndroidHardwareBackHandler(Screens.SETTINGS_DISPLAY_TIMEZONE_SELECT, close);
 

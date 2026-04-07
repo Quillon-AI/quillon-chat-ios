@@ -41,6 +41,7 @@ describe('performance metrics', () => {
             location: Screens.CHANNEL,
             post,
             isLastPost: true,
+            isChannelAutotranslated: false,
         };
     }
 

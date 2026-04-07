@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useReducer, useState} from 'react';
 import {DeviceEventEmitter, type StyleProp, StyleSheet, View, type ViewStyle} from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -71,6 +71,10 @@ const Files = ({
     const [validatedFilesInfo, setValidatedFilesInfo] = useState(filesInfo);
 
     const {images: imageAttachments, nonImages: nonImageAttachments} = useImageAttachments(validatedFilesInfo);
+
+    // Force re-render when a file is rejected (to move it from images to nonImages)
+    const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+
     const [filesForGallery, setFilesForGallery] = useState(() => [...imageAttachments, ...nonImageAttachments]);
 
     const attachmentIndex = (fileId: string) => {
@@ -217,6 +221,19 @@ const Files = ({
         return () => {
             isCancelled = true;
         };
+    }, [filesInfo]);
+
+    // Listen for file rejection events and re-render if one of our files is rejected
+    // This handles the race condition where files render before rejection status is known
+    useEffect(() => {
+        const fileIds = new Set(filesInfo.map((f) => f.id));
+        const onFileRejected = ({fileId}: {fileId: string}) => {
+            if (fileIds.has(fileId)) {
+                forceUpdate();
+            }
+        };
+        const listener = DeviceEventEmitter.addListener(Events.FILE_REJECTED, onFileRejected);
+        return () => listener.remove();
     }, [filesInfo]);
 
     return (

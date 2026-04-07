@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {Platform} from 'react-native';
 
 import {updateMe} from '@actions/remote/user';
@@ -11,7 +11,7 @@ import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
 import useBackNavigation from '@hooks/navigate_back';
-import {getNotificationProps} from '@utils/user';
+import useNotificationProps from '@hooks/notification_props';
 
 import MobileSendPush from './push_send';
 import MobilePushStatus from './push_status';
@@ -26,10 +26,7 @@ type NotificationMobileProps = {
 };
 const NotificationPush = ({currentUser, isCRTEnabled, sendPushNotifications}: NotificationMobileProps) => {
     const serverUrl = useServerUrl();
-
-    // We only want to recalculate notifyProps when currentUser.notifyProps changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const notifyProps = useMemo(() => getNotificationProps(currentUser), [currentUser?.notifyProps]);
+    const notifyProps = useNotificationProps(currentUser);
 
     const [pushSend, setPushSend] = useState<UserNotifyPropsPush>(notifyProps.push);
     const [pushStatus, setPushStatus] = useState<UserNotifyPropsPushStatus>(notifyProps.push_status);

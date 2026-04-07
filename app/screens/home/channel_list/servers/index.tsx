@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useCallback, useEffect, useImperativeHandle, useRef, useState} from 'react';
+import React, {useCallback, useImperativeHandle, useRef, useState} from 'react';
 import {useIntl} from 'react-intl';
 import {StyleSheet} from 'react-native';
 
@@ -11,6 +11,7 @@ import {useTheme} from '@context/theme';
 import {subscribeAllServers} from '@database/subscription/servers';
 import {subscribeUnreadAndMentionsByServer, type UnreadObserverArgs} from '@database/subscription/unreads';
 import {useWindowDimensions} from '@hooks/device';
+import useDidMount from '@hooks/did_mount';
 import {BUTTON_HEIGHT, TITLE_HEIGHT} from '@screens/bottom_sheet';
 import {bottomSheet} from '@screens/navigation';
 import {bottomSheetSnapPoint} from '@utils/helpers';
@@ -137,7 +138,7 @@ const Servers = React.forwardRef<ServersRef>((_, ref) => {
         openServers: onPress,
     }), [onPress]);
 
-    useEffect(() => {
+    useDidMount(() => {
         const subscription = subscribeAllServers(serversObserver);
 
         return () => {
@@ -147,8 +148,7 @@ const Servers = React.forwardRef<ServersRef>((_, ref) => {
             });
             subscriptions.clear();
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 
     return (
         <ServerIcon

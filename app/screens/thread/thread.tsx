@@ -3,7 +3,7 @@
 
 import {useIsFocused} from '@react-navigation/native';
 import {useNavigation} from 'expo-router';
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {type LayoutChangeEvent, StyleSheet} from 'react-native';
 import {type Edge, SafeAreaView} from 'react-native-safe-area-context';
 
@@ -12,7 +12,6 @@ import FloatingCallContainer from '@calls/components/floating_call_container';
 import RoundedHeaderContext from '@components/rounded_header_context';
 import {Screens} from '@constants';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
-import {useIsTablet} from '@hooks/device';
 import useDidUpdate from '@hooks/did_update';
 import EphemeralStore from '@store/ephemeral_store';
 import {NavigationStore} from '@store/navigation_store';
@@ -36,6 +35,8 @@ const styles = StyleSheet.create({
     flex: {flex: 1},
 });
 
+const safeAreaViewEdges: Edge[] = ['left', 'right', 'bottom'];
+
 const Thread = ({
     isCRTEnabled,
     rootId,
@@ -48,21 +49,6 @@ const Thread = ({
     const [containerHeight, setContainerHeight] = useState(0);
     const navigation = useNavigation();
     const isVisible = useIsFocused();
-    const isTablet = useIsTablet();
-    const [isEmojiSearchFocused, setIsEmojiSearchFocused] = useState(false);
-
-    // Remove bottom safe area when emoji search is focused OR keyboard is open (Android 30+ only)
-    // This prevents gap between input and keyboard on Android edge-to-edge
-    const safeAreaViewEdges: Edge[] = useMemo(() => {
-        if (isTablet) {
-            return ['left', 'right'];
-        }
-        if (isEmojiSearchFocused) {
-            return ['left', 'right'];
-        }
-
-        return ['left', 'right', 'bottom'];
-    }, [isTablet, isEmojiSearchFocused]);
 
     useAndroidHardwareBackHandler(Screens.THREAD, navigation.goBack);
 
@@ -116,7 +102,6 @@ const Thread = ({
     return (
         <SafeAreaView
             style={styles.flex}
-            mode='margin'
             edges={safeAreaViewEdges}
             testID='thread.screen'
             onLayout={onLayout}
@@ -129,7 +114,6 @@ const Thread = ({
                     scheduledPostCount={scheduledPostCount}
                     containerHeight={containerHeight}
                     enabled={isVisible}
-                    onEmojiSearchFocusChange={setIsEmojiSearchFocused}
                 />
             )}
             {showFloatingCallContainer &&

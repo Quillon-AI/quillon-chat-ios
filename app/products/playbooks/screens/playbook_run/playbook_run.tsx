@@ -25,7 +25,7 @@ import {showPlaybookErrorSnackbar} from '@utils/snack_bar';
 import {makeStyleSheetFromTheme, changeOpacity} from '@utils/theme';
 import {typography} from '@utils/typography';
 
-import {goToRenamePlaybookRun, goToSelectUser} from '../navigation';
+import {goToEditPlaybookRun, goToSelectUser} from '../navigation';
 
 import ChecklistList from './checklist_list';
 import {PropertyFieldsList} from './components';
@@ -173,6 +173,7 @@ type Props = {
     pendingCount: number;
     currentUserId: string;
     teammateNameDisplay: string;
+    canEditSummary: boolean;
 }
 
 export default function PlaybookRun({
@@ -184,6 +185,7 @@ export default function PlaybookRun({
     pendingCount,
     currentUserId,
     teammateNameDisplay,
+    canEditSummary,
 }: Props) {
     const theme = useTheme();
     const styles = getStyleSheet(theme);
@@ -261,8 +263,8 @@ export default function PlaybookRun({
             return;
         }
 
-        goToRenamePlaybookRun(playbookRun.name, playbookRun.id);
-    }, [playbookRun]);
+        goToEditPlaybookRun(playbookRun.name, playbookRun.summary, playbookRun.id, {canEditSummary});
+    }, [playbookRun, canEditSummary]);
 
     const handleFinishRun = useCallback(() => {
         if (!playbookRun) {

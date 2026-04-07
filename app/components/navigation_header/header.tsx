@@ -29,6 +29,7 @@ type Props = {
     subtitleCompanion?: React.ReactElement;
     theme: Theme;
     title?: string;
+    titleCompanion?: React.ReactElement;
 }
 
 const hitSlop = {top: 20, bottom: 20, left: 20, right: 20};
@@ -113,6 +114,11 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         color: theme.sidebarHeaderTextColor,
         ...typography('Heading', 300),
     },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
 }));
 
 const Header = ({
@@ -130,6 +136,7 @@ const Header = ({
     subtitleCompanion,
     theme,
     title,
+    titleCompanion,
 }: Props) => {
     const styles = getStyleSheet(theme);
     const insets = useSafeAreaInsets();
@@ -204,14 +211,17 @@ const Header = ({
                 >
                     <View style={styles.centered}>
                         {!hasSearch &&
-                        <Animated.Text
-                            ellipsizeMode='tail'
-                            numberOfLines={1}
-                            style={[styles.title, opacity]}
-                            testID='navigation.header.title'
-                        >
-                            {title}
-                        </Animated.Text>
+                        <View style={styles.titleRow}>
+                            <Animated.Text
+                                ellipsizeMode='tail'
+                                numberOfLines={1}
+                                style={[styles.title, opacity]}
+                                testID='navigation.header.title'
+                            >
+                                {title}
+                            </Animated.Text>
+                            {titleCompanion}
+                        </View>
                         }
                         {!isLargeTitle && Boolean(subtitle || subtitleCompanion) &&
                         <View style={styles.subtitleContainer}>

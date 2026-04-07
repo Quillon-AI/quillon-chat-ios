@@ -3,7 +3,7 @@
 
 import React, {useCallback, useEffect, useMemo} from 'react';
 import {useIntl} from 'react-intl';
-import {DeviceEventEmitter, Keyboard, StyleSheet, View} from 'react-native';
+import {DeviceEventEmitter, StyleSheet, View} from 'react-native';
 import {SafeAreaView, type Edge} from 'react-native-safe-area-context';
 
 import {removeLastViewedChannelIdAndServer, storeLastViewedChannelIdAndServer} from '@actions/app/global';
@@ -71,7 +71,6 @@ const GlobalDraftsAndScheduledPosts = ({scheduledPostsEnabled, initialTab}: Prop
     }, [defaultHeight]);
 
     const onBackPress = useCallback(() => {
-        Keyboard.dismiss();
         if (!isTablet) {
             navigateBack();
         }

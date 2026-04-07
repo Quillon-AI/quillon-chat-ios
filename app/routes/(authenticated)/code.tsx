@@ -6,7 +6,7 @@ import {getHeaderOptions, useNavigationHeader} from '@hooks/navigation_header';
 import {usePropsFromParams} from '@hooks/props_from_params';
 import CodeScreen, {type CodeScreenProps} from '@screens/code';
 
-export default function IntegrationSelectorRoute() {
+export default function CodeRoute() {
     const theme = useTheme();
     const {title, ...props} = usePropsFromParams<CodeScreenProps & {title: string}>();
 

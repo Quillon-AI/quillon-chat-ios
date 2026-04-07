@@ -50,6 +50,15 @@ const SSO = ({
     const intl = useIntl();
     const [loginError, setLoginError] = useState<string>('');
 
+    // Validate serverUrl is provided
+    if (!serverUrl) {
+        return (
+            <View style={styles.flex}>
+                <Background theme={theme}/>
+            </View>
+        );
+    }
+
     let loginUrl = '';
     let shouldUseNativeEntra = false;
 
@@ -104,7 +113,7 @@ const SSO = ({
     }, [intl]);
 
     const doSSOLogin = async (bearerToken: string, csrfToken: string) => {
-        const result: LoginActionResponse = await ssoLogin(serverUrl!, serverDisplayName, config.DiagnosticId!, bearerToken, csrfToken, serverPreauthSecret);
+        const result: LoginActionResponse = await ssoLogin(serverUrl, serverDisplayName, config.DiagnosticId!, bearerToken, csrfToken, serverPreauthSecret);
         if (result?.error && result.failed) {
             onLoadEndError(result.error);
             return;
@@ -113,7 +122,7 @@ const SSO = ({
     };
 
     const doSSOCodeExchange = async (loginCode: string, samlChallenge: {codeVerifier: string; state: string}) => {
-        const result: LoginActionResponse = await ssoLoginWithCodeExchange(serverUrl!, serverDisplayName, config.DiagnosticId!, loginCode, samlChallenge, serverPreauthSecret);
+        const result: LoginActionResponse = await ssoLoginWithCodeExchange(serverUrl, serverDisplayName, config.DiagnosticId!, loginCode, samlChallenge, serverPreauthSecret);
         if (result?.error && result.failed) {
             onLoadEndError(result.error);
             return;
@@ -128,7 +137,7 @@ const SSO = ({
 
     const doEntraLogin = useCallback(async () => {
         const result = await nativeEntraLogin(
-            serverUrl!,
+            serverUrl,
             serverDisplayName,
             config.DiagnosticId!,
             config.IntuneScope!,
@@ -159,6 +168,7 @@ const SSO = ({
         doSSOCodeExchange,
         loginError,
         loginUrl,
+        serverUrl,
         setLoginError,
         theme,
     };

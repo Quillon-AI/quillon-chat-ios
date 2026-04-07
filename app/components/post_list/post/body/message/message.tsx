@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import React, {useCallback, useMemo, useState} from 'react';
+import {useIntl} from 'react-intl';
 import {type LayoutChangeEvent, ScrollView, useWindowDimensions, View} from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -10,6 +11,7 @@ import {isChannelMentions} from '@components/markdown/channel_mention/channel_me
 import {Screens} from '@constants';
 import {usePostConfig} from '@context/post_config';
 import {useShowMoreAnimatedStyle} from '@hooks/show_more';
+import {getPostTranslatedMessage, getPostTranslation} from '@utils/post';
 import {makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
 
@@ -31,6 +33,7 @@ type MessageProps = {
     post: PostModel;
     searchPatterns?: SearchPattern[];
     theme: Theme;
+    isChannelAutotranslated: boolean;
 }
 
 const SHOW_MORE_HEIGHT = 54;
@@ -58,7 +61,19 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
     };
 });
 
-const Message = ({currentUser, highlight, isEdited, isPendingOrFailed, isReplyPost, layoutWidth, location, post, searchPatterns, theme}: MessageProps) => {
+const Message = ({
+    currentUser,
+    highlight,
+    isEdited,
+    isPendingOrFailed,
+    isReplyPost,
+    layoutWidth,
+    location,
+    post,
+    searchPatterns,
+    theme,
+    isChannelAutotranslated,
+}: MessageProps) => {
     const [open, setOpen] = useState(false);
     const [height, setHeight] = useState<number|undefined>();
     const dimensions = useWindowDimensions();
@@ -66,6 +81,7 @@ const Message = ({currentUser, highlight, isEdited, isPendingOrFailed, isReplyPo
     const animatedStyle = useShowMoreAnimatedStyle(height, maxHeight, open);
     const style = getStyleSheet(theme);
     const postConfig = usePostConfig();
+    const intl = useIntl();
 
     // We need to memoize these two values because they are actually getters that return a new list
     // on every render. We need to trust that changes in the currentUser will trigger the recalculation.
@@ -93,6 +109,12 @@ const Message = ({currentUser, highlight, isEdited, isPendingOrFailed, isReplyPo
         return post.metadata?.images ?? EMPTY_IMAGES_METADATA;
     }, [post.metadata?.images]);
 
+    const translation = getPostTranslation(post, intl.locale);
+    let message = post.message;
+    if (isChannelAutotranslated && post.type === '' && translation?.state === 'ready') {
+        message = getPostTranslatedMessage(post.message, translation);
+    }
+
     return (
         <>
             <Animated.View style={animatedStyle}>
@@ -117,7 +139,7 @@ const Message = ({currentUser, highlight, isEdited, isPendingOrFailed, isReplyPo
                             layoutWidth={layoutWidth}
                             location={location}
                             postId={post.id}
-                            value={post.message}
+                            value={message}
                             mentionKeys={mentionKeys}
                             highlightKeys={highlightKeys}
                             searchPatterns={searchPatterns}

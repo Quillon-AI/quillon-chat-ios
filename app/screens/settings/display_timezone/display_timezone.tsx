@@ -11,6 +11,7 @@ import SettingSeparator from '@components/settings/separator';
 import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
+import useInitialValue from '@hooks/initial_value';
 import useBackNavigation from '@hooks/navigate_back';
 import {usePreventDoubleTap} from '@hooks/utils';
 import {navigateToSettingsScreen} from '@screens/navigation';
@@ -27,8 +28,7 @@ const DisplayTimezone = ({currentUser}: DisplayTimezoneProps) => {
     const intl = useIntl();
     const serverUrl = useServerUrl();
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const initialTimezone = useMemo(() => getUserTimezoneProps(currentUser), [/* dependency array should remain empty */]);
+    const initialTimezone = useInitialValue(() => getUserTimezoneProps(currentUser));
     const [userTimezone, setUserTimezone] = useState(initialTimezone);
 
     const updateAutomaticTimezone = (useAutomaticTimezone: boolean) => {

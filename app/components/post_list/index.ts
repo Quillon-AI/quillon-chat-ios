@@ -6,6 +6,7 @@ import React from 'react';
 import {of as of$} from 'rxjs';
 import {switchMap} from 'rxjs/operators';
 
+import {observeIsChannelAutotranslated} from '@queries/servers/channel';
 import {queryAllCustomEmojis} from '@queries/servers/custom_emoji';
 import {observeSavedPostsByIds, observeIsPostAcknowledgementsEnabled} from '@queries/servers/post';
 import {observeConfigBooleanValue} from '@queries/servers/system';
@@ -17,7 +18,11 @@ import PostList from './post_list';
 import type {WithDatabaseArgs} from '@typings/database/database';
 import type PostModel from '@typings/database/models/servers/post';
 
-const enhancedWithoutPosts = withObservables([], ({database}: WithDatabaseArgs) => {
+type OwnProps = {
+    channelId: string;
+} & WithDatabaseArgs;
+
+const enhancedWithoutPosts = withObservables(['channelId'], ({database, channelId}: OwnProps) => {
     return {
         appsEnabled: observeConfigBooleanValue(database, 'FeatureFlagAppsEnabled'),
         currentUser: observeCurrentUser(database),
@@ -25,6 +30,7 @@ const enhancedWithoutPosts = withObservables([], ({database}: WithDatabaseArgs) 
             switchMap((customEmojis) => of$(mapCustomEmojiNames(customEmojis))),
         ),
         isPostAcknowledgementEnabled: observeIsPostAcknowledgementsEnabled(database),
+        isChannelAutotranslated: observeIsChannelAutotranslated(database, channelId),
     };
 });
 

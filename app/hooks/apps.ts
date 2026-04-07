@@ -75,7 +75,7 @@ export const useAppBinding = (context: UseAppBindingContext, config: UseAppBindi
                         if (config.onForm) {
                             config.onForm(callResp.form);
                         } else {
-                            navigateToScreen(Screens.APPS_FORM, {form: callResp.form, callContext});
+                            navigateToScreen(Screens.APPS_FORM, {form: callResp.form, context: callContext});
                         }
                     }
                     return;

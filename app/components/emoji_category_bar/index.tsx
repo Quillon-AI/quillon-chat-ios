@@ -6,7 +6,7 @@ import {ScrollView, View} from 'react-native';
 
 import CompassIcon from '@components/compass_icon';
 import TouchableWithFeedback from '@components/touchable_with_feedback';
-import {useKeyboardAnimationContext} from '@context/keyboard_animation';
+import {useKeyboardState} from '@context/keyboard_state';
 import {useTheme} from '@context/theme';
 import {selectEmojiCategoryBarSection, useEmojiCategoryBar} from '@hooks/emoji_category_bar';
 import {usePreventDoubleTap} from '@hooks/utils';
@@ -58,13 +58,13 @@ const EmojiCategoryBar = ({onSelect}: Props) => {
     const theme = useTheme();
     const styles = getStyleSheet(theme);
     const {currentIndex, icons} = useEmojiCategoryBar();
-    const keyboardContext = useKeyboardAnimationContext();
     const {
-        focusInput,
+        inputRef,
         updateValue,
         updateCursorPosition,
-        cursorPositionRef,
-    } = keyboardContext;
+        getCursorPosition,
+        setCursorPosition,
+    } = useKeyboardState();
 
     // Only show keyboard/delete buttons if we're in input accessory view mode
     // Check if updateValue is available (not null) to determine if we're in input accessory context
@@ -80,26 +80,28 @@ const EmojiCategoryBar = ({onSelect}: Props) => {
     }, [onSelect]);
 
     const handleKeyboardPress = usePreventDoubleTap(useCallback(() => {
-        focusInput();
-    }, [focusInput]));
+        inputRef.current?.focus();
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []));
 
     const deleteCharFromCurrentCursorPosition = useCallback(() => {
-        if (!updateValue || !updateCursorPosition || !cursorPositionRef) {
+        if (!updateValue || !updateCursorPosition) {
             return;
         }
 
-        const currentCursorPosition = cursorPositionRef.current;
+        const currentCursorPosition = getCursorPosition();
         if (currentCursorPosition === 0) {
             return;
         }
 
         updateValue((value: string) => {
             const result = deleteLastGrapheme(value, currentCursorPosition);
-            cursorPositionRef.current = result.cursorPosition;
+            setCursorPosition(result.cursorPosition);
             updateCursorPosition(result.cursorPosition);
             return result.text;
         });
-    }, [updateValue, updateCursorPosition, cursorPositionRef]);
+    }, [updateValue, updateCursorPosition, getCursorPosition, setCursorPosition]);
 
     if (!icons) {
         return null;

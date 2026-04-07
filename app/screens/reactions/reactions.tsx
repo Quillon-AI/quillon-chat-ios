@@ -20,6 +20,16 @@ type Props = {
     reactions?: ReactionModel[];
 }
 
+function getSortedReactions(reactions: ReactionModel[] | undefined, prevSortedReactions: string[]): string[] {
+    const rs = reactions?.map((r) => getEmojiFirstAlias(r.emojiName));
+    const sorted = new Set([...prevSortedReactions]);
+    const added = rs?.filter((r) => !sorted.has(r));
+    added?.forEach(sorted.add, sorted);
+    const removed = [...sorted].filter((s) => !rs?.includes(s));
+    removed.forEach(sorted.delete, sorted);
+    return Array.from(sorted);
+}
+
 const Reactions = ({initialEmoji, location, reactions}: Props) => {
     const [sortedReactions, setSortedReactions] = useState(Array.from(new Set(reactions?.map((r) => getEmojiFirstAlias(r.emojiName)))));
     const [index, setIndex] = useState(sortedReactions.indexOf(initialEmoji));
@@ -69,17 +79,9 @@ const Reactions = ({initialEmoji, location, reactions}: Props) => {
 
     useEffect(() => {
         // This helps keep the reactions in the same position at all times until unmounted
-        const rs = reactions?.map((r) => getEmojiFirstAlias(r.emojiName));
-        const sorted = new Set([...sortedReactions]);
-        const added = rs?.filter((r) => !sorted.has(r));
-        added?.forEach(sorted.add, sorted);
-        const removed = [...sorted].filter((s) => !rs?.includes(s));
-        removed.forEach(sorted.delete, sorted);
-        setSortedReactions(Array.from(sorted));
-
-    // we dont want to add sortedReactions to the dependencies array
-    // as it will create an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        setSortedReactions((prevSortedReactions) => {
+            return getSortedReactions(reactions, prevSortedReactions);
+        });
     }, [reactions]);
 
     return (

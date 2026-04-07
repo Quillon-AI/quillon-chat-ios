@@ -11,7 +11,9 @@ import {typography} from '@utils/typography';
 
 type Props = {
     action?: string;
+    count?: number;
     enabled?: boolean;
+    iconName?: string;
     onPress?: () => void;
     title: string;
     testID: string;
@@ -35,9 +37,6 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         alignItems: 'center',
         paddingBottom: 5,
     },
-    enabled: {
-        color: theme.sidebarHeaderTextColor,
-    },
     titleContainer: {
         alignItems: 'center',
         flex: 1,
@@ -49,7 +48,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     },
 }));
 
-const TabletTitle = ({action, enabled = true, onPress, testID, title}: Props) => {
+const TabletTitle = ({action, count, enabled = true, iconName, onPress, testID, title}: Props) => {
     const theme = useTheme();
     const styles = getStyleSheet(theme);
 
@@ -64,15 +63,15 @@ const TabletTitle = ({action, enabled = true, onPress, testID, title}: Props) =>
                         {title}
                     </Text>
                 </View>
-                {Boolean(action) &&
+                {action && onPress &&
                 <View style={styles.actionContainer}>
                     <NavigationButton
-                        text={action!}
+                        text={action}
                         disabled={!enabled}
-                        onPress={onPress!}
-                        testID={`${testID}.${action!.toLocaleLowerCase()}.button`}
-                        count={20}
-                        iconName='plus'
+                        onPress={onPress}
+                        testID={`${testID}.${action.toLocaleLowerCase()}.button`}
+                        count={count}
+                        iconName={iconName}
                     />
                 </View>
                 }

@@ -11,8 +11,11 @@ import {isTablet} from '@utils/helpers';
  * requiring different keyboard handling logic compared to older Android versions.
  */
 export const isAndroidEdgeToEdge = Platform.OS === 'android' && Platform.Version >= 30;
+export const isEdgeToEdge = Platform.OS === 'ios' || isAndroidEdgeToEdge;
 
 export default {
+    isAndroidEdgeToEdge,
+    isEdgeToEdge,
     IS_TABLET: isTablet(),
     PUSH_NOTIFY_ANDROID_REACT_NATIVE: 'android_rn',
     PUSH_NOTIFY_APPLE_REACT_NATIVE: 'apple_rn',

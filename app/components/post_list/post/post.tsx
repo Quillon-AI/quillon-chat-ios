@@ -1,15 +1,16 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import AgentPost from '@agents/components/agent_post';
-import {isAgentPost} from '@agents/utils';
 import React, {type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {Platform, type StyleProp, View, type ViewStyle, TouchableHighlight} from 'react-native';
+import {useIntl} from 'react-intl';
+import {Platform, type StyleProp, View, type ViewStyle, TouchableHighlight, type LayoutChangeEvent} from 'react-native';
 import {KeyboardController} from 'react-native-keyboard-controller';
 
 import {removePost} from '@actions/local/post';
 import {showPermalink} from '@actions/remote/permalink';
 import {fetchAndSwitchToThread} from '@actions/remote/thread';
+import AgentPost from '@agents/components/agent_post';
+import {isAgentPost} from '@agents/utils';
 import CallsCustomMessage from '@calls/components/calls_custom_message';
 import {isCallsCustomMessage} from '@calls/utils';
 import UnrevealedBurnOnReadPost from '@components/post_list/post/burn_on_read/unrevealed';
@@ -17,10 +18,11 @@ import SystemAvatar from '@components/system_avatar';
 import SystemHeader from '@components/system_header';
 import {Screens} from '@constants';
 import {POST_TIME_TO_FAIL} from '@constants/post';
-import {useKeyboardAnimationContext} from '@context/keyboard_animation';
+import {useKeyboardState} from '@context/keyboard_state';
 import {usePostConfig} from '@context/post_config';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
+import useDidMount from '@hooks/did_mount';
 import {usePreventDoubleTap} from '@hooks/utils';
 import PerformanceMetricsManager from '@managers/performance_metrics_manager';
 import {navigateBack, navigateToScreen} from '@screens/navigation';
@@ -34,8 +36,10 @@ import Body from './body';
 import Footer from './footer';
 import Header from './header';
 import PreHeader from './pre_header';
+import ShimmerAnimation from './shimmer_animation';
 import SystemMessage from './system_message';
 import UnreadDot from './unread_dot';
+import useShimmerAnimation from './use_shimmer_animation';
 
 import type PostModel from '@typings/database/models/servers/post';
 import type ThreadModel from '@typings/database/models/servers/thread';
@@ -78,6 +82,7 @@ type PostProps = {
     style?: StyleProp<ViewStyle>;
     testID?: string;
     thread?: ThreadModel;
+    isChannelAutotranslated: boolean;
 };
 
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
@@ -152,11 +157,13 @@ const Post = ({
     thread,
     previousPost,
     isLastPost,
+    isChannelAutotranslated,
 }: PostProps) => {
     const pressDetected = useRef(false);
     const serverUrl = useServerUrl();
     const theme = useTheme();
-    const {blurAndDismissKeyboard, closeInputAccessoryView, showInputAccessoryView} = useKeyboardAnimationContext();
+    const intl = useIntl();
+    const {blurAndDismissKeyboard} = useKeyboardState();
     const styles = getStyleSheet(theme);
     const postConfig = usePostConfig();
     const isAutoResponder = fromAutoResponder(post);
@@ -170,6 +177,8 @@ const Post = ({
     const isAgentPostType = isAgentPost(post);
     const hasBeenDeleted = (post.deleteAt !== 0);
     const isWebHook = isFromWebhook(post);
+    const [layoutWidth, setLayoutWidth] = useState(0);
+    const shimmerAnimationProps = useShimmerAnimation(post, isChannelAutotranslated, intl.locale, layoutWidth, theme);
     const hasSameRoot = useMemo(() => {
         if (isFirstReply) {
             return false;
@@ -215,6 +224,10 @@ const Post = ({
     }, [location, isAutoResponder, isSystemPost, isEphemeral, hasBeenDeleted, isPendingOrFailed, serverUrl, post, borPost, blurAndDismissKeyboard]);
 
     const handlePress = usePreventDoubleTap(useCallback(() => {
+        if (isBoRPost(post)) {
+            return;
+        }
+
         pressDetected.current = true;
 
         KeyboardController.dismiss();
@@ -237,14 +250,10 @@ const Post = ({
             return;
         }
 
-        if (showInputAccessoryView) {
-            closeInputAccessoryView();
-        }
-
         await blurAndDismissKeyboard();
         const passProps = {sourceScreen: location, postId: post.id, showAddReaction};
         navigateToScreen(Screens.POST_OPTIONS, passProps);
-    }, [post, isSystemPost, canDelete, hasBeenDeleted, isPendingOrFailed, isEphemeral, showInputAccessoryView, blurAndDismissKeyboard, location, showAddReaction, closeInputAccessoryView]);
+    }, [post, isSystemPost, canDelete, hasBeenDeleted, isPendingOrFailed, isEphemeral, blurAndDismissKeyboard, location, showAddReaction]);
 
     const [, rerender] = useState(false);
     useEffect(() => {
@@ -259,10 +268,11 @@ const Post = ({
             }
         };
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Timer only needs to reset when post.id changes, not on other prop updates
+    // Timer only needs to reset when post.id changes, not on other prop updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [post.id]);
 
-    useEffect(() => {
+    useDidMount(() => {
         if (!isLastPost) {
             return;
         }
@@ -273,8 +283,10 @@ const Post = ({
 
         PerformanceMetricsManager.finishLoad(location === Screens.THREAD ? 'THREAD' : 'CHANNEL', serverUrl);
         PerformanceMetricsManager.endMetric('mobile_channel_switch', serverUrl);
+    });
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Performance metrics should only run once on mount
+    const onLayout = useCallback((e: LayoutChangeEvent) => {
+        setLayoutWidth(e.nativeEvent.layout.width);
     }, []);
 
     const highlightSaved = isSaved && !skipSavedHeader;
@@ -343,6 +355,7 @@ const Post = ({
                     rootPostAuthor={rootPostAuthor}
                     showPostPriority={showPostPriority}
                     shouldRenderReplyButton={shouldRenderReplyButton}
+                    isChannelAutotranslated={isChannelAutotranslated}
                 />
             );
         }
@@ -402,6 +415,7 @@ const Post = ({
                 searchPatterns={searchPatterns}
                 showAddReaction={showAddReaction}
                 theme={theme}
+                isChannelAutotranslated={isChannelAutotranslated}
             />
         );
     }
@@ -429,6 +443,7 @@ const Post = ({
         <View
             testID={testID}
             style={[styles.postStyle, style, highlightedStyle]}
+            onLayout={onLayout}
         >
             <TouchableHighlight
                 testID={itemTestID}
@@ -457,6 +472,7 @@ const Post = ({
                     </View>
                 </>
             </TouchableHighlight>
+            <ShimmerAnimation {...shimmerAnimationProps}/>
         </View>
     );
 };

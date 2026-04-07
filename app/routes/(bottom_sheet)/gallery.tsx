@@ -18,6 +18,7 @@ export default function GalleryRoute() {
             contentStyle: {backgroundColor: 'transparent'},
             headerShown: false,
             gestureEnabled: false,
+            orientation: 'all',
         });
     }, [navigation]);
 

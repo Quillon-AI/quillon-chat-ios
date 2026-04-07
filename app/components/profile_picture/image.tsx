@@ -84,10 +84,11 @@ const Image = ({author, forwardRef, iconSize, size, source, url}: Props) => {
     }
 
     if (imgSource?.uri?.startsWith('file://')) {
-        let uri = imgSource.uri;
-        if (Platform.OS === 'ios') {
-            uri = uri.replace('file://', '/');
-        }
+        const uri = Platform.select({
+            ios: imgSource.uri.replace(/^file:\/+/, '/'),
+            default: imgSource.uri,
+        });
+
         return (
             <ExpoImageAnimated
                 id={id}

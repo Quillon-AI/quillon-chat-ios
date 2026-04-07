@@ -6,12 +6,7 @@ import {useIntl} from 'react-intl';
 import {useTheme} from '@context/theme';
 import {getHeaderOptions, useNavigationHeader} from '@hooks/navigation_header';
 import {usePropsFromParams} from '@hooks/props_from_params';
-import PlaybookRenameRunScreen from '@playbooks/screens/playbook_run/rename_playbook_run_bottom_sheet';
-
-type Props = {
-    currentTitle: string;
-    playbookRunId: string;
-}
+import PlaybookRenameRunScreen, {type Props} from '@playbooks/screens/playbook_run/rename_playbook_run_bottom_sheet';
 
 export default function PlaybookRenameRunRoute() {
     const intl = useIntl();

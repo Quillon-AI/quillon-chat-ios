@@ -1480,7 +1480,7 @@ PODS:
     - Yoga
   - react-native-netinfo (11.4.1):
     - React-Core
-  - react-native-network-client (1.9.1):
+  - react-native-network-client (1.9.2):
     - Alamofire (~> 5.10.2)
     - DoubleConversion
     - glog
@@ -2897,7 +2897,6 @@ SPEC CHECKSUMS:
   Gekidou: 94199ed8d31b900f2caeb9d5739c19bed9defc4a
   glog: eb93e2f488219332457c3c4eafd2738ddc7e80b8
   hermes-engine: b2187dbe13edb0db8fcb2a93a69c1987a30d98a4
-  HMSegmentedControl: 34c1f54d822d8308e7b24f5d901ec674dfa31352
   JitsiWebRTC: b47805ab5668be38e7ee60e2258f49badfe8e1d0
   KituraContracts: e845e60dc8627ad0a76fa55ef20a45451d8f830b
   LoggerAPI: ad9c4a6f1e32f518fdb43a1347ac14d765ab5e3d
@@ -2943,7 +2942,7 @@ SPEC CHECKSUMS:
   react-native-image-picker: 4c10603e9b253c7f48f296034c04a09fe9c8d427
   react-native-keyboard-controller: d824da293ffa5da0c099f909de6059c07c054782
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
-  react-native-network-client: 13fb92122ec8541a1a711b971cc28ba42a891350
+  react-native-network-client: 5b1f90a01cf4d9894f617abfcb54e6ead3601529
   react-native-notifications: 3bafa1237ae8a47569a84801f17d80242fe9f6a5
   react-native-paste-input: 71240831423db5e0cd8952f2a148f0dcef5a86be
   react-native-performance: 23ccb7e7382d7f1b5f698d4e86b640d1ca9a93db
@@ -3010,6 +3009,6 @@ SPEC CHECKSUMS:
   WatermelonDB: 4c846c8cb94eef3cba90fa034d15310163226703
   Yoga: 2b02f3f767761bb4ffd25b1bb56fd264be57bd6b
 
-PODFILE CHECKSUM: f3442fc727bf29ef7e4eda969e4e598128801d4a
+PODFILE CHECKSUM: 82956064973993cae263925b3e41f2aae60650b4
 
 COCOAPODS: 1.16.1

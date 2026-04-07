@@ -3,6 +3,7 @@
 
 import {type AppSchema, appSchema} from '@nozbe/watermelondb';
 
+import {AiBotSchema, AiThreadSchema} from '@agents/database/schema';
 import {PlaybookRunSchema, PlaybookChecklistSchema, PlaybookChecklistItemSchema, PlaybookRunAttributeSchema, PlaybookRunAttributeValueSchema} from '@playbooks/database/schema';
 
 import {
@@ -45,8 +46,10 @@ import {
 } from './table_schemas';
 
 export const serverSchema: AppSchema = appSchema({
-    version: 17,
+    version: 19,
     tables: [
+        AiBotSchema,
+        AiThreadSchema,
         CategorySchema,
         CategoryChannelSchema,
         ChannelSchema,

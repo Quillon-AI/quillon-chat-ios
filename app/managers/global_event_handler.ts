@@ -7,6 +7,7 @@ import {Alert, DeviceEventEmitter, NativeEventEmitter, type EventSubscription} f
 import semver from 'semver';
 
 import {switchToChannelById} from '@actions/remote/channel';
+import {batchTeamThreadSync} from '@actions/remote/thread';
 import {Device, Events} from '@constants';
 import {MIN_REQUIRED_VERSION} from '@constants/supported_server';
 import DatabaseManager from '@database/manager';
@@ -40,8 +41,9 @@ class GlobalEventHandlerSingleton {
     private splitViewChangedListener: EventSubscription | undefined;
 
     constructor() {
-        this.serverVersionChangedListener = DeviceEventEmitter.addListener(Events.SERVER_VERSION_CHANGED, this.onServerVersionChanged);
-        this.splitViewChangedListener = splitViewEmitter.addListener('SplitViewChanged', this.onSplitViewChanged);
+        DeviceEventEmitter.addListener(Events.SERVER_VERSION_CHANGED, this.onServerVersionChanged);
+        splitViewEmitter.addListener('SplitViewChanged', this.onSplitViewChanged);
+        DeviceEventEmitter.addListener(Events.POST_DELETED_FOR_CHANNEL, this.onPostDeletedForChannel);
     }
 
     init = () => {
@@ -52,6 +54,10 @@ class GlobalEventHandlerSingleton {
     cleanup = () => {
         this.serverVersionChangedListener?.remove();
         this.splitViewChangedListener?.remove();
+    };
+
+    onPostDeletedForChannel = async ({serverUrl, teamId}: {serverUrl: string; teamId: string}) => {
+        batchTeamThreadSync(serverUrl, teamId);
     };
 
     onServerVersionChanged = async ({serverUrl, serverVersion}: {serverUrl: string; serverVersion?: string}) => {

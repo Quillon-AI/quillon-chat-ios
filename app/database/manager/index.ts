@@ -8,6 +8,7 @@ import {nativeApplicationVersion, nativeBuildVersion} from 'expo-application';
 import {deleteAsync, documentDirectory, getInfoAsync, makeDirectoryAsync, moveAsync} from 'expo-file-system';
 import {DeviceEventEmitter, Platform} from 'react-native';
 
+import {AiBotModel, AiThreadModel} from '@agents/database/models';
 import {Events} from '@constants';
 import {DatabaseType, MIGRATION_EVENTS, MM_TABLES} from '@constants/database';
 import AppDatabaseMigrations from '@database/migration/app';
@@ -24,6 +25,7 @@ import ServerDataOperator from '@database/operator/server_data_operator';
 import {schema as appSchema} from '@database/schema/app';
 import {serverSchema} from '@database/schema/server';
 import {beforeUpgrade} from '@helpers/database/upgrade';
+import {removePreauthSecret} from '@init/credentials';
 import {PlaybookRunModel, PlaybookChecklistModel, PlaybookChecklistItemModel, PlaybookRunPropertyFieldModel, PlaybookRunPropertyValueModel} from '@playbooks/database/models';
 import {getActiveServer, getServer, getServerByIdentifier} from '@queries/app/servers';
 import {logDebug, logError} from '@utils/log';
@@ -46,6 +48,7 @@ class DatabaseManagerSingleton {
     constructor() {
         this.appModels = [InfoModel, GlobalModel, ServersModel];
         this.serverModels = [
+            AiBotModel, AiThreadModel,
             CategoryModel, CategoryChannelModel, ChannelModel, ChannelBookmarkModel, ChannelInfoModel, ChannelMembershipModel, ConfigModel, CustomEmojiModel, CustomProfileFieldModel, CustomProfileAttributeModel, DraftModel, FileModel,
             GroupModel, GroupChannelModel, GroupTeamModel, GroupMembershipModel, MyChannelModel, MyChannelSettingsModel, MyTeamModel,
             PostModel, PostsInChannelModel, PostsInThreadModel, PreferenceModel, ReactionModel, RoleModel,
@@ -391,6 +394,9 @@ class DatabaseManagerSingleton {
 
                 delete this.serverDatabases[serverUrl];
                 this.deleteServerDatabaseFiles(serverUrl);
+
+                // Remove pre-auth secret when server is destroyed
+                await removePreauthSecret(serverUrl);
             }
         }
     };

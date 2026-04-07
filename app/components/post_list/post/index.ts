@@ -125,7 +125,7 @@ const withPost = withObservables(
         // Don't combine consecutive Burn on Read posts as we want each BoR post
         // to display its header to allow displaying the remaining time.
         const isConsecutivePost = isBoRPost(post) ? of$(false) : author.pipe(
-            switchMap((user) => of$(Boolean(post && previousPost && !user?.isBot && areConsecutivePosts(post, previousPost)))),
+            switchMap((user) => of$(Boolean(post && previousPost && !user?.isBot && areConsecutivePosts(post, previousPost, currentUser.locale)))),
             distinctUntilChanged(),
         );
 

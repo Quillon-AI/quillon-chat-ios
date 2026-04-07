@@ -10,6 +10,7 @@ import RoundedHeaderContext from '@components/rounded_header_context';
 import {Events, Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
+import useDidMount from '@hooks/did_mount';
 import {useDefaultHeaderHeight} from '@hooks/header';
 import {fetchPlaybookRunsPageForParticipant} from '@playbooks/actions/remote/runs';
 import RunList from '@playbooks/components/run_list';
@@ -92,12 +93,9 @@ const ParticipantPlaybooks = ({
         }
     }, [loadingMore, hasMore, currentPage, fetchData]);
 
-    useEffect(() => {
+    useDidMount(() => {
         fetchData();
-
-        // Only fetch the data on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 
     const showMoreButton = useCallback(() => {
         return hasMore;

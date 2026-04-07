@@ -271,7 +271,7 @@ const SnackBar = ({
                             textStyle={styles.text}
                             testID='toast'
                         >
-                            {config.canUndo && onAction && (
+                            {'canUndo' in config && config.canUndo && onAction && (
                                 <TouchableOpacity onPress={onUndoPressHandler}>
                                     <Text style={styles.undo}>
                                         {intl.formatMessage({

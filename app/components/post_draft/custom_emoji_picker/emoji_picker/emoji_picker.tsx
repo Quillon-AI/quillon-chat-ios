@@ -55,9 +55,8 @@ const EmojiPicker: React.FC<Props> = ({
 
     const onCancelSearch = useCallback(() => {
         setSearchTerm(undefined);
-        setIsEmojiSearchFocused(false);
         isSelectingEmoji.current = false;
-    }, [setIsEmojiSearchFocused]);
+    }, []);
 
     const searchCustom = debounce((text: string) => {
         if (text && text.length > 1) {

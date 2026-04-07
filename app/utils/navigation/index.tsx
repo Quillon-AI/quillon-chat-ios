@@ -120,6 +120,7 @@ export function openAttachmentOptions(
         onUploadFiles: (files: Asset[]) => void;
         maxFilesReached: boolean;
         canUploadFiles: boolean;
+        showAttachLogs?: boolean;
         testID?: string;
         fileCount?: number;
         maxFileCount?: number;
@@ -127,6 +128,6 @@ export function openAttachmentOptions(
 
     const TITLE_HEIGHT = 54;
     const renderContent = () => (<AttachmentOptions {...props}/>);
-    const componentHeight = TITLE_HEIGHT + bottomSheetSnapPoint(4, ITEM_HEIGHT);
+    const componentHeight = TITLE_HEIGHT + bottomSheetSnapPoint(4 + (props.showAttachLogs ? 1 : 0), ITEM_HEIGHT);
     bottomSheet(renderContent, [1, componentHeight]);
 }

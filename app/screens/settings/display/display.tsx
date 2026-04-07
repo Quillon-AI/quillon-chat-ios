@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useCallback, useMemo} from 'react';
+import React, {useCallback} from 'react';
 import {defineMessage, useIntl} from 'react-intl';
 
 import SettingContainer from '@components/settings/container';
@@ -9,9 +9,9 @@ import SettingItem from '@components/settings/item';
 import {Screens} from '@constants';
 import {useTheme} from '@context/theme';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
+import useUserTimezoneProps from '@hooks/user_timezone';
 import {usePreventDoubleTap} from '@hooks/utils';
 import {navigateBack, navigateToSettingsScreen} from '@screens/navigation';
-import {getUserTimezoneProps} from '@utils/user';
 
 import type UserModel from '@typings/database/models/servers/user';
 
@@ -60,9 +60,7 @@ const Display = ({currentUser, hasMilitaryTimeFormat, isCRTEnabled, isCRTSwitchE
     const intl = useIntl();
     const theme = useTheme();
 
-    // Only needs to be recalculated if the user's timezone changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const timezone = useMemo(() => getUserTimezoneProps(currentUser), [currentUser?.timezone]);
+    const timezone = useUserTimezoneProps(currentUser);
 
     const goToThemeSettings = usePreventDoubleTap(useCallback(() => {
         navigateToSettingsScreen(Screens.SETTINGS_DISPLAY_THEME);

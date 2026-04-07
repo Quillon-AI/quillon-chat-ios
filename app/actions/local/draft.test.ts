@@ -6,8 +6,9 @@ import {DeviceEventEmitter} from 'react-native';
 import {Navigation, Screens} from '@constants';
 import {SYSTEM_IDENTIFIERS} from '@constants/database';
 import {DRAFT_SCREEN_TAB_DRAFTS, DRAFT_SCREEN_TAB_SCHEDULED_POSTS} from '@constants/draft';
+import {PostTypes} from '@constants/post';
 import DatabaseManager from '@database/manager';
-import {navigateToScreen, dismissAllRoutesAndPopToScreen} from '@screens/navigation';
+import {dismissAllRoutesAndPopToScreen} from '@screens/navigation';
 import {NavigationStore} from '@store/navigation_store';
 import {isTablet} from '@utils/helpers';
 
@@ -19,13 +20,14 @@ import {
     addFilesToDraft,
     removeDraft,
     updateDraftPriority,
+    updateDraftBoRConfig,
     updateDraftMarkdownImageMetadata,
 } from './draft';
 
 import type ServerDataOperator from '@database/operator/server_data_operator';
 import type DraftModel from '@typings/database/models/servers/draft';
 
-let operator: ServerDataOperator;
+let operator: ServerDataOperator | undefined;
 const serverUrl = 'baseHandler.test.com';
 const channelId = 'id1';
 const teamId = 'tId1';
@@ -69,7 +71,7 @@ jest.mock('@store/navigation_store', () => ({
 describe('draft actions', () => {
     beforeEach(async () => {
         await DatabaseManager.init([serverUrl]);
-        operator = DatabaseManager.serverDatabases[serverUrl]!.operator;
+        operator = DatabaseManager.serverDatabases[serverUrl]?.operator;
     });
 
     afterEach(async () => {
@@ -89,7 +91,7 @@ describe('draft actions', () => {
         });
 
         it('handle no file', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
             const {error} = await updateDraftFile(serverUrl, channelId, '', fileInfo, false);
             expect(error).toBeTruthy();
@@ -97,13 +99,13 @@ describe('draft actions', () => {
         });
 
         it('update draft file', async () => {
-            await operator.handleDraft({drafts: [{...draft, files: [{...fileInfo, localPath: 'path0'}]}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{...draft, files: [{...fileInfo, localPath: 'path0'}]}], prepareRecordsOnly: false});
 
             const {draft: draftModel, error} = await updateDraftFile(serverUrl, channelId, '', fileInfo);
             expect(error).toBeUndefined();
             expect(draftModel).toBeDefined();
             expect(draftModel?.files?.length).toBe(1);
-            expect(draftModel?.files![0].localPath).toBe('path1');
+            expect(draftModel?.files?.[0].localPath).toBe('path1');
         });
     });
 
@@ -120,7 +122,7 @@ describe('draft actions', () => {
         });
 
         it('handle no file', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
             const {error} = await removeDraftFile(serverUrl, channelId, '', 'clientid', false);
             expect(error).toBeTruthy();
@@ -128,7 +130,7 @@ describe('draft actions', () => {
         });
 
         it('remove draft file', async () => {
-            await operator.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
 
             const {draft: draftModel, error} = await removeDraftFile(serverUrl, channelId, '', 'clientid');
             expect(error).toBeUndefined();
@@ -136,7 +138,7 @@ describe('draft actions', () => {
         });
 
         it('remove draft file, no message', async () => {
-            await operator.handleDraft({drafts: [{channel_id: channel.id, files: [fileInfo], root_id: '', update_at: Date.now()}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{channel_id: channel.id, files: [fileInfo], root_id: '', update_at: Date.now()}], prepareRecordsOnly: false});
 
             const {draft: draftModel, error} = await removeDraftFile(serverUrl, channelId, '', 'clientid', false);
             expect(error).toBeUndefined();
@@ -164,7 +166,7 @@ describe('draft actions', () => {
         });
 
         it('update draft message', async () => {
-            await operator.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
 
             const result = await updateDraftMessage(serverUrl, channelId, '', 'newmessage') as {draft: DraftModel; error: unknown};
             expect(result.error).toBeUndefined();
@@ -173,7 +175,7 @@ describe('draft actions', () => {
         });
 
         it('update draft message, same message', async () => {
-            await operator.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{...draft, files: [fileInfo]}], prepareRecordsOnly: false});
 
             const result = await updateDraftMessage(serverUrl, channelId, '', 'test', false) as {draft: DraftModel; error: unknown};
             expect(result.error).toBeUndefined();
@@ -182,7 +184,7 @@ describe('draft actions', () => {
         });
 
         it('update draft message, no file', async () => {
-            await operator.handleDraft({drafts: [{channel_id: channel.id, files: [], root_id: '', update_at: Date.now()}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{channel_id: channel.id, files: [], root_id: '', update_at: Date.now()}], prepareRecordsOnly: false});
 
             const result = await updateDraftMessage(serverUrl, channelId, '', 'newmessage', false) as {draft: DraftModel; error: unknown};
             expect(result.error).toBeUndefined();
@@ -205,7 +207,7 @@ describe('draft actions', () => {
         });
 
         it('add draft files', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
             const result = await addFilesToDraft(serverUrl, channelId, '', [fileInfo]) as {draft: DraftModel; error: unknown};
             expect(result.error).toBeUndefined();
@@ -228,7 +230,7 @@ describe('draft actions', () => {
         });
 
         it('remove draft', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
             const result = await removeDraft(serverUrl, channelId);
             expect(result.error).toBeUndefined();
@@ -236,7 +238,7 @@ describe('draft actions', () => {
         });
 
         it('remove draft with root id', async () => {
-            await operator.handleDraft({drafts: [{...draft, root_id: 'postid'}], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [{...draft, root_id: 'postid'}], prepareRecordsOnly: false});
 
             const result = await removeDraft(serverUrl, channelId, 'postid');
             expect(result.error).toBeUndefined();
@@ -263,7 +265,7 @@ describe('draft actions', () => {
         });
 
         it('update draft priority', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
 
             const result = await updateDraftPriority(serverUrl, channelId, '', postPriority) as {draft: DraftModel; error: unknown};
             expect(result.error).toBeUndefined();
@@ -281,15 +283,20 @@ describe('draft actions', () => {
             jest.mocked(isTablet).mockReturnValue(true);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
 
-            await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
+            await operator?.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
 
             await switchToGlobalDrafts(serverUrl);
 
-            expect(emitSpy).toHaveBeenCalledWith(Navigation.NAVIGATION_HOME, Screens.GLOBAL_DRAFTS, {});
+            expect(emitSpy).toHaveBeenCalledWith(Navigation.NAVIGATION_HOME, Screens.GLOBAL_DRAFTS, {initialTab: undefined});
         });
 
         it('if prepareRecordsOnly is true, should emit navigation event on tablet for Scheduled post tab and also call batchRecord', async () => {
             jest.mocked(isTablet).mockReturnValue(true);
+            if (!operator) {
+                expect(operator).toBeDefined();
+                return;
+            }
+
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
             const batchRecordSpy = jest.spyOn(operator, 'batchRecords');
 
@@ -314,34 +321,36 @@ describe('draft actions', () => {
             jest.mocked(isTablet).mockReturnValue(true);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
 
-            await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: ''}], prepareRecordsOnly: false});
+            await operator?.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: ''}], prepareRecordsOnly: false});
 
             await switchToGlobalDrafts(serverUrl);
 
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
-        it('should call goToScreen on non-tablet', async () => {
+        it('should call dismissAllRoutesAndPopToScreen on non-tablet', async () => {
             jest.mocked(isTablet).mockReturnValue(false);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
 
-            const goToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
+            const dismissAllRoutesAndPopToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
 
-            await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
+            await operator?.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
             await switchToGlobalDrafts(serverUrl);
 
-            expect(goToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {});
+            expect(dismissAllRoutesAndPopToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: undefined});
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
-        it('should not call goToScreen on non-tablet when server url is a non existent URL', async () => {
+        it('should not call navigateToScreen on non-tablet when server url is a non existent URL', async () => {
             jest.mocked(isTablet).mockReturnValue(false);
+            const dismissAllRoutesAndPopToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
+            const waitUntilScreenHasLoadedMock = jest.mocked(NavigationStore.waitUntilScreenHasLoaded);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
-            const goToScreenMock = jest.mocked(navigateToScreen);
 
             await switchToGlobalDrafts('nonexistent');
 
-            expect(goToScreenMock).not.toHaveBeenCalled();
+            expect(dismissAllRoutesAndPopToScreenMock).not.toHaveBeenCalled();
+            expect(waitUntilScreenHasLoadedMock).not.toHaveBeenCalled();
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
@@ -359,22 +368,22 @@ describe('draft actions', () => {
         it('should pass initialTab param when provided', async () => {
             jest.mocked(isTablet).mockReturnValue(false);
             const emitSpy = jest.spyOn(DeviceEventEmitter, 'emit');
-            const goToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
+            const dismissAllRoutesAndPopToScreenMock = jest.mocked(dismissAllRoutesAndPopToScreen);
 
             await switchToGlobalDrafts(serverUrl, teamId, DRAFT_SCREEN_TAB_SCHEDULED_POSTS);
-            expect(goToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: DRAFT_SCREEN_TAB_SCHEDULED_POSTS});
+            expect(dismissAllRoutesAndPopToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: DRAFT_SCREEN_TAB_SCHEDULED_POSTS});
 
             await switchToGlobalDrafts(serverUrl, teamId, DRAFT_SCREEN_TAB_DRAFTS);
-            expect(goToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: DRAFT_SCREEN_TAB_DRAFTS});
+            expect(dismissAllRoutesAndPopToScreenMock).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: DRAFT_SCREEN_TAB_DRAFTS});
             expect(emitSpy).not.toHaveBeenCalled();
         });
 
-        it('should call popto from navigation store if Global draft is alreay present', async () => {
-            NavigationStore.state.screenStack = [Screens.GLOBAL_DRAFTS, Screens.CHANNEL, Screens.THREAD];
+        it('should call dismissAllRoutesAndPopToScreen from navigation store if Global draft is already present', async () => {
+            jest.mocked(NavigationStore.getScreensInStack).mockReturnValue([Screens.GLOBAL_DRAFTS, Screens.CHANNEL, Screens.THREAD]);
 
             await switchToGlobalDrafts(serverUrl, teamId, DRAFT_SCREEN_TAB_SCHEDULED_POSTS);
 
-            expect(dismissAllRoutesAndPopToScreen).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS, {initialTab: DRAFT_SCREEN_TAB_SCHEDULED_POSTS});
+            expect(dismissAllRoutesAndPopToScreen).toHaveBeenCalledWith(Screens.GLOBAL_DRAFTS);
         });
     });
 
@@ -400,7 +409,7 @@ describe('draft actions', () => {
         });
 
         it('handle update image metadata', async () => {
-            await operator.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+            await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
             const result = await updateDraftMarkdownImageMetadata({
                 serverUrl,
                 channelId,
@@ -413,5 +422,58 @@ describe('draft actions', () => {
             expect(result.draft).toBeDefined();
             expect(result.draft.metadata?.images?.image1).toEqual(postImageData);
         });
+    });
+});
+
+describe('updateDraftBoRConfig', () => {
+    const postBoRConfig: PostBoRConfig = {
+        enabled: true,
+        borDurationSeconds: 300,
+        borMaximumTimeToLiveSeconds: 3600,
+    };
+
+    beforeEach(async () => {
+        await DatabaseManager.init([serverUrl]);
+        operator = DatabaseManager.serverDatabases[serverUrl]?.operator;
+    });
+
+    afterEach(async () => {
+        await DatabaseManager.destroyServerDatabase(serverUrl);
+    });
+
+    it('handle not found database', async () => {
+        const result = await updateDraftBoRConfig('foo', channelId, '', postBoRConfig) as {draft: unknown; error: unknown};
+        expect(result.error).toBeTruthy();
+    });
+
+    it('handle no draft', async () => {
+        const models = await updateDraftBoRConfig(serverUrl, channelId, '', postBoRConfig) as DraftModel[];
+        expect(models).toBeDefined();
+        expect(models.length).toBe(1);
+        expect(models[0].metadata?.borConfig?.enabled).toBe(postBoRConfig.enabled);
+        expect(models[0].metadata?.borConfig?.borDurationSeconds).toBe(postBoRConfig.borDurationSeconds);
+        expect(models[0].type).toBe(PostTypes.BURN_ON_READ);
+    });
+
+    it('update draft BoR config with enabled true', async () => {
+        await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+
+        const result = await updateDraftBoRConfig(serverUrl, channelId, '', postBoRConfig) as {draft: DraftModel; error: unknown};
+        expect(result.error).toBeUndefined();
+        expect(result.draft).toBeDefined();
+        expect(result.draft.metadata?.borConfig?.enabled).toBe(postBoRConfig.enabled);
+        expect(result.draft.metadata?.borConfig?.borDurationSeconds).toBe(postBoRConfig.borDurationSeconds);
+        expect(result.draft.type).toBe('burn_on_read');
+    });
+
+    it('update draft BoR config with enabled false', async () => {
+        await operator?.handleDraft({drafts: [draft], prepareRecordsOnly: false});
+
+        const disabledBoRConfig = {...postBoRConfig, enabled: false};
+        const result = await updateDraftBoRConfig(serverUrl, channelId, '', disabledBoRConfig) as {draft: DraftModel; error: unknown};
+        expect(result.error).toBeUndefined();
+        expect(result.draft).toBeDefined();
+        expect(result.draft.metadata?.borConfig?.enabled).toBe(false);
+        expect(result.draft.type).toBe('');
     });
 });

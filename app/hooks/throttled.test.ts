@@ -3,18 +3,19 @@
 
 import {renderHook} from '@testing-library/react-hooks';
 
-import useThrottled from './throttled';
-
-jest.useFakeTimers();
+import useThrottled from '@hooks/throttled';
+import {advanceTimers, enableFakeTimers} from '@test/timer_helpers';
 
 describe('useThrottled', () => {
     beforeEach(() => {
+        enableFakeTimers();
         jest.clearAllMocks();
         jest.clearAllTimers();
     });
 
     afterEach(() => {
         jest.runOnlyPendingTimers();
+        jest.useRealTimers();
     });
 
     it('should return a throttled function', () => {
@@ -52,7 +53,7 @@ describe('useThrottled', () => {
         expect(callback).toHaveBeenCalledTimes(1);
     });
 
-    it('should execute throttled call after time window expires', () => {
+    it('should execute throttled call after time window expires', async () => {
         const callback = jest.fn();
         const {result} = renderHook(() => useThrottled(callback, 1000));
 
@@ -65,7 +66,7 @@ describe('useThrottled', () => {
         expect(callback).toHaveBeenCalledTimes(1);
 
         // Advance time past the throttle window
-        jest.advanceTimersByTime(1000);
+        await advanceTimers(1000);
 
         // Third call after window - should execute with most recent args
         expect(callback).toHaveBeenCalledTimes(2);
@@ -90,7 +91,7 @@ describe('useThrottled', () => {
         expect(callback).toHaveBeenCalledWith();
     });
 
-    it('should use the latest callback reference', () => {
+    it('should use the latest callback reference', async () => {
         const callback1 = jest.fn();
         const callback2 = jest.fn();
 
@@ -108,7 +109,7 @@ describe('useThrottled', () => {
         rerender({cb: callback2, time: 1000});
 
         // Advance time to allow next call
-        jest.advanceTimersByTime(1000);
+        await advanceTimers(1000);
 
         // Call with updated callback
         result.current('test2');
@@ -154,7 +155,7 @@ describe('useThrottled', () => {
         expect(throttledFn1).not.toBe(throttledFn2);
     });
 
-    it('should respect the new time value after update', () => {
+    it('should respect the new time value after update', async () => {
         const callback = jest.fn();
 
         const {result, rerender} = renderHook(
@@ -174,7 +175,7 @@ describe('useThrottled', () => {
         rerender({time: 2000});
 
         // Advance by 1000ms to clear the old throttled function's timer
-        jest.advanceTimersByTime(1000);
+        await advanceTimers(1000);
 
         // The trailing call from the old throttled function executes
         expect(callback).toHaveBeenCalledTimes(2);
@@ -189,14 +190,14 @@ describe('useThrottled', () => {
         expect(callback).toHaveBeenCalledTimes(3);
 
         // Advance by 2000ms
-        jest.advanceTimersByTime(2000);
+        await advanceTimers(2000);
 
         // Should execute the trailing call
         expect(callback).toHaveBeenCalledTimes(4);
         expect(callback).toHaveBeenLastCalledWith('call4');
     });
 
-    it('should handle rapid successive calls', () => {
+    it('should handle rapid successive calls', async () => {
         const callback = jest.fn();
         const {result} = renderHook(() => useThrottled(callback, 1000));
 
@@ -210,7 +211,7 @@ describe('useThrottled', () => {
         expect(callback).toHaveBeenCalledWith('call0');
 
         // Advance time
-        jest.advanceTimersByTime(1000);
+        await advanceTimers(1000);
 
         // The last call should execute (trailing edge)
         expect(callback).toHaveBeenCalledTimes(2);
@@ -229,7 +230,7 @@ describe('useThrottled', () => {
         expect(callback).toHaveBeenCalledTimes(3);
     });
 
-    it('should handle very short throttle time', () => {
+    it('should handle very short throttle time', async () => {
         const callback = jest.fn();
         const {result} = renderHook(() => useThrottled(callback, 10));
 
@@ -239,12 +240,12 @@ describe('useThrottled', () => {
         result.current('call2');
         expect(callback).toHaveBeenCalledTimes(1);
 
-        jest.advanceTimersByTime(10);
+        await advanceTimers(10);
 
         expect(callback).toHaveBeenCalledTimes(2);
     });
 
-    it('should handle very long throttle time', () => {
+    it('should handle very long throttle time', async () => {
         const callback = jest.fn();
         const {result} = renderHook(() => useThrottled(callback, 60000)); // 1 minute
 
@@ -255,11 +256,11 @@ describe('useThrottled', () => {
         expect(callback).toHaveBeenCalledTimes(1);
 
         // Advance by 59 seconds - should still be throttled
-        jest.advanceTimersByTime(59000);
+        await advanceTimers(59000);
         expect(callback).toHaveBeenCalledTimes(1);
 
         // Advance by 1 more second
-        jest.advanceTimersByTime(1000);
+        await advanceTimers(1000);
         expect(callback).toHaveBeenCalledTimes(2);
     });
 
@@ -283,7 +284,7 @@ describe('useThrottled', () => {
         expect(() => result.current()).toThrow(error);
     });
 
-    it('should handle callback being called through the ref', () => {
+    it('should handle callback being called through the ref', async () => {
         let callCount = 0;
         const callback = jest.fn(() => {
             callCount++;
@@ -308,7 +309,7 @@ describe('useThrottled', () => {
         rerender({cb: callback2});
 
         // Advance time to allow next call
-        jest.advanceTimersByTime(1000);
+        await advanceTimers(1000);
 
         // Call with updated callback - should use callback2 through the ref
         result.current();

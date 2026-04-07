@@ -6,9 +6,9 @@ import React, {useCallback} from 'react';
 import CompassIcon from '@components/compass_icon';
 import TouchableWithFeedback from '@components/touchable_with_feedback';
 import {ICON_SIZE} from '@constants/post_draft';
-import {useKeyboardAnimationContext} from '@context/keyboard_animation';
+import {useKeyboardState} from '@context/keyboard_state';
 import {useTheme} from '@context/theme';
-import {useFocusAfterEmojiDismiss} from '@hooks/useFocusAfterEmojiDismiss';
+import {useFocusAfterEmojiDismiss} from '@hooks/use_focus_after_emoji_dismiss';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 
 type Props = {
@@ -40,33 +40,59 @@ export default function InputQuickAction({
     focus,
 }: Props) {
     const theme = useTheme();
-    const {inputRef} = useKeyboardAnimationContext();
+    const {inputRef, getCursorPosition, setCursorPosition, updateCursorPosition} = useKeyboardState();
 
     // Use hook to handle focus after emoji picker dismissal
     const {focus: focusWithEmojiDismiss} = useFocusAfterEmojiDismiss(inputRef, focus);
 
     const onPress = useCallback(() => {
-        updateValue((v) => {
-            if (inputType === 'at') {
-                // If there's existing text and it doesn't end with a space, add a space before @
-                if (v.length > 0 && !v.endsWith(' ')) {
-                    return `${v} @`;
-                }
-                return `${v}@`;
-            }
-            return '/';
-        });
-        focusWithEmojiDismiss();
-    }, [inputType, updateValue, focusWithEmojiDismiss]);
+        if (getCursorPosition && updateCursorPosition) {
+            const currentCursorPosition = getCursorPosition();
 
-    const actionTestID = disabled ?
-        `${testID}.disabled` :
-        testID;
+            updateValue((v) => {
+                if (inputType === 'at') {
+                    let insertedText = '@';
+                    const charBeforeCursor = currentCursorPosition > 0 ? v[currentCursorPosition - 1] : '';
+
+                    if (currentCursorPosition === v.length && currentCursorPosition > 0 && charBeforeCursor !== ' ') {
+                        insertedText = ' @';
+                    }
+
+                    const newValue = v.slice(0, currentCursorPosition) + insertedText + v.slice(currentCursorPosition);
+                    const newCursorPosition = currentCursorPosition + insertedText.length;
+
+                    setCursorPosition(newCursorPosition);
+                    updateCursorPosition(newCursorPosition);
+
+                    return newValue;
+                }
+
+                const newValue = v.slice(0, currentCursorPosition) + '/' + v.slice(currentCursorPosition);
+                const newCursorPosition = currentCursorPosition + 1;
+
+                setCursorPosition(newCursorPosition);
+                updateCursorPosition(newCursorPosition);
+
+                return newValue;
+            });
+        } else {
+            updateValue((v) => {
+                if (inputType === 'at') {
+                    if (v.length > 0 && !v.endsWith(' ')) {
+                        return `${v} @`;
+                    }
+                    return `${v}@`;
+                }
+                return '/';
+            });
+        }
+        focusWithEmojiDismiss();
+    }, [inputType, updateValue, focusWithEmojiDismiss, getCursorPosition, setCursorPosition, updateCursorPosition]);
+
+    const actionTestID = disabled ? `${testID}.disabled` : testID;
     const style = getStyleSheet(theme);
     const iconName = inputType === 'at' ? inputType : 'slash-forward-box-outline';
-    const iconColor = disabled ?
-        changeOpacity(theme.centerChannelColor, 0.16) :
-        changeOpacity(theme.centerChannelColor, 0.64);
+    const iconColor = disabled ? changeOpacity(theme.centerChannelColor, 0.16) : changeOpacity(theme.centerChannelColor, 0.64);
 
     return (
         <TouchableWithFeedback

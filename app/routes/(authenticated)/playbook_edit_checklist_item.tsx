@@ -23,14 +23,12 @@ export default function PlaybooksEditChecklistItemRoute() {
     useNavigationHeader({
         showWhenPushed: true,
         headerOptions: {
-            headerTitle: () => {
-                return (
-                    <NavigationHeaderTitle
-                        title={intl.formatMessage({id: 'playbooks.checklist_item.edit.title', defaultMessage: 'Edit Task'})}
-                        subtitle={subtitle}
-                    />
-                );
-            },
+            headerTitle: () => (
+                <NavigationHeaderTitle
+                    title={intl.formatMessage({id: 'playbooks.checklist_item.edit.title', defaultMessage: 'Edit Task'})}
+                    subtitle={subtitle}
+                />
+            ),
             ...getHeaderOptions(theme),
         },
     });

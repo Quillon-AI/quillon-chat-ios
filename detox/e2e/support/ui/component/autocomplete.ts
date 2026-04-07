@@ -31,6 +31,7 @@ class Autocomplete {
         const atMentionItemTestId = `${this.testID.atMentionItemPrefix}${userId}`;
         const atMentionItemMatcher = by.id(atMentionItemTestId);
         const atMentionItemProfilePictureMatcher = ProfilePicture.getProfilePictureItemMatcher(this.testID.atMentionItemPrefix, userId);
+        const atMentionItemAgentTagMatcher = by.id(`${atMentionItemTestId}.agent.tag`);
         const atMentionItemBotTagMatcher = by.id(`${atMentionItemTestId}.bot.tag`);
         const atMentionItemGuestTagMatcher = by.id(`${atMentionItemTestId}.guest.tag`);
         const atMentionItemUserDisplayNameMatcher = by.id(`${atMentionItemTestId}.display_name`);
@@ -40,6 +41,7 @@ class Autocomplete {
         return {
             atMentionItem: element(atMentionItemMatcher),
             atMentionItemProfilePicture: element(atMentionItemProfilePictureMatcher),
+            atMentionItemAgentTag: element(atMentionItemAgentTagMatcher),
             atMentionItemBotTag: element(atMentionItemBotTagMatcher),
             atMentionItemGuestTag: element(atMentionItemGuestTagMatcher),
             atMentionItemUserDisplayName: element(atMentionItemUserDisplayNameMatcher),
@@ -114,7 +116,9 @@ class Autocomplete {
     toBeVisible = async (isVisible = true) => {
         await wait(timeouts.ONE_SEC);
         if (isVisible) {
-            await expect(this.autocomplete.atIndex(0)).toBeVisible();
+            // Use a lower visibility threshold to account for keyboard controller positioning
+            // The autocomplete may be partially off-screen during keyboard animations
+            await expect(this.autocomplete.atIndex(0)).toBeVisible(1);
             return this.autocomplete;
         }
 

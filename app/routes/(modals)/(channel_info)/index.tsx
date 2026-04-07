@@ -1,20 +1,22 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {useLocalSearchParams, useNavigation} from 'expo-router';
+import {useNavigation} from 'expo-router';
 
 import {useTheme} from '@context/theme';
 import {getModalHeaderOptions, useNavigationHeader} from '@hooks/navigation_header';
+import {usePropsFromParams} from '@hooks/props_from_params';
 import ChannelInfoScreen from '@screens/channel_info';
 
 type ChannelInfoRouteProps = {
     title: string;
     channelId: string;
+    groupCallsAllowed: boolean;
 }
 
 export default function ChannelInfoRoute() {
     const navigation = useNavigation();
-    const {title, channelId} = useLocalSearchParams<ChannelInfoRouteProps>();
+    const {title, channelId, groupCallsAllowed} = usePropsFromParams<ChannelInfoRouteProps>();
     const theme = useTheme();
 
     useNavigationHeader({
@@ -25,5 +27,10 @@ export default function ChannelInfoRoute() {
         },
     });
 
-    return <ChannelInfoScreen channelId={channelId}/>;
+    return (
+        <ChannelInfoScreen
+            channelId={channelId}
+            groupCallsAllowed={groupCallsAllowed}
+        />
+    );
 }

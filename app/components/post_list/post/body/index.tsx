@@ -45,6 +45,7 @@ type BodyProps = {
     searchPatterns?: SearchPattern[];
     showAddReaction?: boolean;
     theme: Theme;
+    isChannelAutotranslated: boolean;
 };
 
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
@@ -88,9 +89,25 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
 });
 
 const Body = ({
-    appsEnabled, filesInfo, hasReactions, highlight, highlightReplyBar,
-    isCRTEnabled, isEphemeral, isFirstReply, isJumboEmoji, isLastReply, isPendingOrFailed, isPostAcknowledgementEnabled, isPostAddChannelMember,
-    location, post, searchPatterns, showAddReaction, theme,
+    appsEnabled,
+    filesInfo,
+    hasReactions,
+    highlight,
+    highlightReplyBar,
+    isCRTEnabled,
+    isEphemeral,
+    isFirstReply,
+    isJumboEmoji,
+    isLastReply,
+    isPendingOrFailed,
+    isPostAcknowledgementEnabled,
+    isPostAddChannelMember,
+    location,
+    post,
+    searchPatterns,
+    showAddReaction,
+    theme,
+    isChannelAutotranslated,
 }: BodyProps) => {
     const intl = useIntl();
     const style = getStyleSheet(theme);
@@ -179,12 +196,14 @@ const Body = ({
                 post={post}
                 searchPatterns={searchPatterns}
                 theme={theme}
+                isChannelAutotranslated={isChannelAutotranslated}
             />
         );
     }
 
     const acknowledgementsVisible = isPostAcknowledgementEnabled && post.metadata?.priority?.requested_ack;
     const reactionsVisible = hasReactions && showAddReaction;
+
     if (!hasBeenDeleted) {
         body = (
             <View style={style.messageBody}>

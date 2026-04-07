@@ -13,6 +13,7 @@ import CompassIcon from '@components/compass_icon';
 import EditedIndicator from '@components/edited_indicator';
 import Emoji from '@components/emoji';
 import FormattedText from '@components/formatted_text';
+import {useServerUrl} from '@context/server';
 import {logError} from '@utils/log';
 import {computeTextStyle, getMarkdownBlockStyles, getMarkdownTextStyles} from '@utils/markdown';
 import PostListPerformance from '@utils/performance/post_list_performance';
@@ -22,6 +23,7 @@ import {typography} from '@utils/typography';
 import AtMention from './at_mention';
 import ChannelMention from './channel_mention';
 import Hashtag from './hashtag';
+import InlineEntityLink, {type InlineEntityType} from './inline_entity_link';
 import MarkdownBlockQuote from './markdown_block_quote';
 import MarkdownCodeBlock from './markdown_code_block';
 import MarkdownImage from './markdown_image';
@@ -34,7 +36,7 @@ import MarkdownTable from './markdown_table';
 import MarkdownTableCell, {type MarkdownTableCellProps} from './markdown_table_cell';
 import MarkdownTableImage from './markdown_table_image';
 import MarkdownTableRow, {type MarkdownTableRowProps} from './markdown_table_row';
-import {addListItemIndices, combineTextNodes, highlightMentions, highlightWithoutNotification, highlightSearchPatterns, parseTaskLists, pullOutImages} from './transform';
+import {addListItemIndices, combineTextNodes, highlightMentions, highlightWithoutNotification, highlightSearchPatterns, parseTaskLists, processInlineEntities, pullOutImages} from './transform';
 
 import type {ChannelMentions} from './channel_mention/channel_mention';
 import type {
@@ -118,6 +120,12 @@ const getExtraPropsForNode = (node: any) => {
         extraProps.isChecked = node.isChecked;
     }
 
+    if (node.type === 'inline_entity_link') {
+        extraProps.entityType = node.entityType;
+        extraProps.entityId = node.entityId;
+        extraProps.linkUrl = node.linkUrl;
+    }
+
     return extraProps;
 };
 
@@ -180,6 +188,7 @@ const Markdown = ({
     const blockStyles = useMemo<MarkdownBlockStyles>(() => getMarkdownBlockStyles(theme), [theme]);
     const textStyles = useMemo<MarkdownTextStyles>(() => getMarkdownTextStyles(theme), [theme]);
     const managedConfig = useManagedConfig<ManagedConfig>();
+    const serverUrl = useServerUrl();
 
     const renderText = useCallback(({context, literal}: MarkdownBaseRenderer) => {
         const selectable = (managedConfig.copyAndPasteProtection !== 'true') && context.includes('table_cell');
@@ -286,6 +295,19 @@ const Markdown = ({
             </Text>
         );
     }, [theme.centerChannelColor]);
+
+    const renderInlineEntityLink = useCallback(({entityType, entityId, linkUrl}: {entityType: InlineEntityType; entityId: string; linkUrl?: string}) => {
+        if (!entityType || !entityId) {
+            return null;
+        }
+        return (
+            <InlineEntityLink
+                entityType={entityType}
+                entityId={entityId}
+                linkUrl={linkUrl}
+            />
+        );
+    }, []);
 
     const renderCodeBlock = useCallback((props: any) => {
         if (disableCodeBlock) {
@@ -609,6 +631,7 @@ const Markdown = ({
             search_highlight: Renderer.forwardChildren,
             highlight_without_notification: Renderer.forwardChildren,
             checkbox: renderCheckbox,
+            inline_entity_link: renderInlineEntityLink,
 
             editedIndicator: renderEditedIndicator,
             maxNodesWarning: renderMaxNodesWarning,
@@ -652,6 +675,7 @@ const Markdown = ({
         renderTableRow,
         renderTableCell,
         renderCheckbox,
+        renderInlineEntityLink,
         renderEditedIndicator,
         renderMaxNodesWarning,
         maxNodes,
@@ -669,6 +693,7 @@ const Markdown = ({
             ast = addListItemIndices(ast);
             ast = pullOutImages(ast);
             ast = parseTaskLists(ast);
+            ast = processInlineEntities(ast, serverUrl);
             if (mentionKeys) {
                 ast = highlightMentions(ast, mentionKeys);
             }
@@ -731,7 +756,7 @@ const Markdown = ({
                 />
             );
         }
-    }, [channelId, highlightKeys, isEdited, mentionKeys, parser, postId, renderer, searchPatterns, style.errorMessage, value]);
+    }, [channelId, highlightKeys, isEdited, mentionKeys, parser, postId, renderer, searchPatterns, serverUrl, style.errorMessage, value]);
 
     return output;
 };

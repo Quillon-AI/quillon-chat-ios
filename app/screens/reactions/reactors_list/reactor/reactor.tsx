@@ -1,11 +1,12 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useEffect} from 'react';
+import React from 'react';
 
 import {fetchUsersByIds} from '@actions/remote/user';
 import UserItem from '@components/user_item';
 import {useServerUrl} from '@context/server';
+import useDidMount from '@hooks/did_mount';
 import {dismissBottomSheet} from '@screens/navigation';
 import {openUserProfile} from '@utils/navigation';
 
@@ -33,14 +34,11 @@ const Reactor = ({channelId, location, reaction, user}: Props) => {
         }
     };
 
-    useEffect(() => {
+    useDidMount(() => {
         if (!user) {
             fetchUsersByIds(serverUrl, [reaction.userId]);
         }
-
-    // Only needed on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 
     return (
         <UserItem

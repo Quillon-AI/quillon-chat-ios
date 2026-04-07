@@ -4,10 +4,13 @@
 import React from 'react';
 import {View} from 'react-native';
 
+import {useAgentsConfig} from '@agents/store/agents_config';
 import ChannelActions from '@components/channel_actions';
+import AskAgentsOption from '@components/channel_actions/ask_agents_option';
 import CopyChannelLinkOption from '@components/channel_actions/copy_channel_link_option';
 import InfoBox from '@components/channel_actions/info_box';
 import LeaveChannelLabel from '@components/channel_actions/leave_channel_label';
+import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import PlaybookRunsOption from '@playbooks/components/channel_actions/playbook_runs_option';
 import {dismissBottomSheet} from '@screens/navigation';
@@ -46,6 +49,8 @@ const ChannelQuickActions = ({
     isDMorGM,
     hasPlaybookRuns,
 }: ChannelQuickActionsProps) => {
+    const serverUrl = useServerUrl();
+    const {pluginEnabled: agentsEnabled} = useAgentsConfig(serverUrl);
     const theme = useTheme();
     const styles = getStyleSheet(theme);
 
@@ -76,6 +81,13 @@ const ChannelQuickActions = ({
                     showAsLabel={true}
                 />
             }
+            {agentsEnabled && (
+                <AskAgentsOption
+                    channelId={channelId}
+                    showAsLabel={true}
+                    testID='channel.quick_actions.ask_agents'
+                />
+            )}
             <View style={styles.line}/>
             <LeaveChannelLabel
                 channelId={channelId}

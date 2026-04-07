@@ -2,9 +2,10 @@
 // See LICENSE.txt for license information.
 
 import React, {type ReactElement, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {DeviceEventEmitter, type GestureResponderEvent, type ListRenderItemInfo, Platform, type StyleProp, StyleSheet, type ViewStyle, type NativeSyntheticEvent, type NativeScrollEvent, FlatList, type ViewToken} from 'react-native';
-import {useKeyboardState} from 'react-native-keyboard-controller';
-import Animated, {runOnJS, useAnimatedProps, useAnimatedReaction, useAnimatedStyle, useSharedValue, type AnimatedStyle} from 'react-native-reanimated';
+import {DeviceEventEmitter, type ListRenderItemInfo, Platform, type StyleProp, StyleSheet, type ViewStyle, type NativeSyntheticEvent, type NativeScrollEvent, type ViewToken} from 'react-native';
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import {KeyboardState, useAnimatedKeyboard, useKeyboardState as useControllerKeyboardState} from 'react-native-keyboard-controller';
+import Animated, {runOnJS, scrollTo, useAnimatedProps, useAnimatedReaction, useAnimatedStyle, type AnimatedStyle} from 'react-native-reanimated';
 
 import {removePost} from '@actions/local/post';
 import {fetchPosts, fetchPostThread} from '@actions/remote/post';
@@ -14,13 +15,14 @@ import NewMessagesLine from '@components/post_list/new_message_line';
 import Post from '@components/post_list/post';
 import ThreadOverview from '@components/post_list/thread_overview';
 import {Events, Screens} from '@constants';
-import {isAndroidEdgeToEdge} from '@constants/device';
+import {isAndroidEdgeToEdge, isEdgeToEdge} from '@constants/device';
 import {PostTypes} from '@constants/post';
-import {useKeyboardAnimationContext} from '@context/keyboard_animation';
+import {useKeyboardState} from '@context/keyboard_state';
 import {PostConfigProvider} from '@context/post_config';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
-import {DEFAULT_INPUT_ACCESSORY_HEIGHT} from '@hooks/useInputAccessoryView';
+import {useInputAccessoryViewGesture} from '@hooks/use_input_accessory_view_gesture';
+import {DEFAULT_INPUT_ACCESSORY_HEIGHT} from '@keyboard';
 import PostListPerformance from '@utils/performance/post_list_performance';
 import {getDateForDateLine, preparePostList} from '@utils/post_list';
 import {getTimezone} from '@utils/user';
@@ -59,9 +61,7 @@ type Props = {
     testID: string;
     currentCallBarVisible?: boolean;
     savedPostIds: Set<string>;
-    listRef?: React.RefObject<FlatList<string | PostModel>>;
-    onTouchMove?: (event: GestureResponderEvent) => void;
-    onTouchEnd?: () => void;
+    isChannelAutotranslated: boolean;
 }
 
 type onScrollEndIndexListenerEvent = (endIndex: number) => void;
@@ -108,28 +108,55 @@ const PostList = ({
     showNewMessageLine = true,
     testID,
     savedPostIds,
-    listRef,
-    onTouchMove,
-    onTouchEnd,
+    isChannelAutotranslated,
 }: Props) => {
     const firstIdInPosts = posts[0]?.id;
+    const {panGesture: emojiPickerGesture} = useInputAccessoryViewGesture();
 
     // Derive values from currentUser
     const currentUserId = currentUser.id;
     const currentUsername = currentUser.username;
     const currentTimezone = useMemo(() => getTimezone(currentUser.timezone), [currentUser.timezone]);
 
+    // CRITICAL: Destructure to avoid passing entire context (which contains refs) to worklets
+    const {stateContext, onScroll: onScrollProp, postInputContainerHeight, stateMachine, listRef, isEmojiSearchFocused} = useKeyboardState();
     const {
-        keyboardTranslateY: keyboardHeightValue,
-        bottomInset: contentInset,
-        onScroll: onScrollProp,
-        postInputContainerHeight,
-        keyboardHeight,
-        isKeyboardFullyOpen,
-        isKeyboardFullyClosed,
-        inputAccessoryViewAnimatedHeight,
-        isInputAccessoryViewMode,
-    } = useKeyboardAnimationContext();
+        scrollOffset: scrollOffsetShared,
+        scrollPosition: scrollPositionShared,
+        postInputTranslateY,
+        postInputContainerHeight: postInputContainerHeightShared,
+        inputAccessoryHeight,
+    } = stateContext;
+
+    useAnimatedReaction(
+        () => ({
+            scrollOffset: scrollOffsetShared.value,
+            scrollPosition: scrollPositionShared.value,
+            isReconcilerPaused: stateContext.isReconcilerPaused.value,
+        }),
+        (current, previous) => {
+            'worklet';
+
+            // Skip scroll compensation if reconciler is paused
+            // This allows exit actions to manually adjust scrollPosition without interference
+            if (current.isReconcilerPaused || !listRef) {
+                return;
+            }
+
+            // Trigger scroll compensation if EITHER scrollOffset or scrollPosition changed
+            // This ensures we continuously adjust scroll as contentInset changes during keyboard animation
+            const offsetChanged = previous === null || Math.abs(current.scrollOffset - (previous?.scrollOffset || 0)) > 0.5;
+
+            if (!offsetChanged) {
+                return;
+            }
+
+            // scrollTo runs on the UI thread — avoids runOnJS latency which causes
+            // the scroll compensation to land after the animation completes on New Architecture.
+            scrollTo(listRef, 0, -current.scrollOffset + current.scrollPosition, false);
+        },
+        [listRef],
+    );
 
     const onScrollEndIndexListener = useRef<onScrollEndIndexListenerEvent>();
     const onViewableItemsChangedListener = useRef<ViewableItemsChangedListenerEvent>();
@@ -139,36 +166,29 @@ const PostList = ({
     const [refreshing, setRefreshing] = useState(false);
     const [showScrollToEndBtn, setShowScrollToEndBtn] = useState(false);
     const [lastPostId, setLastPostId] = useState<string | undefined>(firstIdInPosts);
+
     const [progressViewOffset, setProgressViewOffset] = useState(postInputContainerHeight);
     const [emojiPickerPadding, setEmojiPickerPadding] = useState(0);
     const theme = useTheme();
     const serverUrl = useServerUrl();
-    const {isVisible: isKeyboardVisible} = useKeyboardState();
+    const {isVisible: isKeyboardVisible} = useControllerKeyboardState();
+    const {state} = useAnimatedKeyboard();
 
-    // Update progressViewOffset to position RefreshControl correctly when keyboard-aware props are applied.
-    // Only update when keyboard state changes (fully open ↔ fully closed) to prevent flickering during animation.
-    const prevIsFullyOpen = useSharedValue(false);
-    const prevIsFullyClosed = useSharedValue(true);
     useAnimatedReaction(
-        () => ({
-            isFullyOpen: isKeyboardFullyOpen.value,
-            isFullyClosed: isKeyboardFullyClosed.value,
-            keyboardTranslateY: keyboardHeightValue.value,
-        }),
-        ({isFullyOpen, isFullyClosed, keyboardTranslateY}) => {
-            // Only update when state actually changes (transition detected)
-            const stateChanged = (prevIsFullyClosed.value !== isFullyClosed) || (prevIsFullyOpen.value !== isFullyOpen);
-
-            if (stateChanged && (isFullyOpen || isFullyClosed)) {
-                const offset = postInputContainerHeight + keyboardTranslateY;
-                if (!isAndroidEdgeToEdge) {
-                    runOnJS(setProgressViewOffset)(offset);
-                }
-            }
-            prevIsFullyOpen.value = isFullyOpen;
-            prevIsFullyClosed.value = isFullyClosed;
+        () => {
+            return {
+                state: state.value,
+            };
         },
-        [postInputContainerHeight],
+        ({state: kbState}) => {
+            if (!isAndroidEdgeToEdge && (kbState === KeyboardState.CLOSED || kbState === KeyboardState.OPEN)) {
+                const translateY = postInputTranslateY.value;
+                const containerHeight = postInputContainerHeightShared.value;
+                const offset = containerHeight + translateY;
+                runOnJS(setProgressViewOffset)(offset);
+            }
+        },
+        [],
     );
 
     // Progressive loading: start with 10 items, then add the rest after initial render
@@ -193,16 +213,11 @@ const PostList = ({
     const isNewMessage = lastPostId ? firstIdInPosts !== lastPostId : false;
 
     const scrollToEnd = useCallback(() => {
-        const activeHeight = Math.max(keyboardHeight.value, inputAccessoryViewAnimatedHeight.value);
-        const targetOffset = -activeHeight;
-
-        listRef?.current?.scrollToOffset({offset: targetOffset, animated: true});
-
+        if (listRef) {
+            scrollTo(listRef, 0, -postInputTranslateY.value, true);
+        }
         setShowScrollToEndBtn(false);
-
-        // Shared values don't need to be in dependencies - they're stable references
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [listRef]);
+    }, [listRef, postInputTranslateY.value]);
 
     useEffect(() => {
         const scrollToBottom = (screen: string) => {
@@ -445,6 +460,7 @@ const PostList = ({
                     shouldRenderReplyButton,
                     skipSavedHeader,
                     testID: `${testID}.post`,
+                    isChannelAutotranslated,
                 };
 
                 return (
@@ -455,12 +471,7 @@ const PostList = ({
                 );
             }
         }
-    }, [
-        appsEnabled, currentUser, currentTimezone, currentUsername,
-        customEmojiNames, highlightPinnedOrSaved, highlightedId,
-        isCRTEnabled, isPostAcknowledgementEnabled, location, rootId,
-        shouldRenderReplyButton, shouldShowJoinLeaveMessages, testID, theme,
-    ]);
+    }, [appsEnabled, currentTimezone, currentUser, currentUsername, customEmojiNames, highlightPinnedOrSaved, highlightedId, isCRTEnabled, isChannelAutotranslated, isPostAcknowledgementEnabled, location, rootId, shouldRenderReplyButton, shouldShowJoinLeaveMessages, testID, theme]);
 
     useEffect(() => {
         const t = setTimeout(() => {
@@ -487,12 +498,10 @@ const PostList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [orderedPosts, highlightedId]);
 
-    // Sync emoji picker padding from SharedValue to React state
-    // This ensures the padding updates when SharedValues change
     useAnimatedReaction(
         () => {
-            const shouldAddEmojiPickerPadding = Platform.OS === 'android' && !isAndroidEdgeToEdge && !isKeyboardVisible && isInputAccessoryViewMode.value;
-            const emojiPickerHeight = shouldAddEmojiPickerPadding ? (inputAccessoryViewAnimatedHeight.value || DEFAULT_INPUT_ACCESSORY_HEIGHT) : 0;
+            const shouldAddEmojiPickerPadding = Platform.OS === 'android' && !isAndroidEdgeToEdge && !isKeyboardVisible && stateMachine.isEmojiPickerActive();
+            const emojiPickerHeight = shouldAddEmojiPickerPadding ? (inputAccessoryHeight.value || DEFAULT_INPUT_ACCESSORY_HEIGHT) : 0;
             return emojiPickerHeight;
         },
         (emojiPickerHeight) => {
@@ -501,68 +510,79 @@ const PostList = ({
         [isKeyboardVisible],
     );
 
-    // Combine contentContainerStyle with padding style
-    // Use regular style with state value synced from SharedValues
-    const contentContainerStyleWithPadding = useMemo(() => {
-        return {paddingTop: location === Screens.PERMALINK ? 0 : postInputContainerHeight + emojiPickerPadding};
-    }, [location, postInputContainerHeight, emojiPickerPadding]);
+    const contentContainerStyleWithPadding = useMemo(() => ({
+        paddingTop: location === Screens.PERMALINK || !isEdgeToEdge ? 0 : postInputContainerHeight + emojiPickerPadding,
+    }), [location, emojiPickerPadding, postInputContainerHeight]);
 
-    // contentInset only for dynamic keyboard height
     const animatedProps = useAnimatedProps(
-        () => ({
-            contentInset: {
-                top: contentInset.value, // For inverted FlatList, applies to visual bottom
-            },
-        }),
-        [contentInset],
+        () => {
+            return {
+                contentInset: {
+                    top: Math.max(postInputTranslateY.value, 0),
+                },
+            };
+        },
+        [],
     );
 
     const androidExtra = useAnimatedStyle(() => {
         if (isAndroidEdgeToEdge) {
             return {
-                marginBottom: keyboardHeight.value || contentInset.value,
+                marginBottom: Math.max(postInputTranslateY.value, 0),
             };
         }
         return {};
     }, []);
 
+    // eslint-disable-next-line new-cap
+    const nativeGesture = Gesture.Native();
+    const composedGesture = useMemo(() => {
+        if (emojiPickerGesture) {
+            return Gesture.Simultaneous(nativeGesture, emojiPickerGesture);
+        }
+        return nativeGesture;
+
+        // nativeGesture is stable — created once outside this memo
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [emojiPickerGesture]);
+
     return (
         <>
             <PostConfigProvider>
-                <Animated.FlatList
-                    animatedProps={animatedProps}
-                    automaticallyAdjustContentInsets={false}
-                    contentInsetAdjustmentBehavior='never'
-                    contentContainerStyle={contentContainerStyleWithPadding}
-                    data={orderedPosts}
-                    keyboardDismissMode='interactive'
-                    keyboardShouldPersistTaps='handled'
-                    keyExtractor={keyExtractor}
-                    initialNumToRender={INITIAL_BATCH_TO_RENDER}
-                    maxToRenderPerBatch={5}
-                    updateCellsBatchingPeriod={100}
-                    ListHeaderComponent={header}
-                    ListFooterComponent={footer}
-                    onEndReached={onEndReached}
-                    onEndReachedThreshold={0.9}
-                    onMomentumScrollEnd={internalOnScroll}
-                    onScroll={onScrollProp}
-                    onScrollToIndexFailed={onScrollToIndexFailed}
-                    onViewableItemsChanged={onViewableItemsChanged}
-                    onTouchMove={onTouchMove}
-                    onTouchEnd={onTouchEnd}
-                    progressViewOffset={progressViewOffset}
-                    ref={listRef}
-                    renderItem={renderItem}
-                    testID={`${testID}.flat_list`}
-                    inverted={true}
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                    maintainVisibleContentPosition={SCROLL_POSITION_CONFIG}
-                    removeClippedSubviews={true}
-                    style={[styles.flex, androidExtra]}
-                    windowSize={10}
-                />
+                <GestureDetector gesture={composedGesture}>
+                    <Animated.FlatList
+                        animatedProps={animatedProps}
+                        automaticallyAdjustContentInsets={false}
+                        contentInsetAdjustmentBehavior='never'
+                        contentContainerStyle={contentContainerStyleWithPadding}
+                        data={orderedPosts}
+                        keyboardDismissMode={isEmojiSearchFocused ? 'none' : 'interactive'}
+                        keyboardShouldPersistTaps='handled'
+                        keyExtractor={keyExtractor}
+                        initialNumToRender={INITIAL_BATCH_TO_RENDER}
+                        maxToRenderPerBatch={5}
+                        updateCellsBatchingPeriod={100}
+                        ListHeaderComponent={header}
+                        ListFooterComponent={footer}
+                        onEndReached={onEndReached}
+                        onEndReachedThreshold={0.9}
+                        onMomentumScrollEnd={internalOnScroll}
+                        onScroll={onScrollProp}
+                        onScrollToIndexFailed={onScrollToIndexFailed}
+                        onViewableItemsChanged={onViewableItemsChanged}
+                        progressViewOffset={progressViewOffset}
+                        ref={listRef}
+                        renderItem={renderItem}
+                        testID={`${testID}.flat_list`}
+                        inverted={true}
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        maintainVisibleContentPosition={SCROLL_POSITION_CONFIG}
+                        removeClippedSubviews={true}
+                        style={[styles.flex, androidExtra]}
+                        windowSize={10}
+                    />
+                </GestureDetector>
             </PostConfigProvider>
             {location !== Screens.PERMALINK &&
             <ScrollToEndView

@@ -248,8 +248,8 @@ const ServerItem = ({
     const handleLogin = useCallback(async () => {
         swipeable.current?.close();
         setSwitching(true);
-        await switchToServerAndLogin(server.url, theme, intl, () => setSwitching(false));
-    }, [server.url, intl, theme]);
+        await switchToServerAndLogin(server.url, intl, () => setSwitching(false));
+    }, [server.url, intl]);
 
     const handleDismissTutorial = useCallback(() => {
         swipeable.current?.close();
@@ -286,7 +286,7 @@ const ServerItem = ({
             await switchToServer(server.url);
             return;
         }
-        await switchToServerAndLogin(server.url, theme, intl, async (data?: ConfigAndLicenseRequest) => {
+        await switchToServerAndLogin(server.url, intl, async (data?: ConfigAndLicenseRequest) => {
             setSwitching(false);
             await dismissBottomSheet();
             if (data?.config && data.license) {

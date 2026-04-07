@@ -14,6 +14,7 @@ import {fetchConfigAndLicense} from '@actions/remote/systems';
 import LocalConfig from '@assets/config.json';
 import AppVersion from '@components/app_version';
 import {Screens, Launch, DeepLink} from '@constants';
+import useDidMount from '@hooks/did_mount';
 import {useScreenTransitionAnimation} from '@hooks/screen_transition_animation';
 import {getServerCredentials} from '@init/credentials';
 import PushNotifications from '@init/push_notifications';
@@ -156,7 +157,7 @@ const Server = ({
         return unsubscribe;
     }, [navigation, url]);
 
-    useEffect(() => {
+    useDidMount(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
             if (LocalConfig.ShowOnboarding && animated) {
                 navigateBack();
@@ -174,7 +175,7 @@ const Server = ({
         PushNotifications.registerIfNeeded();
 
         return () => backHandler.remove();
-    }, [animated, isModal]);
+    });
 
     const displayLogin = (serverUrl: string, config: ClientConfig, license: ClientLicense) => {
         const {enabledSSOs, hasLoginForm, numberSSOs, ssoOptions} = loginOptions(config, license);

@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {useFocusEffect} from 'expo-router';
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {Platform} from 'react-native';
 import {useReducedMotion, useSharedValue, useAnimatedStyle, withTiming} from 'react-native-reanimated';
 
@@ -17,6 +17,13 @@ export const useScreenTransitionAnimation = (animated: boolean = true) => {
     const reducedMotion = useReducedMotion();
     const shouldAnimate = animated && !reducedMotion;
     const translateX = useSharedValue(shouldAnimate ? width : 0);
+
+    // Keep a ref so the useFocusEffect cleanup always reads the latest values
+    // without adding them as dependencies (which would re-trigger cleanup on rotation/motion changes)
+    const latestRef = useRef({width, shouldAnimate});
+    useEffect(() => {
+        latestRef.current = {width, shouldAnimate};
+    }, [width, shouldAnimate]);
 
     const animatedStyle = useAnimatedStyle(() => {
         const duration = Platform.OS === 'android' ? 250 : 350;
@@ -33,9 +40,11 @@ export const useScreenTransitionAnimation = (animated: boolean = true) => {
 
             return () => {
                 // Screen is blurred (disappeared)
-                translateX.value = shouldAnimate ? -width : 0;
+                const {width: w, shouldAnimate: sa} = latestRef.current;
+                translateX.value = sa ? -w : 0;
             };
-        }, [translateX, width, shouldAnimate]),
+
+        }, [translateX]),
     );
 
     useEffect(() => {

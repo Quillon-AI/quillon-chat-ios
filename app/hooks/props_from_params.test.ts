@@ -3,7 +3,7 @@
 
 import {renderHook} from '@testing-library/react-hooks';
 
-import {usePropsFromParams} from './props_from_params';
+import {usePropsFromParams} from '@hooks/props_from_params';
 
 const mockUseLocalSearchParams = jest.fn();
 

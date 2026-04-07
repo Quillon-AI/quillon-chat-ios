@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import React, {useCallback, useMemo} from 'react';
+import {useIntl} from 'react-intl';
 import {View} from 'react-native';
 
 import {removePost} from '@actions/local/post';
@@ -15,17 +16,23 @@ import {usePostConfig} from '@context/post_config';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {DEFAULT_LOCALE} from '@i18n';
-import {isOwnBoRPost, isUnrevealedBoRPost} from '@utils/bor';
-import {postUserDisplayName} from '@utils/post';
+import {isUnrevealedBoRPost} from '@utils/bor';
+import {getPostTranslation, postUserDisplayName} from '@utils/post';
 import {makeStyleSheetFromTheme} from '@utils/theme';
 import {ensureString} from '@utils/types';
 import {typography} from '@utils/typography';
-import {displayUsername, getUserCustomStatus, getUserTimezone, isCustomStatusExpired} from '@utils/user';
+import {
+    displayUsername,
+    getUserCustomStatus,
+    getUserTimezone,
+    isCustomStatusExpired,
+} from '@utils/user';
 
 import HeaderCommentedOn from './commented_on';
 import HeaderDisplayName from './display_name';
 import HeaderReply from './reply';
 import HeaderTag from './tag';
+import TranslateIcon from './translate_icon';
 
 import type PostModel from '@typings/database/models/servers/post';
 import type UserModel from '@typings/database/models/servers/user';
@@ -36,6 +43,7 @@ type HeaderProps = {
     commentCount: number;
     currentUser?: UserModel;
     isAutoResponse: boolean;
+    isChannelAutotranslated: boolean;
     isCRTEnabled?: boolean;
     isEphemeral: boolean;
     isPendingOrFailed: boolean;
@@ -78,7 +86,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
 
 const Header = (props: HeaderProps) => {
     const {
-        author, commentCount = 0, currentUser, isAutoResponse, isCRTEnabled,
+        author, commentCount = 0, currentUser, isAutoResponse, isChannelAutotranslated, isCRTEnabled,
         isEphemeral, isPendingOrFailed, isSystemPost, isWebHook,
         location, post, rootPostAuthor, showPostPriority, shouldRenderReplyButton,
     } = props;
@@ -94,20 +102,26 @@ const Header = (props: HeaderProps) => {
     const showCustomStatusEmoji = Boolean(
         postConfig.isCustomStatusEnabled && displayName && customStatus &&
         !(isSystemPost || author?.isBot || isAutoResponse || isWebHook),
-    ) && !isCustomStatusExpired(author) && Boolean(customStatus?.emoji);
+    ) &&
+    !isCustomStatusExpired(author) &&
+    Boolean(customStatus?.emoji);
     const userIconOverride = ensureString(post.props?.override_icon_url);
     const usernameOverride = ensureString(post.props?.override_username);
+    const intl = useIntl();
 
+    // We need to depend on the expire_at directly,
+    // since changes in it may not be reflected in the post object
+    // (it is still the same object reference).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const isUnrevealedPost = useMemo(() => isUnrevealedBoRPost(post), [post, post.metadata?.expire_at]);
-    const ownBoRPost = useMemo(() => isOwnBoRPost(post, currentUser), [currentUser, post]);
-    const showBoRIcon = isUnrevealedPost || ownBoRPost;
+    const showBoRIcon = useMemo(() => isUnrevealedBoRPost(post), [post, post.metadata?.expire_at]);
     const borExpireAt = post.metadata?.expire_at;
     const serverUrl = useServerUrl();
 
     const onBoRPostExpiry = useCallback(async () => {
         await removePost(serverUrl, post);
     }, [post, serverUrl]);
+
+    const translation = getPostTranslation(post, intl.locale);
 
     return (
         <>
@@ -141,6 +155,9 @@ const Header = (props: HeaderProps) => {
                         style={style.time}
                         testID='post_header.date_time'
                     />
+                    {isChannelAutotranslated && post.type === '' && (
+                        <TranslateIcon translationState={translation?.state}/>
+                    )}
                     {isEphemeral && (
                         <FormattedText
                             id='post_header.visible_message'
@@ -150,41 +167,38 @@ const Header = (props: HeaderProps) => {
                         />
                     )}
                     {showPostPriority && post.metadata?.priority?.priority && (
-                        <PostPriorityLabel
-                            label={post.metadata.priority.priority}
-                        />
+                        <PostPriorityLabel label={post.metadata.priority.priority}/>
                     )}
-                    {showBoRIcon &&
+                    {showBoRIcon && (
                         <CompassIcon
                             name='fire'
                             size={16}
                             color={theme.dndIndicator}
                         />
-                    }
-                    {
-                        !showBoRIcon && Boolean(borExpireAt) &&
+                    )}
+                    {Boolean(borExpireAt) && (
                         <ExpiryTimer
                             expiryTime={borExpireAt as number}
                             onExpiry={onBoRPostExpiry}
                         />
-                    }
-                    {!isCRTEnabled && showReply && commentCount > 0 &&
+                    )}
+                    {!isCRTEnabled && showReply && commentCount > 0 && (
                         <HeaderReply
                             commentCount={commentCount}
                             location={location}
                             post={post}
                             theme={theme}
                         />
-                    }
+                    )}
                 </View>
             </View>
-            {Boolean(rootAuthorDisplayName) && location === Screens.CHANNEL &&
-            <HeaderCommentedOn
-                locale={currentUser?.locale || DEFAULT_LOCALE}
-                name={rootAuthorDisplayName!}
-                theme={theme}
-            />
-            }
+            {Boolean(rootAuthorDisplayName) && location === Screens.CHANNEL && (
+                <HeaderCommentedOn
+                    locale={currentUser?.locale || DEFAULT_LOCALE}
+                    name={rootAuthorDisplayName!}
+                    theme={theme}
+                />
+            )}
         </>
     );
 };

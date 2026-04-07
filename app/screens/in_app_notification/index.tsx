@@ -2,10 +2,11 @@
 // See LICENSE.txt for license information.
 
 import {Portal} from '@gorhom/portal';
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import {Platform, StyleSheet, View} from 'react-native';
 import {FullWindowOverlay} from 'react-native-screens';
 
+import useDidMount from '@hooks/did_mount';
 import InAppNotificationStore from '@store/in_app_notification_store';
 
 import InAppNotification from './in_app_notification';
@@ -25,10 +26,10 @@ export default function InAppNotificationContainer() {
     const [state, setState] = useState(InAppNotificationStore.getState());
 
     // Subscribe to store changes
-    useEffect(() => {
+    useDidMount(() => {
         const sub = InAppNotificationStore.observe().subscribe(setState);
         return () => sub.unsubscribe();
-    }, []);
+    });
 
     if (!state.visible || !state.notification) {
         return null;

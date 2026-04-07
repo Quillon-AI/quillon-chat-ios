@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {ActivityIndicator, type FlatList, type GestureResponderEvent, StyleSheet, View} from 'react-native';
+import {ActivityIndicator, StyleSheet, View} from 'react-native';
 
 import {fetchPostThread} from '@actions/remote/post';
 import {markThreadAsRead} from '@actions/remote/thread';
@@ -12,6 +12,7 @@ import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {useAppState} from '@hooks/device';
+import useDidMount from '@hooks/did_mount';
 import {useFetchingThreadState} from '@hooks/fetching_thread';
 import {useDebounce} from '@hooks/utils';
 import {isMinimumServerVersion} from '@utils/helpers';
@@ -27,9 +28,6 @@ type Props = {
     teamId: string;
     thread?: ThreadModel;
     version?: string;
-    listRef: React.RefObject<FlatList<string | PostModel>>;
-    onTouchMove?: (event: GestureResponderEvent) => void;
-    onTouchEnd?: () => void;
 }
 
 const styles = StyleSheet.create({
@@ -41,7 +39,6 @@ const styles = StyleSheet.create({
 const ThreadPostList = ({
     channelLastViewedAt, isCRTEnabled,
     posts, rootPost, teamId, thread, version,
-    listRef, onTouchMove, onTouchEnd,
 }: Props) => {
     const appState = useAppState();
     const serverUrl = useServerUrl();
@@ -74,14 +71,11 @@ const ThreadPostList = ({
     }, [posts, rootPost]);
 
     // If CRT is enabled, mark the thread as read on mount.
-    useEffect(() => {
+    useDidMount(() => {
         if (isCRTEnabled && thread?.isFollowing) {
             markThreadAsRead(serverUrl, teamId, rootPost.id);
         }
-
-        // We only want to mark the thread as read on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 
     // If CRT is enabled, When new post arrives and thread modal is open, mark thread as read.
     const oldPostsCount = useRef<number>(posts.length);
@@ -124,9 +118,6 @@ const ThreadPostList = ({
             header={header}
             footer={<View style={styles.footer}/>}
             testID='thread.post_list'
-            listRef={listRef}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
         />
     );
 

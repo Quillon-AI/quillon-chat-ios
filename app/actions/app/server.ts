@@ -4,6 +4,7 @@
 import {doPing} from '@actions/remote/general';
 import {fetchConfigAndLicense, type ConfigAndLicenseRequest} from '@actions/remote/systems';
 import DatabaseManager from '@database/manager';
+import {getPreauthSecret} from '@init/credentials';
 import SecurityManager from '@managers/security_manager';
 import WebsocketManager from '@managers/websocket_manager';
 import {getServer, getServerByIdentifier} from '@queries/app/servers';
@@ -41,14 +42,17 @@ export async function switchToServer(serverUrl: string, callback?: () => void) {
     callback?.();
 }
 
-export async function switchToServerAndLogin(serverUrl: string, theme: Theme, intl: IntlShape, callback: (data?: ConfigAndLicenseRequest) => void) {
+export async function switchToServerAndLogin(serverUrl: string, intl: IntlShape, callback: (data?: ConfigAndLicenseRequest) => void) {
     const server = await getServer(serverUrl);
     if (!server) {
         logError(`Switch to Server with url ${serverUrl} not found`);
         return;
     }
 
-    const result = await doPing(server.url, true);
+    // Retrieve pre-auth secret from keychain if it exists
+    const preauthSecret = await getPreauthSecret(server.url);
+
+    const result = await doPing(server.url, true, 5000, preauthSecret);
     if (result.error) {
         alertServerError(intl, result.error);
         callback();

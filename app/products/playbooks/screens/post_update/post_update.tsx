@@ -17,6 +17,7 @@ import {Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
+import useDidMount from '@hooks/did_mount';
 import {fetchPlaybookRun, fetchPlaybookRunMetadata, postStatusUpdate} from '@playbooks/actions/remote/runs';
 import {navigateBack} from '@screens/navigation';
 import {toSeconds} from '@utils/datetime';
@@ -95,7 +96,7 @@ const PostUpdate = ({
         setCanSave(text.trim().length > 0);
     }, []);
 
-    useEffect(() => {
+    useDidMount(() => {
         async function initialLoad() {
             let calculatedFollowersCount = 0;
             let calculatedBroadcastChannelCount = 0;
@@ -135,10 +136,7 @@ const PostUpdate = ({
         }
 
         initialLoad();
-
-    // This is the initial load, so we don't need to re-run it on every change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 
     const onNextUpdateSelected = useCallback((value: SelectedDialogOption) => {
         if (!value) {

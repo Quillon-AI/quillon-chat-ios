@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useCallback, useEffect, useRef} from 'react';
+import React, {useCallback, useRef} from 'react';
 import {
     View,
     SafeAreaView,
@@ -16,6 +16,7 @@ import Animated, {useDerivedValue, useSharedValue} from 'react-native-reanimated
 import {storeOnboardingViewedValue} from '@actions/app/global';
 import {Screens} from '@constants';
 import {useWindowDimensions} from '@hooks/device';
+import useDidMount from '@hooks/did_mount';
 import {useScreenTransitionAnimation} from '@hooks/screen_transition_animation';
 import Background from '@screens/background';
 import {navigateToScreen} from '@screens/navigation';
@@ -91,7 +92,7 @@ const Onboarding = ({
 
     const animatedStyles = useScreenTransitionAnimation();
 
-    useEffect(() => {
+    useDidMount(() => {
         const listener = BackHandler.addEventListener('hardwareBackPress', () => {
             if (!currentIndex.value) {
                 return false;
@@ -102,8 +103,7 @@ const Onboarding = ({
         });
 
         return () => listener.remove();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 
     return (
         <View
