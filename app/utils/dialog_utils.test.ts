@@ -118,6 +118,10 @@ describe('dialog_utils', () => {
         it('should return correct data source for dynamic_select', () => {
             expect(getDataSourceForAppFieldType('dynamic_select')).toBe('dynamic');
         });
+
+        it('should return correct data source for dynamic_select', () => {
+            expect(getDataSourceForAppFieldType('dynamic_select')).toBe('dynamic');
+        });
     });
 
     describe('createDialogElement', () => {
