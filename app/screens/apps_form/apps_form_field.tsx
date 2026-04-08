@@ -18,7 +18,7 @@ import BoolSetting from '@components/settings/bool_setting';
 import RadioSetting from '@components/settings/radio_setting';
 import TextSetting from '@components/settings/text_setting';
 import {Preferences, Screens, View as ViewConstants} from '@constants';
-import {AppFieldTypes, SelectableAppFieldTypes} from '@constants/apps';
+import {AppFieldTypes, DEFAULT_TIME_INTERVAL_MINUTES, SelectableAppFieldTypes} from '@constants/apps';
 import {useTheme} from '@context/theme';
 import {getDisplayNamePreferenceAsBool} from '@helpers/api/preference';
 import {queryDisplayNamePreferences} from '@queries/servers/preference';
@@ -28,6 +28,7 @@ import {isAppSelectOption} from '@utils/dialog_utils';
 import {getCurrentMomentForTimezone} from '@utils/helpers';
 import {selectKeyboardType} from '@utils/integrations';
 import {makeStyleSheetFromTheme} from '@utils/theme';
+import {typography} from '@utils/typography';
 import {getTimezone} from '@utils/user';
 
 import type {WithDatabaseArgs} from '@typings/database/database';
@@ -86,8 +87,8 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
             marginLeft: 15,
         },
         markdownFieldText: {
-            fontSize: 14,
             color: theme.centerChannelColor,
+            ...typography('Body', 100, 'Regular'),
         },
     };
 });
@@ -95,14 +96,14 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
 const getDateTimeStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     container: {marginBottom: 24},
     labelContainer: {flexDirection: 'row', marginTop: 15, marginBottom: 10, marginLeft: 15, marginRight: 15, alignItems: 'center', justifyContent: 'space-between'},
-    label: {fontSize: 14, color: theme.centerChannelColor, flexShrink: 1, marginRight: 8},
-    asterisk: {color: theme.errorTextColor, fontSize: 14},
+    label: {color: theme.centerChannelColor, flexShrink: 1, marginRight: 8, ...typography('Body', 100, 'Regular')},
+    asterisk: {color: theme.errorTextColor, ...typography('Body', 100, 'Regular')},
     dateTimeDisplay: {flexShrink: 0},
-    dateTimeText: {color: theme.linkColor, fontSize: 14},
-    helpText: {fontSize: 12, color: theme.centerChannelColor, marginLeft: 15, marginTop: 4, opacity: 0.64},
-    errorText: {fontSize: 12, color: theme.errorTextColor, marginLeft: 15, marginTop: 4},
+    dateTimeText: {color: theme.linkColor, ...typography('Body', 100, 'Regular')},
+    helpText: {color: theme.centerChannelColor, marginLeft: 15, marginTop: 4, opacity: 0.64, ...typography('Body', 75, 'Regular')},
+    errorText: {color: theme.errorTextColor, marginLeft: 15, marginTop: 4, ...typography('Body', 75, 'Regular')},
     timezoneIndicator: {flexDirection: 'row', alignItems: 'center', marginLeft: 15, marginBottom: 8, marginTop: -4},
-    timezoneText: {fontSize: 12, color: theme.centerChannelColor, opacity: 0.64, marginLeft: 4},
+    timezoneText: {color: theme.centerChannelColor, opacity: 0.64, marginLeft: 4, ...typography('Body', 75, 'Regular')},
 }));
 
 function selectDataSource(fieldType: string): string {
@@ -364,7 +365,7 @@ const AppsFormFieldComponent = React.memo(({
                                             value={selectedDate.toDate()}
                                             format={{dateStyle: 'medium'}}
                                         />
-                                        {' at '}
+                                        {` ${intl.formatMessage({id: 'date_time_selector.at', defaultMessage: 'at'})} `}
                                         <FormattedTime
                                             isMilitaryTime={isMilitaryTime}
                                             timezone={displayTimezone}
@@ -395,7 +396,8 @@ const AppsFormFieldComponent = React.memo(({
                         allowPastDates={allowPastDates}
                         minDate={resolvedMinDate}
                         maxDate={resolvedMaxDate}
-                        minuteInterval={field.datetime_config?.time_interval || field.time_interval || 30}
+                        minuteInterval={field.datetime_config?.time_interval || field.time_interval || DEFAULT_TIME_INTERVAL_MINUTES}
+                        allowManualTimeEntry={field.datetime_config?.allow_manual_time_entry}
                         testID={testID}
                     />
 

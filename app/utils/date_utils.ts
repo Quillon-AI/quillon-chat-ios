@@ -4,6 +4,7 @@
 import moment from 'moment-timezone';
 
 import {getCurrentMomentForTimezone} from './helpers';
+import {logWarning} from './log';
 
 /**
  * Date reference constants for relative dates
@@ -15,19 +16,21 @@ enum DateReference {
 }
 
 /**
- * Resolves relative date expressions to ISO date strings
+ * Resolves relative date expressions to date or datetime strings
  * Supports:
  * - Named references: "today", "tomorrow", "yesterday"
- * - Dynamic offsets: "+5d", "-3d", "+2w", "+1m" (days, weeks, months)
+ * - Date offsets: "+5d", "-3d", "+2w", "+1m" (days, weeks, months) → YYYY-MM-DD
+ * - Time offsets: "+2H", "+30M", "+90S" (hours, minutes, seconds) → ISO 8601 datetime
  *
  * @param dateStr - The date string to resolve (can be relative or absolute)
  * @param timezone - Optional timezone for "today" reference (defaults to UTC)
- * @returns ISO date string (YYYY-MM-DD) or original string if not relative
+ * @returns ISO date string (YYYY-MM-DD) for date offsets, ISO 8601 datetime for time offsets, or original string if not relative
  *
  * @example
  * resolveRelativeDate("today") // "2026-01-15"
  * resolveRelativeDate("+5d") // "2026-01-20"
- * resolveRelativeDate("-2w") // "2026-01-01"
+ * resolveRelativeDate("+2H") // "2026-01-15T14:00:00Z"
+ * resolveRelativeDate("+30M") // "2026-01-15T12:30:00Z"
  * resolveRelativeDate("2026-01-15") // "2026-01-15" (unchanged)
  */
 export function resolveRelativeDate(dateStr: string, timezone?: string): string {
@@ -47,17 +50,33 @@ export function resolveRelativeDate(dateStr: string, timezone?: string): string 
             return now.clone().subtract(1, 'day').startOf('day').format('YYYY-MM-DD');
     }
 
-    // Handle dynamic offset patterns: +5d, -3d, +2w, +1m
-    const match = dateStr.match(/^([+-]\d{1,4})([dwm])$/i);
+    // Handle dynamic offset patterns: +5d, -3d, +2w, +1m, +2H, +30M, +90S
+    const match = dateStr.match(/^([+-]\d{1,4})([dwmHMS])$/);
     if (match) {
         const [, amount, unit] = match;
         const value = parseInt(amount, 10);
-        const unitMap: {[key: string]: moment.unitOfTime.DurationConstructor} = {
+
+        // Time units (uppercase): return full ISO datetime
+        // Note: uppercase M = minutes, lowercase m = months (case-sensitive)
+        const timeUnitMap: {[key: string]: moment.unitOfTime.DurationConstructor} = {
+            H: 'hour',
+            M: 'minute',
+            S: 'second',
+        };
+        if (unit in timeUnitMap) {
+            if (unit === 'M') {
+                logWarning('[resolveRelativeDate]', `"${dateStr}" resolved as ${value} minute(s). Use lowercase "m" for months.`);
+            }
+            return now.clone().add(value, timeUnitMap[unit]).toISOString();
+        }
+
+        // Date units (lowercase): return date-only string
+        const dateUnitMap: {[key: string]: moment.unitOfTime.DurationConstructor} = {
             d: 'day',
             w: 'week',
             m: 'month',
         };
-        return now.clone().add(value, unitMap[unit.toLowerCase()]).startOf('day').format('YYYY-MM-DD');
+        return now.clone().add(value, dateUnitMap[unit]).startOf('day').format('YYYY-MM-DD');
     }
 
     // Not a relative date, return as-is
@@ -77,7 +96,7 @@ export function isRelativeDate(dateStr: string): boolean {
         return true;
     }
 
-    return /^[+-]\d{1,4}[dwm]$/i.test(dateStr);
+    return /^[+-]\d{1,4}[dwmHMS]$/.test(dateStr);
 }
 
 /**

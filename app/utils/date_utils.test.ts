@@ -56,10 +56,40 @@ describe('resolveRelativeDate', () => {
         expect(resolveRelativeDate('-1m')).toBe('2025-12-15');
     });
 
-    it('should handle case-insensitive units', () => {
-        expect(resolveRelativeDate('+5D')).toBe('2026-01-20');
-        expect(resolveRelativeDate('+2W')).toBe('2026-01-29');
-        expect(resolveRelativeDate('+1M')).toBe('2026-02-15');
+    it('should distinguish date units (lowercase) from time units (uppercase)', () => {
+        // Lowercase: date offsets (d=day, w=week, m=month)
+        expect(resolveRelativeDate('+5d')).toBe('2026-01-20');
+        expect(resolveRelativeDate('+2w')).toBe('2026-01-29');
+        expect(resolveRelativeDate('+1m')).toBe('2026-02-15');
+
+        // Uppercase D and W are not valid units — returned unchanged
+        expect(resolveRelativeDate('+5D')).toBe('+5D');
+        expect(resolveRelativeDate('+2W')).toBe('+2W');
+
+        // Uppercase M = minutes (time offset), not months
+        const result = resolveRelativeDate('+1M');
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T/); // ISO datetime string
+    });
+
+    it('should resolve hour offsets to ISO datetime', () => {
+        const result = resolveRelativeDate('+2H');
+        expect(result).toBe('2026-01-15T14:00:00.000Z');
+
+        const negResult = resolveRelativeDate('-3H');
+        expect(negResult).toBe('2026-01-15T09:00:00.000Z');
+    });
+
+    it('should resolve minute offsets to ISO datetime', () => {
+        const result = resolveRelativeDate('+30M');
+        expect(result).toBe('2026-01-15T12:30:00.000Z');
+
+        const result90 = resolveRelativeDate('+90M');
+        expect(result90).toBe('2026-01-15T13:30:00.000Z');
+    });
+
+    it('should resolve second offsets to ISO datetime', () => {
+        const result = resolveRelativeDate('+90S');
+        expect(result).toBe('2026-01-15T12:01:30.000Z');
     });
 
     it('should return absolute dates unchanged', () => {
@@ -86,11 +116,18 @@ describe('isRelativeDate', () => {
         expect(isRelativeDate('TODAY')).toBe(true);
     });
 
-    it('should identify dynamic offsets', () => {
+    it('should identify date offsets', () => {
         expect(isRelativeDate('+5d')).toBe(true);
         expect(isRelativeDate('-3d')).toBe(true);
         expect(isRelativeDate('+2w')).toBe(true);
         expect(isRelativeDate('+1m')).toBe(true);
+    });
+
+    it('should identify time offsets', () => {
+        expect(isRelativeDate('+2H')).toBe(true);
+        expect(isRelativeDate('+30M')).toBe(true);
+        expect(isRelativeDate('+90S')).toBe(true);
+        expect(isRelativeDate('-1H')).toBe(true);
     });
 
     it('should reject absolute dates', () => {

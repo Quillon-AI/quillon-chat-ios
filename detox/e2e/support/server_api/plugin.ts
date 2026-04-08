@@ -53,17 +53,14 @@ export const apiGetLatestPluginVersion = async (repo: string): Promise<string> =
     }
 };
 
-// Demo Plugin Constants
-export const DemoPlugin = {
-    id: 'com.mattermost.demo-plugin',
-    repo: 'mattermost/mattermost-plugin-demo',
+// Test Plugin Constants (mattermost-plugin-test for E2E interactive dialog testing)
+export const TestPlugin = {
+    id: 'com.mattermost.test-plugin',
+    repo: 'mattermost/mattermost-plugin-test',
 
-    // Get download URL for latest version (linux-amd64 for CI compatibility)
     async getLatestDownloadUrl() {
         const latestVersion = await apiGetLatestPluginVersion(this.repo);
-
-        // return `https://github.com/${this.repo}/releases/download/v${latestVersion}/mattermost-plugin-demo-v${latestVersion}.tar.gz`;
-        return `https://github.com/${this.repo}/releases/download/v${latestVersion}/mattermost-plugin-demo-v${latestVersion}-linux-amd64.tar.gz`;
+        return `https://github.com/${this.repo}/releases/download/v${latestVersion}/mattermost-plugin-test-v${latestVersion}-linux-amd64.tar.gz`;
     },
 } as const;
 
@@ -77,7 +74,7 @@ export const apiDisableNonPrepackagedPlugins = async (baseUrl: string): Promise<
         return;
     }
     plugins.active.forEach(async (plugin: any) => {
-        if (plugin.id !== DemoPlugin.id && !prepackagedPlugins.has(plugin.id)) {
+        if (plugin.id !== TestPlugin.id && !prepackagedPlugins.has(plugin.id)) {
             await apiDisablePluginById(baseUrl, plugin.id);
         }
     });
@@ -222,8 +219,7 @@ export const apiGetPluginStatus = async (baseUrl: string, pluginId: string, vers
 };
 
 /**
- * Upload and enable demo plugin, handling various states.
- * Uses DemoPlugin.getLatestDownloadUrl() internally to avoid SSRF concerns.
+ * Upload and enable test plugin, handling various states.
  * @param {Object} options - configuration object
  * @param {string} options.baseUrl - the base server URL
  * @param {string} options.version - expected plugin version
@@ -236,7 +232,7 @@ export const apiUploadAndEnablePlugin = async (options: {
     force?: boolean;
 }): Promise<any> => {
     const {baseUrl, version, force = false} = options;
-    const id = DemoPlugin.id;
+    const id = TestPlugin.id;
 
     try {
         // Check current plugin status
@@ -284,8 +280,8 @@ export const apiUploadAndEnablePlugin = async (options: {
         // Store the existing version before attempting installation
         const existingVersion = statusResult.isInstalled ? statusResult.plugin?.version : null;
 
-        // Plugin needs to be installed - get URL from DemoPlugin
-        const url = await DemoPlugin.getLatestDownloadUrl();
+        // Plugin needs to be installed - get URL from TestPlugin repo
+        const url = await TestPlugin.getLatestDownloadUrl();
         // eslint-disable-next-line no-console
         console.log(`Attempting to install plugin from: ${url}`);
 

@@ -47,6 +47,8 @@ export const SelectableAppFieldTypes = [
     AppFieldTypes.DYNAMIC_SELECT,
 ];
 
+export const DEFAULT_TIME_INTERVAL_MINUTES = 60;
+
 export const COMMAND_SUGGESTION_ERROR = 'error';
 export const COMMAND_SUGGESTION_CHANNEL = 'channel';
 export const COMMAND_SUGGESTION_USER = 'user';
@@ -57,6 +59,7 @@ export default {
     AppCallResponseTypes,
     AppExpandLevels,
     AppFieldTypes,
+    DEFAULT_TIME_INTERVAL_MINUTES,
     COMMAND_SUGGESTION_ERROR,
     COMMAND_SUGGESTION_CHANNEL,
     COMMAND_SUGGESTION_USER,
