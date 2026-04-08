@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {waitFor} from '@testing-library/react-native';
+import {act, waitFor} from '@testing-library/react-native';
 import React from 'react';
 
 import {createDirectChannel} from '@actions/remote/channel';
@@ -93,6 +93,13 @@ jest.mock('@react-navigation/native', () => ({
     useIsFocused: jest.fn(() => true),
 }));
 
+// scrollTo from react-native-reanimated logs a warning when called in Jest because
+// it requires a native driver that isn't available in the test environment.
+jest.mock('react-native-reanimated', () => ({
+    ...jest.requireActual('react-native-reanimated/mock'),
+    scrollTo: jest.fn(),
+}));
+
 // --- Native module mocks ---
 jest.mock('@hooks/android_back_handler', () => jest.fn());
 
@@ -169,6 +176,10 @@ describe('AgentChat', () => {
         // PortalProvider must wrap PostDraft so that Autocomplete's Portal
         // (used on Android when input is focused) has a context to render into.
         expect(portalProviderRendered).toBe(true);
+
+        // Flush any remaining async state updates (e.g. fetchAIBots resolving after
+        // the waitFor assertion passes) to prevent act() warnings.
+        await act(async () => {});
     });
 
     it('should render intro screen when no bots are available', async () => {
@@ -185,5 +196,8 @@ describe('AgentChat', () => {
             expect(getByTestId('mock-agents-intro')).toBeTruthy();
         });
         expect(queryByTestId('agent_chat.post_draft')).toBeNull();
+
+        // Flush any remaining async state updates to prevent act() warnings.
+        await act(async () => {});
     });
 });

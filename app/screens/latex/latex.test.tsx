@@ -9,8 +9,6 @@ import {renderWithIntl} from '@test/intl-test-helper';
 
 import Latex from './index';
 
-import type {AvailableScreens} from '@typings/screens/navigation';
-
 // Mock the MathView component to simulate errors
 jest.mock('@components/math_view', () => {
     return {
@@ -21,7 +19,6 @@ jest.mock('@components/math_view', () => {
 
 describe('Latex', () => {
     const baseProps = {
-        componentId: 'test-screen' as AvailableScreens,
         content: '\\frac{1}{2}',
     };
 

@@ -33,10 +33,17 @@ describe('PostOptions', () => {
         const server = await TestHelper.setupServerDatabase(serverUrl);
         database = server.database;
         operator = server.operator;
+
+        jest.spyOn(console, 'warn').mockImplementation((msg: string) => {
+            if (!msg?.includes('scrollable node handle')) {
+                process.stdout.write(`${msg}\n`);
+            }
+        });
     });
 
     afterAll(() => {
         DatabaseManager.destroyServerDatabase(serverUrl);
+        jest.restoreAllMocks();
     });
 
     it('should show limited options for own BoR post', async () => {

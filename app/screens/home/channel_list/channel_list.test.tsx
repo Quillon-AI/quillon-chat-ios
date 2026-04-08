@@ -24,6 +24,14 @@ jest.mock('@react-native-camera-roll/camera-roll', () => ({
     },
 }));
 
+jest.mock('./servers', () => () => null);
+jest.mock('./categories_list', () => () => null);
+jest.mock('./additional_tablet_view', () => () => null);
+jest.mock('@components/team_sidebar', () => () => null);
+jest.mock('@components/connection_banner', () => () => null);
+jest.mock('@components/announcement_banner', () => () => null);
+jest.mock('@calls/components/floating_call_container', () => () => null);
+
 function getBaseProps(): ComponentProps<typeof ChannelListScreen> {
     return {
         hasChannels: true,
@@ -45,6 +53,10 @@ describe('performance metrics', () => {
     beforeAll(async () => {
         const server = await TestHelper.setupServerDatabase(serverUrl);
         database = server.database;
+    });
+
+    afterAll(async () => {
+        await TestHelper.tearDown(serverUrl);
     });
 
     it('finish load on load', async () => {

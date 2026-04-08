@@ -22,8 +22,6 @@ process.env.EXPO_OS = 'ios';
 
 setGenerator(uuidv4);
 
-require('isomorphic-fetch');
-
 jest.mock('expo-application', () => {
     return {
         nativeApplicationVersion: '0.0.0',
@@ -285,6 +283,8 @@ jest.doMock('react-native', () => {
 
             unlockOrientation: jest.fn(),
             getWindowDimensions: jest.fn().mockReturnValue({width: 426, height: 952}),
+
+            deleteDatabaseDirectory: jest.fn(),
         },
         APIClient: {
             getConstants: () => ({

@@ -109,6 +109,8 @@ describe('SessionManager', () => {
         AppState.currentState = 'active';
         Platform.OS = 'ios';
 
+        jest.mocked(determineRouteFromLaunchProps).mockResolvedValue({route: '/', params: {}});
+
         // Reset queryGlobalValue mock to return cache migration as done
         jest.mocked(queryGlobalValue).mockReturnValue({
             fetch: jest.fn().mockResolvedValue([{value: true}]),
