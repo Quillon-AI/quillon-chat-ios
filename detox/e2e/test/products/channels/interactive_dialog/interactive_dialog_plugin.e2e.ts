@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-/* eslint-disable no-await-in-loop, no-empty, no-console */
+/* eslint-disable no-await-in-loop, no-empty */
 
 // *******************************************************************
 // - [#] indicates a test step (e.g. # Go to a screen)
@@ -132,7 +132,7 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
             },
         });
 
-        let status = await Plugin.apiGetPluginStatus(siteOneUrl, TestPlugin.id);
+        const status = await Plugin.apiGetPluginStatus(siteOneUrl, TestPlugin.id);
         if (!status.isActive) {
             await Plugin.apiEnablePluginById(siteOneUrl, TestPlugin.id);
         }
@@ -168,6 +168,7 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
     it('MM-T4102 should submit simple interactive dialog (Plugin)', async () => {
         await ChannelScreen.postMessage('/e2e-dialog text');
         await ensureDialogOpen();
+
         // Fill required fields before submitting
         await InteractiveDialogScreen.fillTextElement('required_text', 'Test value');
         await InteractiveDialogScreen.fillTextElement('email_field', 'test@example.com');
@@ -196,11 +197,13 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
         await ensureDialogClosed();
         await ChannelScreen.postMessage('/e2e-dialog error');
         await ensureDialogOpen();
+
         // Fill the required number field with the magic value (42) to pass validation
         await InteractiveDialogScreen.fillTextElement('realname', 'Test');
         await InteractiveDialogScreen.fillTextElement('somenumber', '42');
         await InteractiveDialogScreen.submit();
         await wait(1000);
+
         // Dialog should remain open because the error handler always returns an error
         await ensureDialogOpen();
         await InteractiveDialogScreen.cancel();
@@ -330,6 +333,7 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
             await wait(500);
         } catch {}
         await ensureDialogClosed();
+
         // Scroll to reveal the latest post
         try {
             await element(by.id('channel.post_list.flat_list')).swipe('up', 'fast', 0.5);
@@ -425,9 +429,11 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
         await wait(500);
         await InteractiveDialogScreen.submit();
         await ensureDialogOpen();
+
         // Step 3: just submit (updates bool defaults to true which is valid)
         await InteractiveDialogScreen.submit();
         await ensureDialogClosed();
+
         // Verify bot posted the registration complete message
         await wait(3000);
         const {post} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
@@ -475,8 +481,10 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
         await IntegrationSelectorScreen.toBeVisible();
         await expect(element(by.text('Advanced'))).toExist();
         await element(by.text('Advanced')).tap();
+
         // Wait for field refresh to complete
         await wait(2000);
+
         // Verify the field refresh happened by checking new field appears
         // Try multiple possible testID formats
         try {
