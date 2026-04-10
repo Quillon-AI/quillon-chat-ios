@@ -772,15 +772,10 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
         // * Verify submission appears with UTC timestamp
         await wait(2000);
 
-        // * Look for ISO datetime format with Z suffix in submission post
-        // Webhook response should show: london_dropdown: "2026-02-12T17:30:00Z"
-        // This verifies proper UTC conversion happened
-        try {
-            // Look for datetime pattern: YYYY-MM-DDTHH:MM:SS.000Z
-            await expect(element(by.text(ISO_DATETIME_PATTERN))).toExist();
-        } catch {
-            // Submission text may be formatted differently, basic submission verified
-            await wait(500);
+        // * Verify submission post contains ISO/UTC datetime format
+        const {post: tzPost} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
+        if (!ISO_DATETIME_PATTERN.test(tzPost.message)) {
+            throw new Error(`Expected ISO datetime in timezone submission post but got: ${tzPost.message}`);
         }
     });
 });
