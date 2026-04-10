@@ -32,8 +32,8 @@ import {
 import {wait, isAndroid} from '@support/utils';
 import {expect} from 'detox';
 
-// ISO datetime pattern: matches YYYY-MM-DDTHH:MM:SS (with optional fractional seconds and Z)
-const ISO_DATETIME_PATTERN = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+// ISO datetime pattern: matches YYYY-MM-DDTHH:MM:SS with required UTC suffix (Z or ±HH:MM)
+const ISO_DATETIME_PATTERN = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})/;
 
 // ===== Helper Functions =====
 async function selectUser() {
@@ -107,36 +107,6 @@ async function dismissErrorAlert() {
         await wait(300);
     } catch {}
 }
-
-// async function pluginInstallAndEnable(siteUrl: string, latestVersion: string) {
-//     const pluginResult = await Plugin.apiUploadAndEnablePlugin({
-//         baseUrl: siteUrl,
-//         version: latestVersion,
-//         force: true,
-//     });
-//     await wait(3000);
-//     if (pluginResult.error) {
-//         if (pluginResult.status === 524) {
-//             throw new Error(
-//                 'Plugin installation failed due to Cloudflare timeout (Error 524). ' +
-//                 'This is a known CI infrastructure limitation when the test server downloads plugins from GitHub. ' +
-//                 'To fix: Either (1) pre-download plugin in CI workflow to detox/e2e/support/fixtures/ and use filename instead of url, ' +
-//                 'or (2) use a test server without Cloudflare proxy.',
-//             );
-//         }
-//         throw new Error(`Failed to install demo plugin: ${pluginResult.error} (status: ${pluginResult.status})`);
-//     }
-//     await wait(2000);
-//     const statusCheck = await Plugin.apiGetPluginStatus(siteUrl, TestPlugin.id, latestVersion);
-//     if (!statusCheck.isActive) {
-//         await Plugin.apiEnablePluginById(siteUrl, 'com.mattermost.demo-plugin');
-//         await wait(2000);
-//     }
-//     if (!statusCheck.isVersionMatch) {
-//         console.warn(`⚠️  WARNING: Demo plugin version mismatch. Expected: ${latestVersion}, Got: ${statusCheck.plugin?.version}`);
-//         console.warn('Continuing with tests to see if plugin commands work despite version mismatch...');
-//     }
-// }
 
 describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
     const serverOneDisplayName = 'Server 1';
@@ -522,16 +492,10 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
         await wait(2000);
 
         // Verify the field refresh happened by checking new field appears
-        // Try multiple possible testID formats
         try {
             await waitFor(element(by.id('AppFormElement.advanced_setting.input'))).toExist().withTimeout(3000);
         } catch {
-            try {
-                await waitFor(element(by.id('AppFormElement.advanced_setting'))).toExist().withTimeout(3000);
-            } catch {
-                // Field refresh may not have completed; verify dialog is still open
-                await ensureDialogOpen();
-            }
+            await waitFor(element(by.id('AppFormElement.advanced_setting'))).toExist().withTimeout(3000);
         }
         await InteractiveDialogScreen.cancel();
         await ensureDialogClosed();
@@ -572,12 +536,7 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
         await expect(InteractiveDialogScreen.interactiveDialogScreen).toExist();
 
         // * Verify validation error text appears for required fields
-        try {
-            await expect(element(by.text('This field is required.'))).toExist();
-        } catch {
-            // Error text may vary — at minimum verify dialog did not close
-            await ensureDialogOpen();
-        }
+        await expect(element(by.text('This field is required.'))).toExist();
 
         await InteractiveDialogScreen.cancel();
         await ensureDialogClosed();
