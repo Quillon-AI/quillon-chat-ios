@@ -48,8 +48,9 @@ export const apiGetLatestPluginVersion = async (repo: string): Promise<string> =
         // Remove 'v' prefix if present (e.g., 'v0.10.2' -> '0.10.2')
         return tagName.startsWith('v') ? tagName.substring(1) : tagName;
     } catch (err) {
-        // Fallback to hardcoded version if API fails
-        return '0.10.3';
+        // eslint-disable-next-line no-console
+        console.error(`Failed to fetch latest version for ${repo}:`, err);
+        throw new Error(`Could not determine latest plugin version for ${repo}. GitHub API may be unavailable.`);
     }
 };
 

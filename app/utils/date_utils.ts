@@ -122,9 +122,9 @@ export function parseDateInTimezone(value: string | null | undefined, timezone?:
     const isDateOnly = dateOnlyPattern.test(value);
 
     if (isDateOnly) {
-        // For date-only strings, parse WITHOUT timezone conversion
-        // Use local time to avoid off-by-one errors from UTC conversion
-        const parsed = moment(value, 'YYYY-MM-DD');
+        // For date-only strings, parse in the specified timezone at midnight
+        // to avoid off-by-one errors from device/UTC timezone mismatch
+        const parsed = timezone ? moment.tz(value, 'YYYY-MM-DD', timezone) : moment(value, 'YYYY-MM-DD');
         return parsed.isValid() ? parsed : null;
     }
 

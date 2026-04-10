@@ -13,6 +13,7 @@ import {switchMap} from 'rxjs/operators';
 import {Preferences} from '@constants';
 import {getDisplayNamePreferenceAsBool} from '@helpers/api/preference';
 import {queryDisplayNamePreferences} from '@queries/servers/preference';
+import {parseDateInTimezone} from '@utils/date_utils';
 import {getCurrentMomentForTimezone, getRoundedTime} from '@utils/helpers';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
@@ -167,13 +168,14 @@ const DateTimeSelector = ({
     const effectiveInterval = toValidMinuteInterval(minuteInterval);
 
     // Calculate minimum date based on allowPastDates and explicit minDate
+    // Use parseDateInTimezone to respect the picker's timezone for date-only strings
     let calculatedMinDate: moment.Moment | undefined;
     if (minDate) {
-        calculatedMinDate = moment(minDate);
+        calculatedMinDate = parseDateInTimezone(minDate, timezone) || undefined;
     } else if (!allowPastDates) {
         calculatedMinDate = getRoundedTime(currentTime, effectiveInterval);
     }
-    const calculatedMaxDate = maxDate ? moment(maxDate) : undefined;
+    const calculatedMaxDate = maxDate ? (parseDateInTimezone(maxDate, timezone) || undefined) : undefined;
 
     // Use initialDate if provided and valid, otherwise use rounded current time
     let defaultDate: moment.Moment;
@@ -190,7 +192,13 @@ const DateTimeSelector = ({
     const [manualTimeText, setManualTimeText] = useState<string>('');
     const [useManualEntry, setUseManualEntry] = useState<boolean>(false);
 
-    const onChange = useCallback((_: DateTimePickerEvent, selectedDate?: Date) => {
+    const onChange = useCallback((event: DateTimePickerEvent, selectedDate?: Date) => {
+        // On Android, dismiss (back/cancel) fires onChange with type 'dismissed'
+        if (event.type === 'dismissed') {
+            setShow(false);
+            return;
+        }
+
         const currentDate = selectedDate || date;
         setShow(Platform.OS === 'ios');
 

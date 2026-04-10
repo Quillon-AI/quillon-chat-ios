@@ -59,6 +59,8 @@ const appSelectOptionToDialogOption = (option: AppSelectOption): DialogOption =>
 
 const extractOptionValue = (v: AppSelectOption) => v.value || '';
 
+const isTimeOffset = (dateStr: string): boolean => /^[+-]\d{1,4}[HMS]$/.test(dateStr);
+
 const getDateValue = (value: AppFormValue, timezone?: string, isDateTime = false): Moment | undefined => {
     if (typeof value === 'string' && value) {
         // Resolve relative dates FIRST (today, +1d, etc.)
@@ -67,9 +69,10 @@ const getDateValue = (value: AppFormValue, timezone?: string, isDateTime = false
         // Then parse the resolved date
         const parsed = parseDateInTimezone(resolvedValue, timezone);
 
-        // For datetime fields with relative dates, set to current time (rounded)
-        if (isDateTime && parsed && value !== resolvedValue) {
-            // This was a relative date that got resolved, use current time
+        // For datetime fields with date-only relative values (today, +1d, +2w),
+        // set the time to current time. Skip for time offsets (+2H, +30M, +90S)
+        // which already have the correct timestamp from resolveRelativeDate.
+        if (isDateTime && parsed && value !== resolvedValue && !isTimeOffset(value)) {
             const currentTime = getCurrentMomentForTimezone(timezone || null);
             return parsed.clone().hour(currentTime.hour()).minute(currentTime.minute()).second(0);
         }

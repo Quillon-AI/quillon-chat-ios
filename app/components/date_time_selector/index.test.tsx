@@ -6,6 +6,7 @@ import moment from 'moment-timezone';
 import React from 'react';
 
 import Preferences from '@constants/preferences';
+import DatabaseManager from '@database/manager';
 import {renderWithEverything} from '@test/intl-test-helper';
 import TestHelper from '@test/test_helper';
 
@@ -15,6 +16,7 @@ import type Database from '@nozbe/watermelondb/Database';
 
 describe('DateTimeSelector', () => {
     let database: Database;
+    const serverUrl = 'https://test.server.com';
     const mockHandleChange = jest.fn();
     const timezone = 'America/New_York';
     const theme = Preferences.THEMES.denim;
@@ -27,8 +29,12 @@ describe('DateTimeSelector', () => {
     };
 
     beforeAll(async () => {
-        const server = await TestHelper.setupServerDatabase();
+        const server = await TestHelper.setupServerDatabase(serverUrl);
         database = server.database;
+    });
+
+    afterAll(async () => {
+        await DatabaseManager.destroyServerDatabase(serverUrl);
     });
 
     beforeEach(() => {

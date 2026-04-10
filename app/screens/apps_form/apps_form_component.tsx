@@ -133,7 +133,9 @@ function initValues(fields?: AppField[]) {
             values[field.name] = field.value === true || String(field.value).toLowerCase() === 'true';
         } else if (field.type === AppFieldTypes.DATETIME && field.is_required && !field.value) {
             // Auto-populate required datetime fields with current time (matching webapp)
-            const currentTime = moment();
+            // Use field's location_timezone if set, so the default aligns with the displayed timezone
+            const fieldTimezone = field.datetime_config?.location_timezone;
+            const currentTime = fieldTimezone ? moment.tz(fieldTimezone) : moment();
             const timeInterval = field.datetime_config?.time_interval || field.time_interval || DEFAULT_TIME_INTERVAL_MINUTES;
 
             // Round up to next time interval
@@ -144,8 +146,8 @@ function initValues(fields?: AppField[]) {
 
             // Clamp to min/max bounds
             if (field.min_date) {
-                const resolved = resolveRelativeDate(field.min_date);
-                const minMoment = parseDateInTimezone(resolved);
+                const resolved = resolveRelativeDate(field.min_date, fieldTimezone);
+                const minMoment = parseDateInTimezone(resolved, fieldTimezone);
                 if (!minMoment) {
                     logWarning('[initValues] Could not parse min_date for field', field.name, resolved);
                 } else if (defaultMoment.isBefore(minMoment)) {
@@ -153,8 +155,8 @@ function initValues(fields?: AppField[]) {
                 }
             }
             if (field.max_date) {
-                const resolved = resolveRelativeDate(field.max_date);
-                const maxMoment = parseDateInTimezone(resolved);
+                const resolved = resolveRelativeDate(field.max_date, fieldTimezone);
+                const maxMoment = parseDateInTimezone(resolved, fieldTimezone);
                 if (!maxMoment) {
                     logWarning('[initValues] Could not parse max_date for field', field.name, resolved);
                 } else if (defaultMoment.isAfter(maxMoment)) {
