@@ -21,7 +21,7 @@ This is the **Mattermost Mobile** React Native app (v2.39.0). The Cloud VM runs 
 
 - Installed at `/opt/android-sdk` with env vars in `~/.bashrc` (`ANDROID_HOME`, `ANDROID_SDK_ROOT`, `JAVA_HOME`, `PATH`).
 - SDK components: platform-tools, platforms;android-35, build-tools;35.0.0, ndk;27.1.12297006, emulator, system-images;android-28;default;x86_64.
-- **API 28 emulator is required** — API 35 causes ANR crashes because the software-emulated startup exceeds Android's strict process-start timeout on newer APIs. API 28 is more lenient.
+- **API 28 (default) or API 34** emulators are available. API 28 boots in ~70s and app starts in ~2min. API 34 boots in ~290s and app starts in ~5min. API 35 causes ANR crashes during startup due to strict process-start timeouts. Use API 28 for speed or API 34 for modern Android look.
 
 ### Starting the Android Emulator (no KVM)
 
