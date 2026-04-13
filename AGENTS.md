@@ -96,6 +96,17 @@ Test user: `admin` / `Admin1234!` (team: `test-team`, channel: `town-square`).
 
 ### Interacting with the Emulator
 
-- Standard `adb shell input text` does NOT work with React Native TextInput components.
-- Use the `mattermost://` deep link scheme to populate the server URL: `adb shell am start -a android.intent.action.VIEW -d "mattermost://localhost:8065" com.mattermost.rnbeta`.
-- For full app interaction, use the `computerUse` subagent with the emulator window visible on `DISPLAY=:1`, or use the mobile-mcp MCP server from `@mobilenext/mobile-mcp` if configured.
+- Standard `adb shell input text` does **NOT** work reliably with React Native TextInput components.
+- Use the `mattermost://` deep link scheme to populate the server URL: `adb shell am start -a android.intent.action.VIEW -d "mattermost://localhost:8065" com.mattermost.rnbeta`. Note: this sets the URL without `http://` prefix; you still need to fill in "Display Name" to enable the Connect button.
+- **Recommended:** Use the `@mobilenext/mobile-mcp` MCP server for full simulator interaction (taps, text input, screenshots). See CLAUDE.md for details on testing with mobile MCP.
+- **Alternative:** Use the `computerUse` subagent with the emulator window visible on `DISPLAY=:1`. The `computerUse` subagent can click and type directly into the emulator GUI. Be aware the subagent accumulates screenshots and may hit the 100-image limit on long sessions.
+- For posting messages when text input is difficult, you can use the Mattermost REST API directly — the app picks up new messages via WebSocket in real time.
+
+### Docker Daemon
+
+Docker is installed but the daemon must be started manually. Use a tmux session:
+```bash
+SESSION_NAME="dockerd"
+tmux -f /exec-daemon/tmux.portal.conf new-session -d -s "$SESSION_NAME" -- sudo dockerd
+```
+After starting, fix socket permissions: `sudo chmod 666 /var/run/docker.sock`
