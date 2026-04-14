@@ -17,29 +17,33 @@ type Props = {
     channelDisplayName: string;
 }
 
-const ChannelSettings = ({channelId, channelDisplayName}: Props) => {
+const ChannelConfigurationOption = ({channelId, channelDisplayName}: Props) => {
     const {formatMessage} = useIntl();
     const theme = useTheme();
 
-    const title = formatMessage({id: 'channel_info.channel_settings', defaultMessage: 'Channel Settings'});
-
-    const goToChannelSettings = usePreventDoubleTap(useCallback(async () => {
-        goToScreen(Screens.CHANNEL_SETTINGS, title, {channelId}, {topBar: {subtitle: {
+    const goToConfiguration = usePreventDoubleTap(useCallback(() => {
+        const title = formatMessage({
+            id: 'channel_settings.configuration',
+            defaultMessage: 'Configuration',
+        });
+        goToScreen(Screens.CHANNEL_CONFIGURATION, title, {channelId}, {topBar: {subtitle: {
             text: channelDisplayName,
             color: changeOpacity(theme.sidebarHeaderTextColor, 0.72),
         }}});
-    }, [channelId, channelDisplayName, title, theme.sidebarHeaderTextColor]));
+    }, [channelId, channelDisplayName, formatMessage, theme.sidebarHeaderTextColor]));
 
     return (
         <OptionItem
-            action={goToChannelSettings}
-            label={title}
-            icon='settings-outline'
+            action={goToConfiguration}
+            label={formatMessage({
+                id: 'channel_settings.configuration',
+                defaultMessage: 'Configuration',
+            })}
+            icon='tune'
             type={Platform.select({ios: 'arrow', default: 'default'})}
-            testID='channel_info.options.channel_settings.option'
+            testID='channel_settings.configuration.option'
         />
     );
 };
 
-export default ChannelSettings;
-
+export default ChannelConfigurationOption;
