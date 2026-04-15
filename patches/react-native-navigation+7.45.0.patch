@@ -412,6 +412,40 @@ index 7f1a2e0..c8b3d91 100644
          } else {
              children.remove(child);
          }
+diff --git a/node_modules/react-native-navigation/lib/android/app/src/main/java/com/reactnativenavigation/viewcontrollers/statusbar/StatusBarPresenter.kt b/node_modules/react-native-navigation/lib/android/app/src/main/java/com/reactnativenavigation/viewcontrollers/statusbar/StatusBarPresenter.kt
+index 0000000..0000000 100644
+--- a/node_modules/react-native-navigation/lib/android/app/src/main/java/com/reactnativenavigation/viewcontrollers/statusbar/StatusBarPresenter.kt
++++ b/node_modules/react-native-navigation/lib/android/app/src/main/java/com/reactnativenavigation/viewcontrollers/statusbar/StatusBarPresenter.kt
+@@ -120,7 +120,7 @@ class StatusBarPresenter private constructor(
+ 
+     private fun setStatusBarVisible(viewController: ViewController<*>, visible: Bool) {
+         val window = window.get() ?: return
+-        val view = if (viewController.view != null) viewController.view else window.decorView
++        val view = viewController.getExistingViewOnly() ?: window.decorView
+         if (visible.isFalse) {
+             hideStatusBar(window, view)
+         } else {
+diff --git a/node_modules/react-native-navigation/lib/android/app/src/main/java/com/reactnativenavigation/viewcontrollers/viewcontroller/ViewController.java b/node_modules/react-native-navigation/lib/android/app/src/main/java/com/reactnativenavigation/viewcontrollers/viewcontroller/ViewController.java
+index 0000000..0000000 100644
+--- a/node_modules/react-native-navigation/lib/android/app/src/main/java/com/reactnativenavigation/viewcontrollers/viewcontroller/ViewController.java
++++ b/node_modules/react-native-navigation/lib/android/app/src/main/java/com/reactnativenavigation/viewcontrollers/viewcontroller/ViewController.java
+@@ -242,6 +242,16 @@ public abstract class ViewController<T extends ViewGroup> implements ViewTreeObs
+         return view;
+     }
+ 
++    /**
++     * Returns the view only if it already exists; does not create one.
++     * Kotlin {@code viewController.view} maps to {@link #getView()}, which can recreate views
++     * during activity teardown and crash with "Tried to create view after it has already been destroyed".
++     */
++    @Nullable
++    public T getExistingViewOnly() {
++        return view;
++    }
++
+     public void detachView() {
+         if (view == null || view.getParent() == null) return;
+         ((ViewManager) view.getParent()).removeView(view);
 diff --git a/node_modules/react-native-navigation/lib/ios/RNNComponentViewController.m b/node_modules/react-native-navigation/lib/ios/RNNComponentViewController.m
 index fc482a6..9406bbf 100644
 --- a/node_modules/react-native-navigation/lib/ios/RNNComponentViewController.m
