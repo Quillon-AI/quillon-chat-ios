@@ -9,6 +9,7 @@ import AutoResponderNotificationSettingsScreen from './auto_responder_notificati
 import BrowseChannelsScreen from './browse_channels';
 import ChannelScreen from './channel';
 import ChannelBookmarkScreen from './channel_bookmark';
+import ChannelConfigurationScreen from './channel_configuration';
 import ChannelDropdownMenuScreen from './channel_dropdown_menu';
 import ChannelInfoScreen from './channel_info';
 import ChannelListScreen from './channel_list';
@@ -67,6 +68,7 @@ export {
     ChannelDropdownMenuScreen,
     ChannelInfoScreen,
     ChannelListScreen,
+    ChannelConfigurationScreen,
     ChannelSettingsScreen,
     ClockDisplaySettingsScreen,
     CreateDirectMessageScreen,

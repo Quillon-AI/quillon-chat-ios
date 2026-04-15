@@ -152,3 +152,5 @@ node_modules/@mattermost/intune
 .claude/settings.local.json
 .worktrees
 .pi/
+.codex/
+.cursor/

@@ -62,6 +62,7 @@ class Alert {
     yesButton2 = isAndroid() ? element(by.text('YES')) : element(by.label('Yes')).atIndex(1);
     continueAnywayButton = isAndroid() ? element(by.text('CONTINUE ANYWAY')) : element(by.label('Continue Anyway')).atIndex(0);
     sendButton = isAndroid() ? element(by.text('SEND')) : element(by.label('Send')).atIndex(1);
+    saveButton = isAndroid() ? element(by.text('SAVE')) : element(by.label('Save')).atIndex(1);
 
     // alert titles for channel removal/archival dialogs
     removedFromChannelTitle = isAndroid() ? element(by.text('Removed from channel')) : element(by.label('Removed from channel')).atIndex(0);
