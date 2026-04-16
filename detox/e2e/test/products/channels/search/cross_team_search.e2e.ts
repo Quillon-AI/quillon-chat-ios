@@ -180,7 +180,14 @@ describe('Search - Cross Team Search', () => {
         await TeamDropdownMenuScreen.getAllTeamsItem().tap();
 
         // * j) Verify the selector changed to All teams
-        await waitFor(element(by.text('All teams'))).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        // Use polling waitForElementToExist on Android: by.text() with waitFor().toBeVisible()
+        // fails because bridge-idle sync is blocked by the sheet close animation on API 35, and
+        // the 50% visibility threshold can fail for a text node inside a compound Pressable.
+        if (isAndroid()) {
+            await waitForElementToExist(element(by.text('All teams')), timeouts.TEN_SEC);
+        } else {
+            await waitFor(element(by.text('All teams'))).toBeVisible().withTimeout(timeouts.TEN_SEC);
+        }
 
         // # k) In the "Search messages and files" field, type "horses" and press Enter
         await SearchMessagesScreen.searchInput.typeText('horses');

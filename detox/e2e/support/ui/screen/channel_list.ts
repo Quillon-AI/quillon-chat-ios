@@ -7,7 +7,7 @@ import {
     TeamSidebar,
 } from '@support/ui/component';
 import {HomeScreen} from '@support/ui/screen';
-import {timeouts, wait} from '@support/utils';
+import {timeouts, wait, waitForElementToExist} from '@support/utils';
 import {waitFor} from 'detox';
 
 class ChannelListScreen {
@@ -67,40 +67,36 @@ class ChannelListScreen {
 
     /**
      * Public channel rows can appear under Unreads (when grouped unreads is on), Channels, or
-     * Favorites. Wait until any matching row exists, then tap the one that is present.
+     * Favorites. Poll all three categories in a rolling cycle until the deadline is reached.
      *
-     * Strategy: try the 'channels' category first with the full timeout (most common case).
-     * If that times out, fall back to 'unreads' and 'favorites' with a short probe each.
-     * This avoids the slow 500ms-per-candidate polling loop that was consuming the 30s budget
-     * with repeated false negatives on slower CI runners.
+     * Strategy: probe each category for up to 3 s per attempt, cycling through channels →
+     * unreads → favorites until the total timeout is exhausted. This avoids both bridge-idle
+     * synchronisation (which can stall indefinitely on iOS 26.x) and the split-budget problem
+     * where a channel appearing in 'unreads' after 16 s would miss the 15 s channels window.
      */
     waitForSidebarPublicChannelDisplayNameVisible = async (channelName: string, timeout = timeouts.HALF_MIN) => {
-        const channels = this.getChannelItemDisplayName('channels', channelName);
-        const unreads = this.getChannelItemDisplayName('unreads', channelName);
-        const favorites = this.getChannelItemDisplayName('favorites', channelName);
+        const deadline = Date.now() + timeout;
+        const categories = ['channels', 'unreads', 'favorites'] as const;
 
-        // Split the budget evenly: channels and unreads each get half the timeout.
-        // Channels created via API often have unread posts and land in 'unreads' rather
-        // than 'channels'. Giving the full timeout to 'channels' first burned 30s before
-        // the 2s fallback for 'unreads' was tried — causing widespread CI timeouts.
-        const halfTimeout = Math.floor(timeout / 2);
-
-        /* eslint-disable no-await-in-loop -- sequential category probes */
-        for (const el of [channels, unreads]) {
-            try {
-                await waitFor(el).toExist().withTimeout(halfTimeout);
-                return;
-            } catch {
-                // Not in this category — try the next
+        /* eslint-disable no-await-in-loop */
+        while (Date.now() < deadline) {
+            for (const cat of categories) {
+                const remaining = deadline - Date.now();
+                if (remaining <= 0) {
+                    break;
+                }
+                try {
+                    // Use polling waitForElementToExist — bypasses bridge-idle sync so
+                    // the timer always counts real wall-clock time on iOS 26.x and Android.
+                    await waitForElementToExist(
+                        this.getChannelItemDisplayName(cat, channelName),
+                        Math.min(timeouts.THREE_SEC, remaining),
+                    );
+                    return;
+                } catch {
+                    // Not in this category yet — try the next
+                }
             }
-        }
-
-        // favorites is rare; give it a short probe
-        try {
-            await waitFor(favorites).toExist().withTimeout(timeouts.TWO_SEC);
-            return;
-        } catch {
-            // not found
         }
         /* eslint-enable no-await-in-loop */
         throw new Error('Sidebar channel display name not visible');
@@ -108,17 +104,14 @@ class ChannelListScreen {
 
     tapSidebarPublicChannelDisplayName = async (channelName: string, timeout = timeouts.HALF_MIN) => {
         await this.waitForSidebarPublicChannelDisplayNameVisible(channelName, timeout);
-        const channels = this.getChannelItemDisplayName('channels', channelName);
-        const unreads = this.getChannelItemDisplayName('unreads', channelName);
-        const favorites = this.getChannelItemDisplayName('favorites', channelName);
+        const categories = ['channels', 'unreads', 'favorites'] as const;
 
-        // Tap whichever category actually exists. Use waitFor with a short timeout
-        // rather than instant expect().toExist() to handle the case where the sidebar
-        // re-renders between the wait and the tap (e.g. after device.reloadReactNative).
         /* eslint-disable no-await-in-loop -- sequential fallback: each probe must complete */
-        for (const el of [channels, unreads, favorites]) {
+        for (const cat of categories) {
+            const el = this.getChannelItemDisplayName(cat, channelName);
             try {
-                await waitFor(el).toExist().withTimeout(timeouts.TWO_SEC);
+                // Use polling instead of waitFor().toExist() to avoid bridge-idle stalls.
+                await waitForElementToExist(el, timeouts.TWO_SEC);
                 await el.tap();
                 return;
             } catch {

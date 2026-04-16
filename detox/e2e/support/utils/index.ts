@@ -187,11 +187,10 @@ export async function longPressWithScrollRetry(
             } catch { /* ignore — list may be at the bottom boundary */ }
         }
 
-        // On iOS 26.2 the gesture responder takes longer to become available after
-        // keyboard dismiss animations. On Android the gesture system is more
-        // deterministic so a shorter wait avoids blowing the per-test time budget.
-        const waitDuration = isAndroid() ? timeouts.TWO_SEC : timeouts.FIVE_SEC;
-        const pressDuration = isAndroid() ? timeouts.THREE_SEC : timeouts.FIVE_SEC;
+        // Increase Android wait/press durations: API 35 CI emulators need more time
+        // for the gesture responder to become available after keyboard dismiss animations.
+        const waitDuration = isAndroid() ? timeouts.THREE_SEC : timeouts.FIVE_SEC;
+        const pressDuration = isAndroid() ? timeouts.FOUR_SEC : timeouts.FIVE_SEC;
         await wait(waitDuration);
         await target.longPress(pressDuration);
         try {

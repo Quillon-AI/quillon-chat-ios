@@ -11,7 +11,7 @@ import {
     SendButton,
 } from '@support/ui/component';
 import {PostOptionsScreen} from '@support/ui/screen';
-import {isAndroid, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible, waitForElementToExist} from '@support/utils';
+import {isAndroid, isIos, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible, waitForElementToExist} from '@support/utils';
 import {by, element, expect, waitFor} from 'detox';
 
 class ThreadScreen {
@@ -142,6 +142,18 @@ class ThreadScreen {
             await wait(timeouts.TWO_SEC);
         }
 
+        // On iOS, the most-recent post can sit right at the bottom edge of the list,
+        // partially covered by the post-input bar. Its "hittable point" (the centre)
+        // lies behind the input, making long-press throw "View is not hittable at its
+        // visible point". Scroll the list up slightly to push the post away from the
+        // input area so the gesture lands cleanly.
+        if (isIos()) {
+            try {
+                await this.postList.getFlatList().scroll(100, 'up');
+                await wait(timeouts.ONE_SEC);
+            } catch { /* ignore — list may be at the boundary */ }
+        }
+
         // On Android, long-press on the inner text element — more reliable than the
         // compound-matched post container, which can silently swallow the gesture.
         const longPressTarget = isAndroid()
@@ -182,9 +194,22 @@ class ThreadScreen {
         // # Wait for the send button to be visible before attempting the long press.
         // enterMessageToSchedule calls replaceText() which may not have triggered the
         // React state update that renders the send button by the time we get here.
-        // Without this guard the long press lands on nothing and the bottom sheet
-        // never appears.
-        await waitFor(this.sendButton).toBeVisible().withTimeout(timeouts.FOUR_SEC);
+        // Use polling (waitForElementToBeVisible) instead of waitFor().toBeVisible()
+        // so the wait does not depend on bridge-idle sync, which is permanently busy
+        // on both iOS 26.x (main run loop) and Android API 35 (JS bridge after input).
+        await waitForElementToBeVisible(this.sendButton, timeouts.FOUR_SEC);
+
+        // # On Android, the soft keyboard stays open after replaceText(). Swipe the
+        // post list to trigger keyboardDismissMode='on-drag' and dismiss the keyboard
+        // BEFORE disabling sync. With sync disabled the gesture system is unrestricted,
+        // so the long-press must land on the actual send button — the keyboard must be
+        // gone by then or it will intercept the press.
+        if (isAndroid()) {
+            try {
+                await this.postList.getFlatList().swipe('up', 'fast', 0.3);
+            } catch { /* ignore — post list may be too short to scroll */ }
+            await wait(timeouts.ONE_SEC);
+        }
 
         // # Disable Detox synchronization before the long press. On iOS 26 the main
         // run loop never fully idles, and on Android the JS bridge stays busy after

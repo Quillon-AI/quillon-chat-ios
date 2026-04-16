@@ -424,6 +424,7 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
+
         // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
         await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
@@ -467,6 +468,7 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
+
         // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
         await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
@@ -520,6 +522,7 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
+
         // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
         await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
@@ -570,6 +573,7 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
+
         // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
         await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
@@ -611,6 +615,7 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
+
         // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
         await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
@@ -766,6 +771,7 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
+
         // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
         await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
