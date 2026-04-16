@@ -27,8 +27,8 @@ import {
     ServerScreen,
     UserProfileScreen,
 } from '@support/ui/screen';
-import {timeouts, wait} from '@support/utils';
-import {expect, waitFor} from 'detox';
+import {timeouts, wait, waitForElementToExist} from '@support/utils';
+import {expect} from 'detox';
 
 describe('Messaging - At-Mention', () => {
     const serverOneDisplayName = 'Server 1';
@@ -169,30 +169,23 @@ describe('Messaging - At-Mention', () => {
         const {user: outOfChannelUser} = await User.apiCreateUser(siteOneUrl);
         await Team.apiAddUserToTeam(siteOneUrl, outOfChannelUser.id, testTeam.id);
 
-        // # Open a channel screen and type "@" + first chars to activate at-mention autocomplete
-        // Type "@" together with the first 3 chars of the username in a single typeText
-        // call. Typing bare "@" alone can trigger the noResultsTerm race condition in
-        // at_mention.tsx: if the initial empty-matchTerm search returns 0 results before
-        // any users load, noResultsTerm is set to "" which suppresses all future searches
-        // (every string starts with ""). Typing a few chars alongside "@" ensures the
-        // first search has a non-empty matchTerm that returns results.
+        // # Open a channel screen and type "@" + full username to activate at-mention autocomplete.
+        // Type the full username in one go to avoid the noResultsTerm race condition in
+        // at_mention.tsx: a short 3-char prefix that only matches a freshly-created user
+        // may return 0 results before the user is indexed, causing noResultsTerm to be set
+        // to the prefix and suppressing all future searches. Typing the full username
+        // maximises specificity so the search resolves to exactly this user once indexed.
         await ChannelScreen.open(channelsCategory, testChannel.name);
         await ChannelScreen.postInput.tap();
         await wait(timeouts.ONE_SEC);
-        const usernamePrefix = outOfChannelUser.username.substring(0, 3);
-        await ChannelScreen.postInput.typeText(`@${usernamePrefix}`);
-        await wait(timeouts.TWO_SEC);
+        await ChannelScreen.postInput.typeText(`@${outOfChannelUser.username}`);
 
-        // * Verify at-mention list is displayed
-        await waitFor(Autocomplete.sectionAtMentionList).toExist().withTimeout(timeouts.HALF_MIN);
-
-        // # Type the rest of the username
-        await ChannelScreen.postInput.typeText(outOfChannelUser.username.substring(3));
-        await wait(timeouts.TWO_SEC);
-
-        // * Verify at-mention autocomplete contains the out-of-channel user suggestion
+        // * Verify at-mention autocomplete contains the out-of-channel user suggestion.
+        // Poll directly for the specific item (not the generic sectionAtMentionList) so
+        // the assertion fails fast if a different user appears instead. Use HALF_MIN to
+        // give the search backend enough time to index a freshly-created user.
         const {atMentionItem} = Autocomplete.getAtMentionItem(outOfChannelUser.id);
-        await waitFor(atMentionItem).toExist().withTimeout(timeouts.TEN_SEC);
+        await waitForElementToExist(atMentionItem, timeouts.HALF_MIN);
 
         // # Clear input and type "@" again to test DM post input scenario
         await ChannelScreen.postInput.clearText();

@@ -11,7 +11,7 @@ import {
     SendButton,
 } from '@support/ui/component';
 import {PostOptionsScreen} from '@support/ui/screen';
-import {isAndroid, isIos, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible, waitForElementToExist} from '@support/utils';
+import {isAndroid, longPressWithScrollRetry, timeouts, wait, waitForElementToBeVisible, waitForElementToExist} from '@support/utils';
 import {by, element, expect, waitFor} from 'detox';
 
 class ThreadScreen {
@@ -142,17 +142,20 @@ class ThreadScreen {
             await wait(timeouts.TWO_SEC);
         }
 
-        // On iOS, the most-recent post can sit right at the bottom edge of the list,
-        // partially covered by the post-input bar. Its "hittable point" (the centre)
-        // lies behind the input, making long-press throw "View is not hittable at its
-        // visible point". Scroll the list up slightly to push the post away from the
-        // input area so the gesture lands cleanly.
-        if (isIos()) {
-            try {
-                await this.postList.getFlatList().scroll(100, 'up');
-                await wait(timeouts.ONE_SEC);
-            } catch { /* ignore — list may be at the boundary */ }
-        }
+        // Scroll to the top of the thread list to ensure the target post is in the
+        // fully-hittable viewport area (100% visibility threshold required by long-press).
+        //
+        // Background: longPressWithScrollRetry scrolls DOWN on each retry attempt,
+        // which moves a post at the top of the list progressively further off-screen
+        // behind the PostDraft overlay — the opposite of what is needed. Pre-positioning
+        // at the top of the list means the target post's center is always well above the
+        // PostDraft overlay. For short threads (e.g. parent + 1 reply) both posts remain
+        // simultaneously visible after scrollTo('top'), so replies at the bottom are
+        // unaffected.
+        try {
+            await this.postList.getFlatList().scrollTo('top');
+            await wait(timeouts.ONE_SEC);
+        } catch { /* ignore — list may be too short to scroll */ }
 
         // On Android, long-press on the inner text element — more reliable than the
         // compound-matched post container, which can silently swallow the gesture.
