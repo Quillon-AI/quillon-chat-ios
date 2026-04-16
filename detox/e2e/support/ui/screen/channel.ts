@@ -57,6 +57,7 @@ class ChannelScreen {
         clickOnScheduledMessageButton: 'scheduled_post_create_button',
         scheduledDraftInfoInChannel: 'scheduled_post_header.scheduled_post_indicator',
         scheduledDraftTooltipText: 'scheduled_post.tooltip.description',
+        scheduledPostOptionsBottomSheet: 'scheduled_post_options_bottom_sheet',
     };
 
     scheduleDraftInforMessage = element(by.text('Type a message and long press the send button to schedule it for a later time.'));
@@ -348,7 +349,7 @@ class ChannelScreen {
             // Wait for the schedule picker bottom sheet to appear using polling
             // (does not depend on Detox idle-sync).
             await waitForElementToExist(
-                element(by.id('scheduled_post_options_bottom_sheet')),
+                element(by.id(this.testID.scheduledPostOptionsBottomSheet)),
                 timeouts.HALF_MIN,
             );
         } finally {

@@ -23,6 +23,7 @@ class ThreadScreen {
         followingButton: 'thread.following_thread.button',
         scheduledPostTooltipCloseButton: 'scheduled_post.tooltip.close.button',
         scheduledPostTooltipCloseButtonAdminAccount: 'scheduled_post_tutorial_tooltip.close',
+        scheduledPostOptionsBottomSheet: 'scheduled_post_options_bottom_sheet',
     };
 
     threadScreen = element(by.id(this.testID.threadScreen));
@@ -224,7 +225,7 @@ class ThreadScreen {
 
             // Wait for the schedule picker bottom sheet using polling (no sync dependency).
             await waitForElementToExist(
-                element(by.id('scheduled_post_options_bottom_sheet')),
+                element(by.id(this.testID.scheduledPostOptionsBottomSheet)),
                 timeouts.HALF_MIN,
             );
         } finally {
