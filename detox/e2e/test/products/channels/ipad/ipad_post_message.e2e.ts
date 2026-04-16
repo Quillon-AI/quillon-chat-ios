@@ -79,6 +79,9 @@ describe('iPad - Post Message', () => {
         // threshold required by toBeVisible().  Use toExist() to confirm the view is in the
         // hierarchy regardless of transient keyboard obstruction.
         await waitFor(ChannelListScreen.channelListScreen).toExist().withTimeout(timeouts.TEN_SEC);
+
+        // # Navigate back to channel list for clean state
+        await ChannelScreen.back();
     });
 
     it('MM-TIPAD_16 - should show the post draft input in the channel on iPad', async () => {
@@ -95,6 +98,9 @@ describe('iPad - Post Message', () => {
         // so the assertion passes regardless of keyboard obstruction.
         await waitFor(ChannelScreen.postDraft).toExist().withTimeout(timeouts.TEN_SEC);
         await waitFor(ChannelScreen.postInput).toExist().withTimeout(timeouts.TEN_SEC);
+
+        // # Navigate back to channel list for clean state
+        await ChannelScreen.back();
     });
 
     it('MM-TIPAD_17 - should show send button when text is typed in the draft on iPad', async () => {
@@ -116,6 +122,9 @@ describe('iPad - Post Message', () => {
         // # Clear the draft to return to clean state
         await ChannelScreen.postInput.clearText();
         await wait(timeouts.ONE_SEC);
+
+        // # Navigate back to channel list for clean state
+        await ChannelScreen.back();
     });
 
     it('MM-TIPAD_18 - should display posted messages in the channel post list on iPad', async () => {
@@ -136,7 +145,9 @@ describe('iPad - Post Message', () => {
         const {post} = await Post.apiGetLastPostInChannel(siteOneUrl, testChannel.id);
         const {postListPostItem} = ChannelScreen.getPostListPostItem(post.id, message);
         await waitFor(postListPostItem).toExist().withTimeout(timeouts.TEN_SEC);
-        await expect(postListPostItem).toExist();
+
+        // # Navigate back to channel list for clean state
+        await ChannelScreen.back();
     });
 
     it('MM-TIPAD_19 - should keep sidebar visible while composing a message on iPad', async () => {
@@ -160,5 +171,8 @@ describe('iPad - Post Message', () => {
         // # Clear the draft
         await ChannelScreen.postInput.clearText();
         await wait(timeouts.ONE_SEC);
+
+        // # Navigate back to channel list for clean state
+        await ChannelScreen.back();
     });
 });

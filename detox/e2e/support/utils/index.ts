@@ -326,8 +326,7 @@ export async function waitForElementToNotExist(
     }
     /* eslint-enable no-await-in-loop */
     // Final check - will throw if still exists
-    const {expect: detoxExpectFinal} = require('detox');
-    await detoxExpectFinal(detoxElement).not.toExist();
+    await detoxExpect(detoxElement).not.toExist();
 }
 
 /**
@@ -371,6 +370,5 @@ export async function waitForElementToExist(
     }
     /* eslint-enable no-await-in-loop */
     // Final check - will throw if still not found
-    const {expect: detoxExpectFinal} = require('detox');
-    await detoxExpectFinal(detoxElement).toExist();
+    await detoxExpect(detoxElement).toExist();
 }

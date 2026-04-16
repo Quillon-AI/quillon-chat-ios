@@ -93,13 +93,13 @@ class ThreadScreen {
         try {
             await waitFor(this.scheduledPostTooltipCloseButton).toBeVisible().withTimeout(timeouts.FOUR_SEC);
             await this.scheduledPostTooltipCloseButton.tap();
-            await wait(timeouts.HALF_SEC);
+            await waitFor(this.scheduledPostTooltipCloseButton).not.toExist().withTimeout(timeouts.FIVE_SEC);
         } catch {
             // Try admin account version
             try {
                 await waitFor(this.scheduledPostTooltipCloseButtonAdminAccount).toBeVisible().withTimeout(timeouts.FOUR_SEC);
                 await this.scheduledPostTooltipCloseButtonAdminAccount.tap();
-                await wait(timeouts.HALF_SEC);
+                await waitFor(this.scheduledPostTooltipCloseButtonAdminAccount).not.toExist().withTimeout(timeouts.FIVE_SEC);
             } catch {
                 // Tooltip not visible, continue
             }

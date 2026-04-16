@@ -438,9 +438,9 @@ class ChannelScreen {
             // Monday: "Tomorrow" and "Next Monday" are available; pick "Next Monday"
             await this.scheduleMessageForNextMonday();
         } else {
-            // Sunday, Tuesday–Thursday: "Tomorrow" is available but may not match on
-            // all CI server locales (moment.weekday() is locale-dependent). Use "Monday"
-            // which is always present as a stable fallback on weekdays.
+            // Sunday, Tuesday–Thursday: "Tomorrow" is available. Use "Monday" as a
+            // stable fallback — new Date().getDay() returns 0–6 (Sunday–Saturday)
+            // regardless of locale, and "Monday" is reliably present on these days.
             await this.scheduleMessageForMonday();
         }
     };

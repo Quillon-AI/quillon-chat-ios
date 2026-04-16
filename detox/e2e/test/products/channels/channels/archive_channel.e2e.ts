@@ -110,14 +110,13 @@ async function closeBrowseChannelsChannel() {
     // be dismissed (dismissAllModalsAndPopToScreen closes it during navigation). Check
     // whether Browse Channels is still on screen before trying to close it.
     if (isAndroid()) {
-        // On Android the modal stack can collapse differently — use pressBack
-        // which reliably dismisses the current screen regardless of stack depth.
+        // On Android the modal stack can collapse differently — tap close button if present.
         try {
             await waitFor(BrowseChannelsScreen.closeButton).toExist().withTimeout(timeouts.FOUR_SEC);
             await BrowseChannelsScreen.closeButton.tap();
         } catch {
             // Browse Channels was already dismissed when Channel.back() popped the stack
-            await device.pressBack();
+            // No action needed — navigation already complete
         }
     } else {
         try {
@@ -690,18 +689,24 @@ describe('Channels - Archive and Archived Channels', () => {
         // Disable synchronization before tapReturnKey: the search keeps the dispatch
         // queue busy while processing network/DB work, which would otherwise cause
         // tapReturnKey to block indefinitely waiting for Detox idle.
-        await device.disableSynchronization();
-        await SearchMessagesScreen.searchInput.tapReturnKey();
-
-        // Wait for the search result text to appear (text element, not the composed matcher
-        // which uses withDescendant and can be unreliable when text is highlighted/split).
+        // Declare the element before try/finally so it is accessible for the tap below.
         const searchResultText = element(
             by.
                 text(uniqueMessage).
                 withAncestor(by.id(SearchMessagesScreen.postList.testID.flatList)),
         );
-        await waitForElementToBeVisible(searchResultText, timeouts.ONE_MIN);
-        await device.enableSynchronization();
+
+        await device.disableSynchronization();
+        try {
+            await SearchMessagesScreen.searchInput.tapReturnKey();
+
+            // Wait for the search result text to appear (text element, not the composed matcher
+            // which uses withDescendant and can be unreliable when text is highlighted/split).
+            await waitForElementToBeVisible(searchResultText, timeouts.ONE_MIN);
+        } finally {
+            // Guarantee synchronization is re-enabled even if the wait above throws.
+            await device.enableSynchronization();
+        }
 
         // # Tap on the search result to open the permalink view for the archived channel
         // Tap the text element directly (the ID+text composed matcher is unreliable

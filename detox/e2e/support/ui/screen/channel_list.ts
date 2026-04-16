@@ -160,7 +160,7 @@ class ChannelListScreen {
                 // previous test left the bridge busy (network request, animation) and
                 // Detox's idle wait never resolves, causing all subsequent waitFor calls
                 // to timeout immediately until the app is restarted.
-                await device.launchApp({newInstance: true, launchArgs: {detoxDisableSynchronization: 'YES'}});
+                await device.launchApp({newInstance: true, launchArgs: {detoxEnableSynchronization: 0}});
 
                 // After relaunch the app restores to the last visited screen (e.g. a channel).
                 // If the back button is present we are inside a channel — tap it once to pop
