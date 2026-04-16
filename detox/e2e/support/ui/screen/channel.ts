@@ -421,26 +421,25 @@ class ChannelScreen {
      * Picks the first available schedule option regardless of the current day.
      *
      * The picker shows different options depending on the day of the week:
-     *   Sunday  (0): Tomorrow
-     *   Monday  (1): Tomorrow, Next Monday
-     *   Tue–Thu (2–4): Tomorrow, Monday
+     *   Sunday  (0): Monday (stable fallback)
+     *   Monday  (1): Next Monday
+     *   Tue–Thu (2–4): Monday (stable fallback)
      *   Friday  (5): Monday
      *   Saturday(6): Monday
      *
-     * This method always selects a valid option so tests pass on any day.
+     * "Tomorrow" is intentionally skipped as a stable fallback — Monday is
+     * reliably present on all non-Monday weekdays and Sunday, so tests pass
+     * on any day without relying on "Tomorrow" label availability.
+     * Uses new Date().getDay() which returns 0–6 (Sunday–Saturday) regardless
+     * of locale.
      */
     scheduleMessageForAvailableOption = async () => {
         const day = new Date().getDay(); // 0 = Sunday … 6 = Saturday
-        if (day === 5 || day === 6) {
-            // Friday or Saturday: only "Monday" is available
-            await this.scheduleMessageForMonday();
-        } else if (day === 1) {
+        if (day === 1) {
             // Monday: "Tomorrow" and "Next Monday" are available; pick "Next Monday"
             await this.scheduleMessageForNextMonday();
         } else {
-            // Sunday, Tuesday–Thursday: "Tomorrow" is available. Use "Monday" as a
-            // stable fallback — new Date().getDay() returns 0–6 (Sunday–Saturday)
-            // regardless of locale, and "Monday" is reliably present on these days.
+            // Sunday, Tue–Sat: "Monday" is always a valid and stable choice
             await this.scheduleMessageForMonday();
         }
     };

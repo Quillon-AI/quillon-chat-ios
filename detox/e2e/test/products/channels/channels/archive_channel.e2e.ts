@@ -99,32 +99,19 @@ async function tapChannelAndWaitForArchivedChannelScreen(channelItem: Detox.Nati
 /**
  * Navigate back from a channel that was opened via Browse Channels.
  * Channel back → Browse Channels, then close Browse Channels.
- * On Android, device.pressBack() is more reliable than tapping the close button
- * (avoids bridge-idle sync stalls and modal-stack differences).
  */
 async function closeBrowseChannelsChannel() {
     await ChannelScreen.back();
     await wait(timeouts.ONE_SEC);
 
-    // After the app awaits switchToChannelById, the Browse Channels modal may already
-    // be dismissed (dismissAllModalsAndPopToScreen closes it during navigation). Check
-    // whether Browse Channels is still on screen before trying to close it.
-    if (isAndroid()) {
-        // On Android the modal stack can collapse differently — tap close button if present.
-        try {
-            await waitFor(BrowseChannelsScreen.closeButton).toExist().withTimeout(timeouts.FOUR_SEC);
-            await BrowseChannelsScreen.closeButton.tap();
-        } catch {
-            // Browse Channels was already dismissed when Channel.back() popped the stack
-            // No action needed — navigation already complete
-        }
-    } else {
-        try {
-            await waitFor(BrowseChannelsScreen.closeButton).toExist().withTimeout(timeouts.FOUR_SEC);
-            await BrowseChannelsScreen.closeButton.tap();
-        } catch {
-            // Browse Channels was already dismissed by switchToChannelById navigation
-        }
+    // After Channel.back() the Browse Channels modal may already be dismissed
+    // (dismissAllModalsAndPopToScreen closes it during navigation). Tap close
+    // only if it is still present; swallow if already gone.
+    try {
+        await waitFor(BrowseChannelsScreen.closeButton).toExist().withTimeout(timeouts.FOUR_SEC);
+        await BrowseChannelsScreen.closeButton.tap();
+    } catch {
+        // Browse Channels was already dismissed — no action needed
     }
 }
 

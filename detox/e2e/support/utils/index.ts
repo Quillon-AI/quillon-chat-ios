@@ -319,14 +319,22 @@ export async function waitForElementToNotExist(
             return; // Element no longer exists
         } catch (error) {
             if ((Date.now() - startTime) + pollInterval >= timeout) {
-                throw error;
+                throw new Error(
+                    `waitForElementToNotExist: element still present after ${timeout}ms. Original: ${(error as Error)?.message ?? String(error)}`,
+                );
             }
             await wait(pollInterval);
         }
     }
     /* eslint-enable no-await-in-loop */
     // Final check - will throw if still exists
-    await detoxExpect(detoxElement).not.toExist();
+    try {
+        await detoxExpect(detoxElement).not.toExist();
+    } catch (error) {
+        throw new Error(
+            `waitForElementToNotExist: element still present after ${timeout}ms. Original: ${(error as Error)?.message ?? String(error)}`,
+        );
+    }
 }
 
 /**

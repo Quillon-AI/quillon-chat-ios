@@ -119,8 +119,8 @@ class ChannelListScreen {
             }
         }
         /* eslint-enable no-await-in-loop */
-        // All categories failed — throw a clear error
-        throw new Error(`Sidebar channel item not found for channel: ${channelName}`);
+        // All categories failed — include the searched categories in the error for easier CI debugging
+        throw new Error(`Sidebar channel item not found for channel: ${channelName}; searched categories: [${categories.join(', ')}]`);
     };
 
     getTeamItemSelected = (teamId: string) => {
