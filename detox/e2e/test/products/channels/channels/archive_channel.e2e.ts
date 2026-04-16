@@ -37,25 +37,51 @@ import {
 import {expect, waitFor} from 'detox';
 
 /**
- * Wait for the channel screen to appear after tapping a channel in Browse Channels.
+ * Tap an archived channel item in Browse Channels and wait for the channel screen.
  *
  * On iOS, tapping a channel in Browse Channels triggers concurrent modal dismissal
  * and channel screen push, producing a UITransitionView overlay that blocks Detox's
  * visibility/hittability checks. The bridge also stays busy during these transitions,
  * causing standard waitFor().toExist() to block waiting for bridge-idle that never
- * arrives within the timeout.
+ * arrives within the timeout. Critically, the tap itself can stall if sync is still
+ * enabled when the bridge is busy — so synchronization must be disabled before the
+ * tap, not after.
  *
  * This helper:
- * 1. Disables Detox synchronization on iOS so polling waits aren't blocked by the busy bridge
- * 2. Polls for the channel screen element to exist in the hierarchy
- * 3. Waits for the UITransitionView overlay to clear by polling for postDraftArchived visibility
- * 4. Re-enables synchronization
+ * 1. Disables Detox synchronization on iOS BEFORE the tap so the gesture dispatches
+ *    immediately without waiting for bridge-idle
+ * 2. Performs the tap on the provided channel item element
+ * 3. Polls for the channel screen element to exist in the hierarchy
+ * 4. Waits for the UITransitionView overlay to clear by polling for postDraftArchived
+ * 5. Re-enables synchronization
+ */
+/**
+ * Wait for the archived channel screen after a non-tap navigation (e.g. permalink jump).
+ * Disables sync on iOS after the navigation action has already been triggered.
  */
 async function waitForArchivedChannelScreen() {
     if (isIos()) {
         await device.disableSynchronization();
     }
     try {
+        await waitForElementToExist(ChannelScreen.channelScreen, timeouts.ONE_MIN);
+        await waitForElementToBeVisible(ChannelScreen.postDraftArchived, timeouts.HALF_MIN);
+    } finally {
+        if (isIos()) {
+            await device.enableSynchronization();
+        }
+    }
+}
+
+async function tapChannelAndWaitForArchivedChannelScreen(channelItem: Detox.NativeElement) {
+    if (isIos()) {
+        await device.disableSynchronization();
+    }
+    try {
+        // Tap while sync is disabled so the gesture fires immediately even if the
+        // bridge is still processing the modal-dismiss transition.
+        await channelItem.tap();
+
         // Wait for the channel screen element to appear in the hierarchy.
         await waitForElementToExist(ChannelScreen.channelScreen, timeouts.ONE_MIN);
 
@@ -356,11 +382,9 @@ describe('Channels - Archive and Archived Channels', () => {
             BrowseChannelsScreen.getChannelItemDisplayName(archivedChannel.name),
         ).toHaveText(archivedChannel.display_name);
 
-        // # Tap on the archived channel to open it
-        await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
-
-        // * Verify archived channel displays and is read-only (archived post draft shown)
-        await waitForArchivedChannelScreen();
+        // # Tap on the archived channel to open it; waits with sync disabled on iOS
+        // so the gesture fires before the bridge becomes busy with the modal transition.
+        await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
         // * Verify the close channel button is visible at the bottom
         await waitForElementToBeVisible(
@@ -400,10 +424,8 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
-        await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
-
-        // * Verify the archived channel screen is visible in read-only state
-        await waitForArchivedChannelScreen();
+        // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
+        await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
         // # Open channel info
         await ChannelInfoScreen.open();
@@ -445,10 +467,8 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
-        await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
-
-        // * Verify the archived channel screen is visible in read-only state
-        await waitForArchivedChannelScreen();
+        // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
+        await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
         // # Open channel info and leave the channel
         await ChannelInfoScreen.open();
@@ -500,10 +520,8 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
-        await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
-
-        // * Verify the archived channel is in read-only state
-        await waitForArchivedChannelScreen();
+        // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
+        await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
         // # Long-press on the post to open post options
         await ChannelScreen.openPostOptionsFor(post.id, message);
@@ -552,10 +570,8 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
-        await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
-
-        // * Verify the archived channel is in read-only state
-        await waitForArchivedChannelScreen();
+        // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
+        await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
         // # Long-press on the post to open post options and verify reactions cannot be added
         await ChannelScreen.openPostOptionsFor(post.id, message);
@@ -595,10 +611,8 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
-        await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
-
-        // * Verify the archived channel screen is visible in read-only state
-        await waitForArchivedChannelScreen();
+        // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
+        await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
         // # Open channel info
         await ChannelInfoScreen.open();
@@ -752,10 +766,8 @@ describe('Channels - Archive and Archived Channels', () => {
         // Wait for the channel item to appear after search — fixed 1s sleep was
         // insufficient on API 35 where the archived list renders more slowly.
         await waitFor(BrowseChannelsScreen.getChannelItem(archivedChannel.name)).toExist().withTimeout(timeouts.TEN_SEC);
-        await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
-
-        // * Verify the archived channel screen is visible in read-only state
-        await waitForArchivedChannelScreen();
+        // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
+        await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
         // # Long-press the post to open post options and save it
         await ChannelScreen.openPostOptionsFor(post.id, message);
@@ -817,10 +829,8 @@ describe('Channels - Archive and Archived Channels', () => {
         ).toHaveText(archivedChannel.display_name);
 
         // # Tap on the archived channel to open it
-        await BrowseChannelsScreen.getChannelItem(archivedChannel.name).tap();
-
-        // * Verify the archived channel screen is visible in read-only state
-        await waitForArchivedChannelScreen();
+        // * Tap and wait with sync disabled on iOS so the gesture fires immediately.
+        await tapChannelAndWaitForArchivedChannelScreen(BrowseChannelsScreen.getChannelItem(archivedChannel.name));
 
         // * Verify main thread has no active post input box
         await expect(ChannelScreen.postInput).not.toBeVisible();

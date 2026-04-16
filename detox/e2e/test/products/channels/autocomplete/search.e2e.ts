@@ -21,7 +21,7 @@ import {
     ServerScreen,
 } from '@support/ui/screen';
 import {timeouts, wait} from '@support/utils';
-import {expect} from 'detox';
+import {expect, waitFor} from 'detox';
 
 describe('Autocomplete - Search', () => {
     const serverOneDisplayName = 'Server 1';

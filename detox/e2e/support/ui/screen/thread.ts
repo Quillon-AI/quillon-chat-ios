@@ -179,6 +179,13 @@ class ThreadScreen {
         // on the actual send button element.
         await this.dismissScheduledPostTooltip();
 
+        // # Wait for the send button to be visible before attempting the long press.
+        // enterMessageToSchedule calls replaceText() which may not have triggered the
+        // React state update that renders the send button by the time we get here.
+        // Without this guard the long press lands on nothing and the bottom sheet
+        // never appears.
+        await waitFor(this.sendButton).toBeVisible().withTimeout(timeouts.FOUR_SEC);
+
         // # Disable Detox synchronization before the long press. On iOS 26 the main
         // run loop never fully idles, and on Android the JS bridge stays busy after
         // text input. This causes longPress() to hang waiting for idle-sync. Disabling

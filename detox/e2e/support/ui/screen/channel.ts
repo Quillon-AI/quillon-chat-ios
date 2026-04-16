@@ -303,6 +303,13 @@ class ChannelScreen {
         // on the actual send button element.
         await this.dismissScheduledPostTooltip();
 
+        // # Wait for the send button to be visible before attempting the long press.
+        // enterMessageToSchedule calls replaceText() which may not have triggered the
+        // React state update that renders the send button by the time we get here.
+        // This mirrors the same guard in tapSendButton and prevents the long press
+        // from landing on nothing (which leaves the bottom sheet never appearing).
+        await waitFor(this.sendButton).toBeVisible().withTimeout(timeouts.FOUR_SEC);
+
         // # Disable Detox synchronization before the long press. On iOS 26 the main
         // run loop never fully idles (the "Main Run Loop is awake" sync blocker),
         // causing waitFor-based matchers and even longPress() to hang for 30s before
