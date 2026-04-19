@@ -182,9 +182,15 @@ export async function longPressWithScrollRetry(
                 await scrollTarget.scroll(100, 'down', 0.5, 0.5);
             } catch { /* ignore — list may be at the bottom boundary */ }
         } else {
+            // On iOS 26 iPhone 17 Pro the dynamic island covers roughly the top 60pt.
+            // A fresh post can render with its centre point under the island and fail
+            // Detox's hittability probe (view_point {201,30} — visibility percent 100).
+            // Swipe DOWN (finger moves top→bottom) so the post moves DOWN out from under
+            // the island. Use swipe (real gesture) — scroll() can use a programmatic
+            // offset that doesn't actually reposition in the layout for hittability.
             try {
-                await scrollTarget.scroll(50, 'down', 0.5, 0.5);
-            } catch { /* ignore — list may be at the bottom boundary */ }
+                await scrollTarget.swipe('down', 'slow', 0.25);
+            } catch { /* ignore — list may already be at top */ }
         }
 
         // Increase Android wait/press durations: API 35 CI emulators need more time
@@ -192,7 +198,23 @@ export async function longPressWithScrollRetry(
         const waitDuration = isAndroid() ? timeouts.THREE_SEC : timeouts.FIVE_SEC;
         const pressDuration = isAndroid() ? timeouts.FOUR_SEC : timeouts.FIVE_SEC;
         await wait(waitDuration);
-        await target.longPress(pressDuration);
+
+        // On iOS 26.x the gesture-recognizer hittability check can fail even when
+        // the target is visually on-screen (a residual UITransitionView / dim
+        // overlay from the previous screen transition keeps reporting a non-100%
+        // visibility percent). Disable synchronization around the gesture so the
+        // longPress dispatches regardless of Detox's hittability probe, then
+        // re-enable so subsequent matchers run normally.
+        if (isIos()) {
+            await device.disableSynchronization();
+        }
+        try {
+            await target.longPress(pressDuration);
+        } finally {
+            if (isIos()) {
+                await device.enableSynchronization();
+            }
+        }
         try {
             // Use polling waitForElementToExist instead of waitFor().toExist() to avoid
             // bridge-idle synchronization blocking on Android API 35 CI emulators.

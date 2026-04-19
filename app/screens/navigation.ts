@@ -47,6 +47,11 @@ const shownNonWatermarkOverlayIds = new Set<string>();
 /** RNN overlay options for the watermark (pass-through on Android via patched RNN). */
 const watermarkOverlayOptions: NonNullable<Options['overlay']> = {
     interceptTouchOutside: false,
+
+    // androidIgnoreTouchInside is added by our RNN patch (see
+    // patches/react-native-navigation+7.45.0.patch); the upstream TypeScript
+    // definitions don't know about it yet.
+    // @ts-expect-error — patched-in Android-only option
     androidIgnoreTouchInside: true,
 };
 

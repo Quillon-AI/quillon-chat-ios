@@ -220,12 +220,13 @@ class ChannelScreen {
     openPostOptionsFor = async (postId: string, text: string) => {
         const {postListPostItem} = this.getPostListPostItem(postId, text);
 
-        // Poll for the post to become visible without waiting for idle bridge.
-        // On Android the JS bridge (mqt_js) is often busy during animations and
-        // channel-load transitions. waitFor().toBeVisible().withTimeout() blocks
-        // until bridge idle before evaluating, causing BridgeIdlingResource timeouts
-        // on CI emulators. Use the polling helper instead.
-        await waitForElementToBeVisible(postListPostItem, timeouts.HALF_MIN);
+        // Poll for the post to exist in the hierarchy (not necessarily meeting the
+        // 75% visibility threshold). On iOS 26.x the most recent post often sits
+        // behind the post-input bar or under a transient keyboard, so toBeVisible()
+        // fails even though the post is present and will become hittable after the
+        // scroll-up on line ~252. Polling toExist() is sufficient — the subsequent
+        // longPressWithScrollRetry handles visibility on its own via scroll retries.
+        await waitForElementToExist(postListPostItem, timeouts.HALF_MIN);
 
         // On Android, dismiss the keyboard before long-pressing. The soft keyboard
         // stays open after postMessage() and intercepts the long-press gesture on
