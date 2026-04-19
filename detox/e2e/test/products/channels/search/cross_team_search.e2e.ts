@@ -164,9 +164,12 @@ describe('Search - Cross Team Search', () => {
         await SearchMessagesScreen.toBeVisible();
         await expect(SearchMessagesScreen.largeHeaderTitle).toHaveText('Search');
 
-        // * i) Verify to the right of "Search Options" is "Team Open" with a drop-down arrow
+        // * i) Verify to the right of "Search Options" is "Team Open" with a drop-down arrow.
+        // The team display name can render multiple times (header + team picker button);
+        // match atIndex(0) — we only need ONE instance to be visible to prove the picker
+        // is on screen.
         await expect(SearchMessagesScreen.searchModifierHeader).toHaveText('Search options');
-        await expect(element(by.text(teamOpen.display_name))).toBeVisible();
+        await expect(element(by.text(teamOpen.display_name)).atIndex(0)).toBeVisible();
 
         // # j) Tap on Team Open with the drop-down arrow, then select All teams
         await SearchMessagesScreen.teamPickerButton.tap();
