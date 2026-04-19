@@ -74,7 +74,7 @@ class ChannelListScreen {
      * synchronisation (which can stall indefinitely on iOS 26.x) and the split-budget problem
      * where a channel appearing in 'unreads' after 16 s would miss the 15 s channels window.
      */
-    waitForSidebarPublicChannelDisplayNameVisible = async (channelName: string, timeout = timeouts.HALF_MIN) => {
+    waitForSidebarPublicChannelDisplayNameVisible = async (channelName: string, timeout = timeouts.ONE_MIN) => {
         const deadline = Date.now() + timeout;
         const categories = ['channels', 'unreads', 'favorites'] as const;
 
@@ -102,7 +102,7 @@ class ChannelListScreen {
         throw new Error('Sidebar channel display name not visible');
     };
 
-    tapSidebarPublicChannelDisplayName = async (channelName: string, timeout = timeouts.HALF_MIN) => {
+    tapSidebarPublicChannelDisplayName = async (channelName: string, timeout = timeouts.ONE_MIN) => {
         await this.waitForSidebarPublicChannelDisplayNameVisible(channelName, timeout);
         const categories = ['channels', 'unreads', 'favorites'] as const;
 

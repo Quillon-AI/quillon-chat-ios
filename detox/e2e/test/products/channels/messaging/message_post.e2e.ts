@@ -37,6 +37,9 @@ describe('Messaging - Message Post', () => {
         // # Log in to server
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(user);
+
+        // Ensure the channel has propagated to the sidebar before any test body runs.
+        await ChannelListScreen.waitForSidebarPublicChannelDisplayNameVisible(testChannel.name);
     });
 
     beforeEach(async () => {
@@ -88,8 +91,11 @@ describe('Messaging - Message Post', () => {
         // * Verify show more button is visible while the long post is still the most recent
         // (posting a short message after would scroll the long post off-screen and virtualize it,
         // removing the show_more element from the view hierarchy entirely)
+        // Use toExist() (not toBeVisible()) because a 40x repeated sentence renders taller
+        // than the viewport on iPhone 17 Pro / iOS 26.x, so the post view is clipped by its
+        // superview bounds and fails Detox's 75% visibility threshold even when it is on-screen.
         const {postListPostItem, postListPostItemShowLessButton, postListPostItemShowMoreButton} = ChannelScreen.getPostListPostItem(post.id, longMessage);
-        await expect(postListPostItem).toBeVisible();
+        await expect(postListPostItem).toExist();
 
         // # On Android the keyboard can remain open after sending, which compresses the FlatList
         // and pushes the show-more button behind the draft input bar. Dismiss it first.

@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {Alert} from '@support/ui/component';
-import {isAndroid, isIos, timeouts, wait} from '@support/utils';
+import {isAndroid, isIos, timeouts, wait, waitForElementToExist} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class ServerScreen {
@@ -80,11 +80,13 @@ class ServerScreen {
         }
 
         // Wait for the login form to appear after server connection.
-        // Use toExist() rather than toBeVisible() because the 50% visibility
-        // threshold can fail on Android edge-to-edge rendering even when the
-        // element is present and usable.
+        // Use polling waitForElementToExist instead of waitFor().toExist() — Detox's
+        // built-in wait relies on app-idle sync which can stall indefinitely on
+        // iOS 26.x because the main run loop keeps 2 work items pending (known RN/
+        // RCT_NEW_ARCH=0 behaviour on iOS 26 simulators). The polling helper probes
+        // the element on a wall-clock interval regardless of app-idle state.
         const timeout = isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN;
-        await waitFor(this.usernameInput).toExist().withTimeout(timeout);
+        await waitForElementToExist(this.usernameInput, timeout);
     };
 
     /**
@@ -139,6 +141,7 @@ class ServerScreen {
         for (const btn of strategies) {
             try {
                 await btn.tap();
+
                 // Verify the alert is actually gone; a tap on the wrong element
                 // silently no-ops (Detox still returns success) and the alert
                 // remains, blocking the next screen transition.
