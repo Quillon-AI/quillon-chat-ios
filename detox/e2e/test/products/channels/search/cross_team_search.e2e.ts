@@ -80,6 +80,9 @@ describe('Search - Cross Team Search', () => {
         // # Log in to server
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(testUser);
+
+        // Ensure the channel has propagated to the sidebar before any test body runs.
+        await ChannelListScreen.waitForSidebarPublicChannelDisplayNameVisible(offTopicChannel.name);
     });
 
     beforeEach(async () => {
