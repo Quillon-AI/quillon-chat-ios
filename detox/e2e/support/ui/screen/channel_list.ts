@@ -155,7 +155,11 @@ class ChannelListScreen {
         // Callers that need a longer wait (e.g. post-archive navigation on API 35)
         // can pass an explicit timeout.
         try {
-            await waitFor(this.channelListScreen).toExist().withTimeout(timeout);
+            // Use polling waitForElementToExist instead of waitFor().toExist() — on iOS 26.x
+            // simulators the main run loop keeps 2 persistent work items pending, which stalls
+            // Detox's app-idle synchronisation and makes waitFor().toExist() time out even when
+            // the screen is rendered.
+            await waitForElementToExist(this.channelListScreen, timeout);
         } catch (firstError) {
             // A previous test may have left the app mid-navigation (e.g. DM screen open,
             // bottom sheet animating). Recovery: relaunch the app with a new instance so
@@ -190,7 +194,8 @@ class ChannelListScreen {
                 }
                 /* eslint-enable no-await-in-loop */
 
-                await waitFor(this.channelListScreen).toExist().withTimeout(timeouts.TWO_MIN);
+                // Polling helper bypasses iOS 26 app-idle sync stall.
+                await waitForElementToExist(this.channelListScreen, timeouts.TWO_MIN);
             } catch (recoveryError) {
                 // Log recovery failure, then re-throw the original error so the test failure message is meaningful
                 // eslint-disable-next-line no-console

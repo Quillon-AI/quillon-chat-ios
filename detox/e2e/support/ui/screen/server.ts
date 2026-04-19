@@ -86,7 +86,27 @@ class ServerScreen {
         // RCT_NEW_ARCH=0 behaviour on iOS 26 simulators). The polling helper probes
         // the element on a wall-clock interval regardless of app-idle state.
         const timeout = isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN;
-        await waitForElementToExist(this.usernameInput, timeout);
+        try {
+            await waitForElementToExist(this.usernameInput, timeout);
+        } catch (error) {
+            if (!isIos()) {
+                throw error;
+            }
+            // iOS fallback: dismissing the push-proxy alert sometimes leaves the
+            // server screen visible (flow state depends on timing of fetchConfigAndLicense
+            // resolving). Re-tap Connect and wait again. If the button is gone
+            // (login already shown) the retap is a no-op.
+            /* eslint-disable no-console -- diagnostic for flaky connect */
+            console.warn('[ServerScreen.connectToServer] username.input not found after first Connect — re-tapping and retrying');
+            /* eslint-enable no-console */
+            try {
+                await this.connectButton.tap();
+            } catch {
+                // Button may not be hittable any more — proceed to retry the wait
+            }
+            await this.dismissIosNotificationsAlert();
+            await waitForElementToExist(this.usernameInput, timeout);
+        }
     };
 
     /**
