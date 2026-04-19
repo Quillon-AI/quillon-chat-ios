@@ -76,17 +76,7 @@ class ServerScreen {
 
         if (isIos()) {
             await this.tapConnectButton();
-            if (serverUrl.includes('127.0.0.1') || !process.env.CI) {
-                try {
-
-                    // # Tap alert okay button
-                    await waitFor(Alert.okayButton).toExist().withTimeout(timeouts.TEN_SEC);
-                    await Alert.okayButton.tap();
-                } catch (error) {
-                    /* eslint-disable no-console */
-                    console.log('Alert button did not appear!');
-                }
-            }
+            await this.dismissIosNotificationsAlert();
         }
 
         // Wait for the login form to appear after server connection.
@@ -95,6 +85,73 @@ class ServerScreen {
         // element is present and usable.
         const timeout = isAndroid() ? timeouts.ONE_MIN : timeouts.HALF_MIN;
         await waitFor(this.usernameInput).toExist().withTimeout(timeout);
+    };
+
+    /**
+     * Dismiss the iOS "Notifications could not/cannot be received from this server"
+     * alert that appears after connecting to a dev/self-hosted server without a valid
+     * push notification config. iOS 26.x on iPad exposes the Okay button with label
+     * "Okay" at multiple indexes (button wrapper + label), and the correct index
+     * varies by device + iOS build. We tap each candidate in sequence and verify the
+     * alert title disappears before claiming success, so a no-op tap on the wrong
+     * element does not silently leave the alert blocking the login transition.
+     */
+    dismissIosNotificationsAlert = async () => {
+        // Alert may not exist (e.g. push-proxy verified cleanly); early-exit the check
+        // quickly so clean environments aren't penalised by retries.
+        const alertTitle = element(by.label('Notifications cannot be received from this server')).atIndex(0);
+        const alertTitleAlt = element(by.label('Notifications could not be received from this server')).atIndex(0);
+
+        const alertIsPresent = async () => {
+            try {
+                await waitFor(alertTitle).toExist().withTimeout(timeouts.HALF_SEC);
+                return true;
+            } catch {
+                // try alt title
+            }
+            try {
+                await waitFor(alertTitleAlt).toExist().withTimeout(timeouts.HALF_SEC);
+                return true;
+            } catch {
+                return false;
+            }
+        };
+
+        // Short initial wait so the alert has a chance to animate in before we probe.
+        try {
+            await waitFor(alertTitle).toExist().withTimeout(timeouts.FOUR_SEC);
+        } catch {
+            try {
+                await waitFor(alertTitleAlt).toExist().withTimeout(timeouts.ONE_SEC);
+            } catch {
+                // No alert — clean connect
+                return;
+            }
+        }
+
+        const strategies = [
+            element(by.label('Okay')).atIndex(0),
+            element(by.label('Okay')).atIndex(1),
+            element(by.text('Okay')),
+        ];
+
+        /* eslint-disable no-await-in-loop -- sequential fallbacks with verification */
+        for (const btn of strategies) {
+            try {
+                await btn.tap();
+                // Verify the alert is actually gone; a tap on the wrong element
+                // silently no-ops (Detox still returns success) and the alert
+                // remains, blocking the next screen transition.
+                if (!(await alertIsPresent())) {
+                    return;
+                }
+            } catch {
+                // Element not found for this strategy — try the next
+            }
+        }
+        /* eslint-enable no-await-in-loop */
+        // All strategies failed — let the caller's waitFor(username) time out
+        // with a clear stack trace (better than a silent no-dismiss here).
     };
 
     close = async () => {
@@ -149,16 +206,7 @@ class ServerScreen {
         }
         if (isIos()) {
             await this.tapConnectButton();
-            if (serverUrl.includes('127.0.0.1') || !process.env.CI) {
-                try {
-                    // # Tap alert okay button
-                    await waitFor(Alert.okayButton).toExist().withTimeout(timeouts.TEN_SEC);
-                    await Alert.okayButton.tap();
-                } catch (error) {
-                    /* eslint-disable no-console */
-                    console.log('Alert button did not appear!');
-                }
-            }
+            await this.dismissIosNotificationsAlert();
         }
 
         // Wait for the login form to appear after server connection with preauth.

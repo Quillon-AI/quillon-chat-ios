@@ -27,6 +27,11 @@ describe('iPad - Channel Navigation', () => {
         // # Log in to server
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(testUser);
+
+        // Ensure the channel has propagated into the sidebar before any test body runs.
+        // Without this, an early tap on the channel item races the initial sync/render
+        // and the RCTView fails Detox's visibility percent threshold.
+        await ChannelListScreen.waitForSidebarPublicChannelDisplayNameVisible(testChannel.name);
     });
 
     beforeEach(async () => {
@@ -44,8 +49,8 @@ describe('iPad - Channel Navigation', () => {
             return;
         }
 
-        // # Tap on the test channel in the sidebar
-        await ChannelListScreen.getChannelItemDisplayName(channelsCategory, testChannel.name).tap();
+        // # Tap on the test channel in the sidebar (polling across categories)
+        await ChannelListScreen.tapSidebarPublicChannelDisplayName(testChannel.name);
         await wait(timeouts.TWO_SEC);
 
         // * Verify the channel screen is visible
@@ -64,9 +69,9 @@ describe('iPad - Channel Navigation', () => {
             return;
         }
 
-        // # Open the test channel from the sidebar
+        // # Open the test channel from the sidebar (polling across categories)
         await wait(timeouts.TWO_SEC);
-        await ChannelListScreen.getChannelItemDisplayName(channelsCategory, testChannel.name).tap();
+        await ChannelListScreen.tapSidebarPublicChannelDisplayName(testChannel.name);
         await wait(timeouts.TWO_SEC);
 
         // * Verify the channel is open
@@ -82,9 +87,9 @@ describe('iPad - Channel Navigation', () => {
             return;
         }
 
-        // # Tap the test channel in the sidebar
+        // # Tap the test channel in the sidebar (polling across categories)
         await wait(timeouts.TWO_SEC);
-        await ChannelListScreen.getChannelItemDisplayName(channelsCategory, testChannel.name).tap();
+        await ChannelListScreen.tapSidebarPublicChannelDisplayName(testChannel.name);
         await wait(timeouts.TWO_SEC);
 
         // * Verify the channel screen opened for the correct channel

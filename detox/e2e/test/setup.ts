@@ -328,10 +328,17 @@ beforeAll(async () => {
 
     if (isFirstFile) {
         process.env.DETOX_SETUP_DONE = 'true';
-    } else if (device.getPlatform() === 'ios') {
-        // Subsequent files on iOS: clear data without uninstalling the binary.
-        // Avoids the fragile delete:true uninstall→reinstall cycle that breaks
-        // the Detox WebSocket on resource-constrained CI runners + iOS 26.x.
+    }
+
+    if (device.getPlatform() === 'ios') {
+        // Always clear iOS data before every file, including the first. Without this,
+        // local re-runs inherit credentials/databases from the previous process, which
+        // triggers the "already connected" path in server screen — the Connect tap
+        // no-ops and the login form never appears, hanging beforeAll on
+        // waitFor(login_form.username.input). CI fresh-boots the simulator so the first
+        // file is implicitly clean there; locally we need to force it ourselves.
+        // Clearing data (not uninstalling) avoids the fragile delete:true reinstall
+        // cycle that breaks the Detox WebSocket on resource-constrained CI runners.
         clearIOSAppData();
     }
 

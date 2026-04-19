@@ -108,14 +108,24 @@ class ChannelListScreen {
 
         /* eslint-disable no-await-in-loop -- sequential fallback: each probe must complete */
         for (const cat of categories) {
-            const el = this.getChannelItemDisplayName(cat, channelName);
+            // Prefer tapping the channel_item container (full row): the display_name text
+            // is clipped by the narrow iPad sidebar column and fails Detox's 100% visibility
+            // check even though the row itself is hittable.
+            const container = this.getChannelItem(cat, channelName);
+            const label = this.getChannelItemDisplayName(cat, channelName);
             try {
-                // Use polling instead of waitFor().toExist() to avoid bridge-idle stalls.
-                await waitForElementToExist(el, timeouts.TWO_SEC);
-                await el.tap();
+                await waitForElementToExist(container, timeouts.TWO_SEC);
+                await container.tap();
                 return;
             } catch {
-                // try next
+                // Container not hittable — try the label as a fallback
+            }
+            try {
+                await waitForElementToExist(label, timeouts.TWO_SEC);
+                await label.tap();
+                return;
+            } catch {
+                // Try next category
             }
         }
         /* eslint-enable no-await-in-loop */
