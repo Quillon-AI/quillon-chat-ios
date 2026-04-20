@@ -10,6 +10,7 @@ export const ToolCallStatus = {
     Rejected: 2,
     Error: 3,
     Success: 4,
+    AutoApproved: 5,
 } as const;
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- TypeScript supports same-name type/value pairs as enum alternative
@@ -79,15 +80,29 @@ export interface StreamingState {
 }
 
 /**
- * AI thread data structure from the server
+ * AI thread data structure from the server.
+ *
+ * Wire shape differs between plugin versions:
+ * - plugin < 2.0: `id` is the root post id; `channel_id` is always a string.
+ * - plugin >= 2.0: `id` is the conversation id; `root_post_id` is the nullable
+ *   root post id; `channel_id` may be null for threadless conversations; a new
+ *   `bot_id` is present.
+ *
+ * Mobile normalises to the legacy shape at ingestion — see fetchAIThreads —
+ * so by the time this interface reaches the handler, `id` is always the root
+ * post id suitable for navigation.
  */
 export interface AIThread {
-    id: string; // Post ID
+    id: string; // Post ID (normalised on ingest)
     message: string; // Preview text
     title: string; // Thread title
     channel_id: string; // DM channel with bot
     reply_count: number; // Number of replies
     update_at: number; // Last update timestamp
+
+    // Raw plugin >= 2.0 fields, surfaced for callers that need them.
+    root_post_id?: string | null;
+    bot_id?: string;
 }
 
 /**
@@ -138,6 +153,21 @@ export interface AIBotsResponse {
     searchEnabled: boolean;
     allowUnsafeLinks: boolean;
 }
+
+// ============================================================================
+// Conversation Entity Types (plugin-agents >= 2.0)
+// ============================================================================
+
+export {
+    BlockType,
+    ToolCallStatusString,
+    type Citation,
+    type ContentBlock,
+    type ConversationResponse,
+    type Turn,
+    type TurnRole,
+    type WebSearchContext,
+} from './conversation';
 
 // ============================================================================
 // Rewrite Types

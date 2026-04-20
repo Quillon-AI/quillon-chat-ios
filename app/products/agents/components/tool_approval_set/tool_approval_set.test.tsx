@@ -1,0 +1,120 @@
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
+
+import {ToolApprovalStage, ToolCallStatus, type ToolCall} from '@agents/types';
+import React from 'react';
+
+import {fireEvent, renderWithIntlAndTheme} from '@test/intl-test-helper';
+
+import ToolApprovalSet from './index';
+
+// Mock Markdown so we can assert its rendered `value` prop directly.
+jest.mock('@components/markdown', () => {
+    const {Text} = require('react-native');
+    const MockMarkdown = ({value}: {value: string}) => (
+        <Text testID='mock-markdown'>{value}</Text>
+    );
+    return MockMarkdown;
+});
+
+jest.mock('@context/server', () => ({
+    useServerUrl: () => 'https://test.mattermost.com',
+}));
+
+jest.mock('@agents/actions/remote/tool_approval', () => ({
+    submitToolApproval: jest.fn().mockResolvedValue({}),
+}));
+
+jest.mock('@agents/actions/remote/tool_result', () => ({
+    submitToolResult: jest.fn().mockResolvedValue({}),
+}));
+
+function makeTool(overrides: Partial<ToolCall> = {}): ToolCall {
+    return {
+        id: 'tu1',
+        name: 'search_docs',
+        description: '',
+        arguments: {query: 'test'},
+        result: 'result body',
+        status: ToolCallStatus.Success,
+        ...overrides,
+    };
+}
+
+describe('ToolApprovalSet — tool card expansion (Bug #3)', () => {
+    it('shows arguments markdown when a completed tool card is tapped open', () => {
+        const tool = makeTool();
+
+        const {getByText, queryByTestId, getAllByTestId} = renderWithIntlAndTheme(
+            <ToolApprovalSet
+                postId='p1'
+                toolCalls={[tool]}
+                approvalStage={ToolApprovalStage.Call}
+                canApprove={true}
+                canExpand={true}
+                showArguments={true}
+                showResults={true}
+            />,
+        );
+
+        // Completed (non-actionable) tools start collapsed, so the arguments
+        // code block is not rendered.
+        expect(queryByTestId('mock-markdown')).toBeNull();
+
+        // Tap the tool name to expand.
+        fireEvent.press(getByText('Search Docs'));
+
+        // Now the arguments code block should be rendered. The tool card also
+        // renders the result code block since the tool has a result.
+        const markdowns = getAllByTestId('mock-markdown');
+        expect(markdowns.length).toBeGreaterThan(0);
+
+        // The first markdown should contain the JSON-stringified arguments.
+        const argumentsText = markdowns[0].props.children;
+        expect(argumentsText).toContain('"query"');
+        expect(argumentsText).toContain('"test"');
+    });
+
+    it('collapses back when tapped a second time', () => {
+        const tool = makeTool();
+
+        const {getByText, queryAllByTestId} = renderWithIntlAndTheme(
+            <ToolApprovalSet
+                postId='p1'
+                toolCalls={[tool]}
+                approvalStage={ToolApprovalStage.Call}
+                canApprove={true}
+                canExpand={true}
+                showArguments={true}
+                showResults={true}
+            />,
+        );
+
+        // Expand
+        fireEvent.press(getByText('Search Docs'));
+        expect(queryAllByTestId('mock-markdown').length).toBeGreaterThan(0);
+
+        // Collapse
+        fireEvent.press(getByText('Search Docs'));
+        expect(queryAllByTestId('mock-markdown').length).toBe(0);
+    });
+
+    it('starts expanded for pending tools that require user decision', () => {
+        const tool = makeTool({status: ToolCallStatus.Pending, result: undefined});
+
+        const {queryAllByTestId} = renderWithIntlAndTheme(
+            <ToolApprovalSet
+                postId='p1'
+                toolCalls={[tool]}
+                approvalStage={ToolApprovalStage.Call}
+                canApprove={true}
+                canExpand={true}
+                showArguments={true}
+                showResults={true}
+            />,
+        );
+
+        // Actionable (pending) tools default to expanded, so arguments are visible without a tap.
+        expect(queryAllByTestId('mock-markdown').length).toBeGreaterThan(0);
+    });
+});

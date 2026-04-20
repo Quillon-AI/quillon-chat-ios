@@ -35,6 +35,7 @@ interface ToolCardProps {
     canExpand?: boolean;
     showArguments?: boolean;
     showResults?: boolean;
+    isAutoApproved?: boolean;
 }
 
 const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
@@ -77,6 +78,10 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
         responseLabelText: {
             color: changeOpacity(theme.centerChannelColor, 0.75),
             ...typography('Body', 100),
+        },
+        autoApprovedLabel: {
+            color: changeOpacity(theme.centerChannelColor, 0.56),
+            ...typography('Body', 75),
         },
         resultContainer: {
             marginLeft: CONTENT_INDENT,
@@ -189,6 +194,7 @@ const ToolCard = ({
     canExpand = true,
     showArguments = true,
     showResults = true,
+    isAutoApproved = false,
 }: ToolCardProps) => {
     const theme = useTheme();
     const styles = getStyleSheet(theme);
@@ -202,7 +208,11 @@ const ToolCard = ({
 
     const isPending = tool.status === ToolCallStatus.Pending;
     const hasLocalDecision = localDecision !== undefined && localDecision !== null;
-    const isSuccess = tool.status === ToolCallStatus.Success;
+    const isAutoApprovedStatus = tool.status === ToolCallStatus.AutoApproved || isAutoApproved;
+
+    // Auto-approved tools executed successfully; render them with the same
+    // result affordances as success so the user can still see the output.
+    const isSuccess = tool.status === ToolCallStatus.Success || isAutoApprovedStatus;
     const isError = tool.status === ToolCallStatus.Error;
     const isRejected = tool.status === ToolCallStatus.Rejected;
     const isResultPhase = approvalStage === ToolApprovalStage.Result;
@@ -214,9 +224,12 @@ const ToolCard = ({
             replace(/\b\w/g, (char) => char.toUpperCase());
     }, [tool.name]);
 
-    // Render arguments as JSON code block
+    // Render arguments as JSON code block. Falling back to an empty object
+    // when arguments is null/undefined mirrors the webapp and keeps the code
+    // block from rendering the literal "undefined".
     const argumentsMarkdown = useMemo(() => {
-        return `\`\`\`json\n${JSON.stringify(tool.arguments, null, 2)}\n\`\`\``;
+        const value = tool.arguments ?? {};
+        return `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;
     }, [tool.arguments]);
 
     // Render result as code block - try to detect if it's JSON
@@ -378,6 +391,13 @@ const ToolCard = ({
                                     defaultMessage='Response'
                                     style={styles.responseLabelText}
                                 />
+                                {isAutoApprovedStatus && (
+                                    <FormattedText
+                                        id='agents.tool_call.auto_approved'
+                                        defaultMessage='(Auto-approved)'
+                                        style={styles.autoApprovedLabel}
+                                    />
+                                )}
                             </View>
                             <View style={styles.resultContainer}>
                                 <Markdown

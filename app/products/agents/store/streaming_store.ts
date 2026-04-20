@@ -47,13 +47,29 @@ class StreamingPostStore {
     }
 
     /**
+     * Build the zeroed state used when an event arrives for a post we never
+     * saw a `start` control for — e.g. reconnect mid-stream, or a tool status
+     * update that lands after POST_EDITED has already cleared state.
+     */
+    private makeDefaultState(postId: string): StreamingState {
+        return {
+            postId,
+            generating: false,
+            message: '',
+            precontent: false,
+            reasoning: '',
+            isReasoningLoading: false,
+            showReasoning: false,
+            toolCalls: [],
+            annotations: [],
+        };
+    }
+
+    /**
      * Update the streaming message
      */
     updateMessage(postId: string, message: string): void {
-        const state = this.getStreamingState(postId);
-        if (!state) {
-            return;
-        }
+        const state = this.getStreamingState(postId) ?? this.makeDefaultState(postId);
 
         this.getSubject(postId).next({
             ...state,
@@ -86,10 +102,7 @@ class StreamingPostStore {
      * Update reasoning summary
      */
     updateReasoning(postId: string, reasoning: string, isLoading: boolean): void {
-        const state = this.getStreamingState(postId);
-        if (!state) {
-            return;
-        }
+        const state = this.getStreamingState(postId) ?? this.makeDefaultState(postId);
 
         // During reasoning, explicitly set generating to false to prevent blinking cursor
         const generating = isLoading ? false : state.generating;
@@ -109,23 +122,7 @@ class StreamingPostStore {
      * Update tool calls
      */
     updateToolCalls(postId: string, toolCallsJson: string): void {
-        let state = this.getStreamingState(postId);
-
-        // If no streaming state exists, create a minimal one for tool call updates
-        // This handles tool status updates that arrive after streaming ends but before POST_EDITED
-        if (!state) {
-            state = {
-                postId,
-                generating: false,
-                message: '',
-                precontent: false,
-                reasoning: '',
-                isReasoningLoading: false,
-                showReasoning: false,
-                toolCalls: [],
-                annotations: [],
-            };
-        }
+        const state = this.getStreamingState(postId) ?? this.makeDefaultState(postId);
 
         try {
             const toolCalls = JSON.parse(toolCallsJson);
@@ -143,10 +140,7 @@ class StreamingPostStore {
      * Update annotations/citations
      */
     updateAnnotations(postId: string, annotationsJson: string): void {
-        const state = this.getStreamingState(postId);
-        if (!state) {
-            return;
-        }
+        const state = this.getStreamingState(postId) ?? this.makeDefaultState(postId);
 
         try {
             const annotations = JSON.parse(annotationsJson);

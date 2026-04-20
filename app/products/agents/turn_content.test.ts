@@ -1,0 +1,369 @@
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
+
+import {BlockType, ToolApprovalStage, ToolCallStatus, ToolCallStatusString, type ContentBlock, type ConversationResponse, type Turn} from '@agents/types';
+
+import {
+    anyToolHasArguments,
+    anyToolHasResult,
+    collectResponseTurns,
+    deriveApprovalStageForPost,
+    extractAnnotationsFromTurn,
+    extractReasoningFromTurn,
+    extractToolCallsForPost,
+    hasAutoApprovedToolsForPost,
+    statusStringToEnum,
+} from './turn_content';
+
+const POST_ID = 'anchorPost';
+
+function makeTurn(partial: Partial<Turn> & {sequence: number; content: ContentBlock[]; role: Turn['role']}): Turn {
+    return {
+        id: `turn-${partial.sequence}`,
+        post_id: null,
+        tokens_in: 0,
+        tokens_out: 0,
+        ...partial,
+    };
+}
+
+function makeConversation(turns: Turn[]): ConversationResponse {
+    return {
+        id: 'conv',
+        user_id: 'userA',
+        bot_id: 'bot',
+        channel_id: null,
+        root_post_id: null,
+        title: '',
+        operation: '',
+        turns,
+    };
+}
+
+describe('statusStringToEnum', () => {
+    it.each<[string | undefined, ToolCallStatus]>([
+        [ToolCallStatusString.Pending, ToolCallStatus.Pending],
+        [ToolCallStatusString.Accepted, ToolCallStatus.Accepted],
+        [ToolCallStatusString.Rejected, ToolCallStatus.Rejected],
+        [ToolCallStatusString.Error, ToolCallStatus.Error],
+        [ToolCallStatusString.Success, ToolCallStatus.Success],
+        [ToolCallStatusString.AutoApproved, ToolCallStatus.AutoApproved],
+    ])('maps %s to numeric enum', (input, expected) => {
+        expect(statusStringToEnum(input)).toBe(expected);
+    });
+
+    it('defaults unknown values to Pending', () => {
+        expect(statusStringToEnum(undefined)).toBe(ToolCallStatus.Pending);
+        expect(statusStringToEnum('nonsense')).toBe(ToolCallStatus.Pending);
+    });
+});
+
+describe('collectResponseTurns', () => {
+    it('returns empty when no turn matches the post', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({sequence: 1, role: 'assistant', post_id: 'other', content: []}),
+        ]);
+        expect(collectResponseTurns(conversation, POST_ID)).toEqual([]);
+    });
+
+    it('walks backwards across tool-round turns until a user turn', () => {
+        const toolUseBlock: ContentBlock = {type: BlockType.ToolUse, id: 't1', name: 'search'};
+        const toolResultBlock: ContentBlock = {type: BlockType.ToolResult, tool_use_id: 't1', content: 'ok'};
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({sequence: 1, role: 'assistant', content: [toolUseBlock]}),
+            makeTurn({sequence: 2, role: 'tool_result', content: [toolResultBlock]}),
+            makeTurn({sequence: 3, role: 'assistant', post_id: POST_ID, content: [{type: BlockType.Text, text: 'done'}]}),
+        ]);
+
+        const turns = collectResponseTurns(conversation, POST_ID);
+
+        expect(turns.map((t) => t.sequence)).toEqual([1, 2, 3]);
+    });
+
+    it('stops walking when encountering a turn anchored to a different post', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({sequence: 1, role: 'assistant', post_id: 'priorPost', content: [{type: BlockType.Text, text: 'prior'}]}),
+            makeTurn({sequence: 2, role: 'assistant', post_id: POST_ID, content: [{type: BlockType.Text, text: 'current'}]}),
+        ]);
+
+        const turns = collectResponseTurns(conversation, POST_ID);
+
+        expect(turns.map((t) => t.sequence)).toEqual([2]);
+    });
+
+    it('accepts turns provided in arbitrary order', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 3, role: 'assistant', post_id: POST_ID, content: []}),
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({sequence: 1, role: 'assistant', content: []}),
+            makeTurn({sequence: 2, role: 'tool_result', content: []}),
+        ]);
+
+        const turns = collectResponseTurns(conversation, POST_ID);
+
+        expect(turns.map((t) => t.sequence)).toEqual([1, 2, 3]);
+    });
+});
+
+describe('extractToolCallsForPost', () => {
+    it('pairs tool_use blocks with their matching tool_result by id', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({
+                sequence: 1,
+                role: 'assistant',
+                content: [{
+                    type: BlockType.ToolUse,
+                    id: 'call1',
+                    name: 'search',
+                    input: {q: 'hi'},
+                    status: ToolCallStatusString.Success,
+                }],
+            }),
+            makeTurn({
+                sequence: 2,
+                role: 'tool_result',
+                content: [{type: BlockType.ToolResult, tool_use_id: 'call1', content: 'result text'}],
+            }),
+            makeTurn({sequence: 3, role: 'assistant', post_id: POST_ID, content: [{type: BlockType.Text, text: ''}]}),
+        ]);
+
+        const calls = extractToolCallsForPost(conversation, POST_ID);
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toMatchObject({
+            id: 'call1',
+            name: 'search',
+            arguments: {q: 'hi'},
+            result: 'result text',
+            status: ToolCallStatus.Success,
+        });
+    });
+
+    it('finds results that arrive in turns after the anchor', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({
+                sequence: 1,
+                role: 'assistant',
+                post_id: POST_ID,
+                content: [{
+                    type: BlockType.ToolUse,
+                    id: 'call1',
+                    name: 'search',
+                    input: {q: 'hi'},
+                    status: ToolCallStatusString.Pending,
+                }],
+            }),
+            makeTurn({
+                sequence: 2,
+                role: 'tool_result',
+                content: [{type: BlockType.ToolResult, tool_use_id: 'call1', content: 'late result'}],
+            }),
+        ]);
+
+        const calls = extractToolCallsForPost(conversation, POST_ID);
+
+        expect(calls[0].result).toBe('late result');
+    });
+
+    it('returns empty arguments when the tool_use input is nulled by the server privacy filter', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({
+                sequence: 1,
+                role: 'assistant',
+                post_id: POST_ID,
+                content: [{
+                    type: BlockType.ToolUse,
+                    id: 'call1',
+                    name: 'search',
+                    input: null,
+                    status: ToolCallStatusString.Success,
+                }],
+            }),
+        ]);
+
+        const calls = extractToolCallsForPost(conversation, POST_ID);
+
+        expect(calls[0].arguments).toBeUndefined();
+    });
+});
+
+describe('extractReasoningFromTurn', () => {
+    it('concatenates thinking blocks', () => {
+        const turn = makeTurn({
+            sequence: 1,
+            role: 'assistant',
+            content: [
+                {type: BlockType.Thinking, text: 'first thought'},
+                {type: BlockType.Thinking, text: 'second thought', signature: 'sig-2'},
+                {type: BlockType.Text, text: 'visible'},
+            ],
+        });
+
+        const result = extractReasoningFromTurn(turn);
+
+        expect(result.summary).toBe('first thought\nsecond thought');
+        expect(result.signature).toBe('sig-2');
+    });
+
+    it('returns empty when the turn has no thinking blocks', () => {
+        const turn = makeTurn({sequence: 1, role: 'assistant', content: [{type: BlockType.Text, text: 'hi'}]});
+
+        expect(extractReasoningFromTurn(turn)).toEqual({summary: '', signature: ''});
+    });
+
+    it('tolerates an undefined turn', () => {
+        expect(extractReasoningFromTurn(undefined)).toEqual({summary: '', signature: ''});
+    });
+});
+
+describe('extractAnnotationsFromTurn', () => {
+    it('flattens citations across text blocks with a running index', () => {
+        const turn = makeTurn({
+            sequence: 1,
+            role: 'assistant',
+            content: [
+                {
+                    type: BlockType.Text,
+                    text: 'a',
+                    citations: [
+                        {type: 'url', start_index: 0, end_index: 1, url: 'https://a', title: 'A'},
+                    ],
+                },
+                {type: BlockType.Text, text: 'b'},
+                {
+                    type: BlockType.Text,
+                    text: 'c',
+                    citations: [
+                        {type: 'url', start_index: 2, end_index: 3, url: 'https://c', title: 'C'},
+                    ],
+                },
+            ],
+        });
+
+        const annotations = extractAnnotationsFromTurn(turn);
+
+        expect(annotations).toHaveLength(2);
+        expect(annotations.map((a) => a.index)).toEqual([0, 1]);
+        expect(annotations[1]).toMatchObject({url: 'https://c', title: 'C'});
+    });
+});
+
+describe('deriveApprovalStageForPost', () => {
+    it('returns Call when pending tool_use blocks have no results yet', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({
+                sequence: 1,
+                role: 'assistant',
+                post_id: POST_ID,
+                content: [{type: BlockType.ToolUse, id: 'call1', name: 'x', status: ToolCallStatusString.Pending}],
+            }),
+        ]);
+
+        expect(deriveApprovalStageForPost(conversation, POST_ID)).toBe(ToolApprovalStage.Call);
+    });
+
+    it('returns Result when tool_result blocks exist but are not yet shared', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({
+                sequence: 1,
+                role: 'assistant',
+                post_id: POST_ID,
+                content: [{type: BlockType.ToolUse, id: 'call1', name: 'x', status: ToolCallStatusString.Success}],
+            }),
+            makeTurn({
+                sequence: 2,
+                role: 'tool_result',
+                content: [{type: BlockType.ToolResult, tool_use_id: 'call1', content: 'ok', shared: false}],
+            }),
+        ]);
+
+        expect(deriveApprovalStageForPost(conversation, POST_ID)).toBe(ToolApprovalStage.Result);
+    });
+
+    it('returns Call when every matching tool_result is already shared (DM / auto_run_everywhere)', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({
+                sequence: 1,
+                role: 'assistant',
+                post_id: POST_ID,
+                content: [{type: BlockType.ToolUse, id: 'call1', name: 'x', status: ToolCallStatusString.AutoApproved}],
+            }),
+            makeTurn({
+                sequence: 2,
+                role: 'tool_result',
+                content: [{type: BlockType.ToolResult, tool_use_id: 'call1', content: 'ok', shared: true}],
+            }),
+        ]);
+
+        expect(deriveApprovalStageForPost(conversation, POST_ID)).toBe(ToolApprovalStage.Call);
+    });
+
+    it('returns null when there are no tool_use blocks at all', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({sequence: 1, role: 'assistant', post_id: POST_ID, content: [{type: BlockType.Text, text: 'hi'}]}),
+        ]);
+
+        expect(deriveApprovalStageForPost(conversation, POST_ID)).toBeNull();
+    });
+});
+
+describe('hasAutoApprovedToolsForPost', () => {
+    it('detects auto-approved tool use in any response turn', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({
+                sequence: 1,
+                role: 'assistant',
+                post_id: POST_ID,
+                content: [{type: BlockType.ToolUse, id: 'call1', name: 'x', status: ToolCallStatusString.AutoApproved}],
+            }),
+        ]);
+
+        expect(hasAutoApprovedToolsForPost(conversation, POST_ID)).toBe(true);
+    });
+
+    it('returns false when no tool use has the auto-approved status', () => {
+        const conversation = makeConversation([
+            makeTurn({sequence: 0, role: 'user', content: []}),
+            makeTurn({
+                sequence: 1,
+                role: 'assistant',
+                post_id: POST_ID,
+                content: [{type: BlockType.ToolUse, id: 'call1', name: 'x', status: ToolCallStatusString.Pending}],
+            }),
+        ]);
+
+        expect(hasAutoApprovedToolsForPost(conversation, POST_ID)).toBe(false);
+    });
+});
+
+describe('anyToolHasArguments / anyToolHasResult', () => {
+    it('returns false for empty input', () => {
+        expect(anyToolHasArguments([])).toBe(false);
+        expect(anyToolHasResult([])).toBe(false);
+    });
+
+    it('returns true when at least one tool has arguments', () => {
+        expect(anyToolHasArguments([
+            {id: 'a', name: 'x', description: '', arguments: null, status: ToolCallStatus.Success},
+            {id: 'b', name: 'y', description: '', arguments: {q: 1}, status: ToolCallStatus.Success},
+        ])).toBe(true);
+    });
+
+    it('returns true when at least one tool has a result', () => {
+        expect(anyToolHasResult([
+            {id: 'a', name: 'x', description: '', arguments: {}, status: ToolCallStatus.Success},
+            {id: 'b', name: 'y', description: '', arguments: {}, result: 'ok', status: ToolCallStatus.Success},
+        ])).toBe(true);
+    });
+});

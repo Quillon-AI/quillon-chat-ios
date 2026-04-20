@@ -1,9 +1,10 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {invalidateConversation} from '@agents/store/conversation_store';
 import streamingStore from '@agents/store/streaming_store';
 
-import {handleAgentPostUpdate} from './index';
+import {handleAgentConversationUpdated, handleAgentPostUpdate} from './index';
 
 import type {PostUpdateWebsocketMessage} from '@agents/types';
 
@@ -13,6 +14,10 @@ jest.mock('@agents/store/streaming_store', () => ({
     default: {
         handleWebSocketMessage: jest.fn(),
     },
+}));
+
+jest.mock('@agents/store/conversation_store', () => ({
+    invalidateConversation: jest.fn(),
 }));
 
 describe('handleAgentPostUpdate', () => {
@@ -79,5 +84,48 @@ describe('handleAgentPostUpdate', () => {
         handleAgentPostUpdate(msg as unknown as WebSocketMessage<PostUpdateWebsocketMessage>);
 
         expect(streamingStore.handleWebSocketMessage).not.toHaveBeenCalled();
+    });
+});
+
+describe('handleAgentConversationUpdated', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should invalidate the conversation cache for the given id', () => {
+        const msg = {
+            event: 'custom_mattermost-ai_conversation_updated',
+            data: {conversation_id: 'conv123'},
+            broadcast: {
+                omit_users: {},
+                user_id: 'user123',
+                channel_id: 'channel123',
+                team_id: 'team123',
+            },
+            seq: 3,
+        };
+
+        handleAgentConversationUpdated('https://test.mattermost.com', msg as unknown as WebSocketMessage<{conversation_id?: string}>);
+
+        expect(invalidateConversation).toHaveBeenCalledTimes(1);
+        expect(invalidateConversation).toHaveBeenCalledWith('https://test.mattermost.com', 'conv123');
+    });
+
+    it('should not invalidate when conversation_id is missing', () => {
+        const msg = {
+            event: 'custom_mattermost-ai_conversation_updated',
+            data: {},
+            broadcast: {
+                omit_users: {},
+                user_id: 'user123',
+                channel_id: 'channel123',
+                team_id: 'team123',
+            },
+            seq: 4,
+        };
+
+        handleAgentConversationUpdated('https://test.mattermost.com', msg as unknown as WebSocketMessage<{conversation_id?: string}>);
+
+        expect(invalidateConversation).not.toHaveBeenCalled();
     });
 });

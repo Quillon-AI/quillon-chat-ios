@@ -94,12 +94,17 @@ describe('StreamingPostStore', () => {
             subscription.unsubscribe();
         });
 
-        it('should do nothing if post is not streaming', () => {
+        it('creates a generating state on the first message if start was missed', () => {
+            // Covers WS reconnect mid-stream: the subscriber needs the message
+            // even though the `start` control never reached this client.
             const postId = 'post123';
             streamingStore.updateMessage(postId, 'Hello world');
 
             const state = streamingStore.getStreamingState(postId);
-            expect(state).toBeUndefined();
+            expect(state).toBeDefined();
+            expect(state?.message).toBe('Hello world');
+            expect(state?.generating).toBe(true);
+            expect(state?.precontent).toBe(false);
         });
     });
 
@@ -200,12 +205,15 @@ describe('StreamingPostStore', () => {
             expect(state?.isReasoningLoading).toBe(false);
         });
 
-        it('should do nothing if post is not streaming', () => {
+        it('creates state with reasoning flagged when the start event was missed', () => {
             const postId = 'post123';
             streamingStore.updateReasoning(postId, 'Reasoning', true);
 
             const state = streamingStore.getStreamingState(postId);
-            expect(state).toBeUndefined();
+            expect(state).toBeDefined();
+            expect(state?.reasoning).toBe('Reasoning');
+            expect(state?.showReasoning).toBe(true);
+            expect(state?.isReasoningLoading).toBe(true);
         });
     });
 
@@ -285,12 +293,16 @@ describe('StreamingPostStore', () => {
             expect(state?.annotations).toEqual([]);
         });
 
-        it('should do nothing if post is not streaming', () => {
+        it('creates state with annotations when the start event was missed', () => {
             const postId = 'post123';
-            streamingStore.updateAnnotations(postId, '[]');
+            const annotations: Annotation[] = [
+                {type: 'citation', start_index: 0, end_index: 1, url: 'https://a', title: 'A', index: 0},
+            ];
+            streamingStore.updateAnnotations(postId, JSON.stringify(annotations));
 
             const state = streamingStore.getStreamingState(postId);
-            expect(state).toBeUndefined();
+            expect(state).toBeDefined();
+            expect(state?.annotations).toEqual(annotations);
         });
     });
 

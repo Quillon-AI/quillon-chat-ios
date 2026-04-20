@@ -196,6 +196,32 @@ describe('ToolCard', () => {
         });
     });
 
+    describe('arguments rendering', () => {
+        it('falls back to an empty object when arguments is undefined so "undefined" never leaks into the code block', () => {
+            const props = getBaseProps();
+            props.tool = createMockTool({arguments: undefined as unknown as ToolCall['arguments']});
+            props.isCollapsed = false;
+            const {getAllByTestId} = renderWithIntlAndTheme(<ToolCard {...props}/>);
+
+            const markdowns = getAllByTestId('mock-markdown');
+            const argumentsText = markdowns[0].props.children;
+            expect(argumentsText).toContain('{}');
+            expect(argumentsText).not.toContain('undefined');
+        });
+
+        it('falls back to an empty object when arguments is null (server redacted for non-requester)', () => {
+            const props = getBaseProps();
+            props.tool = createMockTool({arguments: null as unknown as ToolCall['arguments']});
+            props.isCollapsed = false;
+            const {getAllByTestId} = renderWithIntlAndTheme(<ToolCard {...props}/>);
+
+            const markdowns = getAllByTestId('mock-markdown');
+            const argumentsText = markdowns[0].props.children;
+            expect(argumentsText).toContain('{}');
+            expect(argumentsText).not.toContain('null');
+        });
+    });
+
     describe('collapse state', () => {
         it('should show content when not collapsed', () => {
             const props = getBaseProps();
