@@ -159,7 +159,7 @@ class ChannelScreen {
     };
 
     dismissScheduledPostTooltip = async () => {
-        // Try to close scheduled post tooltip if it exists (try both regular and admin account versions)
+        // Try to close scheduled post tooltip if it exists (try both regular and admin account versions).
         try {
             await waitFor(this.scheduledPostTooltipCloseButton).toBeVisible().withTimeout(timeouts.FOUR_SEC);
             await this.scheduledPostTooltipCloseButton.tap();
@@ -282,10 +282,27 @@ class ChannelScreen {
         // On iOS the PasteInputTextView can fail Detox's 100% visibility threshold
         // when the channel intro header pushes the input below the visible area or
         // a tooltip overlay partially covers it. Dismiss any tooltip overlay first,
-        // then tap the input. If the tap fails due to visibility, fall back to
-        // replaceText which sets the value via accessibility without requiring
-        // the view to pass the hittability check.
+        // then tap the input.
         await this.dismissScheduledPostTooltip();
+
+        // On iOS 26, the keyboard can persist across channel navigation if the
+        // KeyboardController inset isn't properly reset between tests. When the
+        // keyboard is showing, the post input bar shifts behind it, making the
+        // PasteInputTextView fail hittability at {5,6}. Tapping the post list
+        // (above the keyboard) dismisses it so the subsequent tap on postInput
+        // gets the correct keyboard-aware layout.
+        // Guard with a short waitFor so we don't hang 60s if FlatList is absent
+        // (e.g. empty channel with intro view in place of a post list).
+        if (isIos()) {
+            try {
+                await waitFor(this.postList.getFlatList()).toExist().withTimeout(timeouts.ONE_SEC);
+                await this.postList.getFlatList().tap();
+                await wait(timeouts.HALF_SEC);
+            } catch {
+                // FlatList not present (channel intro) — no keyboard to dismiss.
+            }
+        }
+
         try {
             await this.postInput.tap();
         } catch {

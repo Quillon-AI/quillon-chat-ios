@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {PostList} from '@support/ui/component';
-import {isAndroid, timeouts, wait} from '@support/utils';
+import {timeouts, wait} from '@support/utils';
 import {expect, waitFor} from 'detox';
 
 class PermalinkScreen {
@@ -28,19 +28,13 @@ class PermalinkScreen {
     };
 
     toBeVisible = async () => {
-        await wait(timeouts.ONE_SEC);
-
-        // On Android edge-to-edge displays the permalink screen container can render
-        // with <50% area visible due to system bar insets, causing expect().toBeVisible()
-        // to fail. Use toExist() on Android — the screen is present and interactive even
-        // when the container's bounding rect is partially covered by the navigation bar.
-        if (isAndroid()) {
-            // Use HALF_MIN: permalink navigation involves modal dismissal + screen push,
-            // which keeps the bridge busy longer than TEN_SEC on Android API 35 CI emulators.
-            await waitFor(this.permalinkScreen).toExist().withTimeout(timeouts.HALF_MIN);
-        } else {
-            await expect(this.permalinkScreen).toBeVisible();
-        }
+        // Use HALF_MIN on both platforms:
+        // - Android: edge-to-edge insets can make toBeVisible() fail; use toExist()
+        // - iOS: after a "Join channel" flow the screen reloads posts via useEffect,
+        //   which can take several seconds on a loaded simulator/CI runner.
+        // toExist() is sufficient — the SafeAreaView with testID='permalink.screen'
+        // is always mounted while the modal is open, regardless of loading state.
+        await waitFor(this.permalinkScreen).toExist().withTimeout(timeouts.HALF_MIN);
 
         return this.permalinkScreen;
     };

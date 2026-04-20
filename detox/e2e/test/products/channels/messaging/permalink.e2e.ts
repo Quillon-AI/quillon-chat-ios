@@ -77,12 +77,18 @@ describe('Messaging - Permalink', () => {
         // on iPhone 17 Pro iOS 26.2 simulators — see archive_channel cluster for
         // the same root cause). In that case a "Join channel" modal appears instead
         // of the permalink target. Tap "Join channel" to proceed — the permalink
-        // navigation still works after joining.
+        // navigation still works after joining (handleJoin calls setChannelId which
+        // triggers the useEffect to reload posts within the same permalink screen).
+        //
+        // The modal has TWO elements with text "Join channel" (title + button), so
+        // use atIndex(1) to target the button specifically. Probe existence on
+        // atIndex(0) (the title) to decide whether the modal is present at all.
         try {
-            const joinButton = element(by.text('Join channel'));
-            await waitFor(joinButton).toExist().withTimeout(timeouts.TWO_SEC);
-            await joinButton.tap();
-            await wait(timeouts.TWO_SEC);
+            await waitFor(element(by.text('Join channel')).atIndex(0)).toExist().withTimeout(timeouts.FOUR_SEC);
+            await element(by.text('Join channel')).atIndex(1).tap();
+
+            // Wait for the join network request to complete and the post list to reload.
+            await wait(timeouts.FOUR_SEC);
         } catch {
             // No Join modal — user was already a member, proceed normally.
         }
@@ -90,7 +96,7 @@ describe('Messaging - Permalink', () => {
         // * Verify on permalink screen and target post is displayed
         await PermalinkScreen.toBeVisible();
         const {postListPostItem: permalinkPostListPostItem} = PermalinkScreen.getPostListPostItem(permalinkTargetPost.id, permalinkTargetPost.message);
-        await expect(permalinkPostListPostItem).toExist();
+        await waitFor(permalinkPostListPostItem).toExist().withTimeout(timeouts.TEN_SEC);
 
         // # Jump to recent messages
         await PermalinkScreen.jumpToRecentMessages();
