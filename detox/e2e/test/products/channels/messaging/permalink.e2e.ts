@@ -72,6 +72,21 @@ describe('Messaging - Permalink', () => {
         await permalinkElement.tap();
         await wait(timeouts.FOUR_SEC);
 
+        // If the target channel was created after login, the app may not know the
+        // user is a member yet (WebSocket `user_added` event delivery is unreliable
+        // on iPhone 17 Pro iOS 26.2 simulators — see archive_channel cluster for
+        // the same root cause). In that case a "Join channel" modal appears instead
+        // of the permalink target. Tap "Join channel" to proceed — the permalink
+        // navigation still works after joining.
+        try {
+            const joinButton = element(by.text('Join channel'));
+            await waitFor(joinButton).toExist().withTimeout(timeouts.TWO_SEC);
+            await joinButton.tap();
+            await wait(timeouts.TWO_SEC);
+        } catch {
+            // No Join modal — user was already a member, proceed normally.
+        }
+
         // * Verify on permalink screen and target post is displayed
         await PermalinkScreen.toBeVisible();
         const {postListPostItem: permalinkPostListPostItem} = PermalinkScreen.getPostListPostItem(permalinkTargetPost.id, permalinkTargetPost.message);
