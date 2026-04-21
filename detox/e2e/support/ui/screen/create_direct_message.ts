@@ -118,7 +118,10 @@ class CreateDirectMessageScreen {
             }
         }
 
-        // Dismiss the "Long-press on an item to view a user's profile" tutorial overlay
+        // Wait for any SVG animation overlay to clear before proceeding.
+        // The plus-menu icon animation layer (RNSVGGroup) can intercept taps
+        // on the search input even after toBeVisible() passes.
+        await wait(timeouts.ONE_SEC);
         // if it appears. The overlay blocks 50% of the search input on first open and
         // intercepts taps, causing subsequent interactions to fail. Calling closeTutorial()
         // here makes the dismissal explicit regardless of the searchInput visibility approach.

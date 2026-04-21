@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {AccountScreen} from '@support/ui/screen';
+import {AccountScreen, NotificationSettingsScreen} from '@support/ui/screen';
 import {timeouts} from '@support/utils';
 import {expect} from 'detox';
 
@@ -47,8 +47,16 @@ class SettingsScreen {
             await this.closeButton.tap();
             await expect(this.settingsScreen).not.toBeVisible();
         } catch (error) {
-            // Close button may not exist if the app is in an unexpected state after a prior test failure
-            console.warn('[SettingsScreen.close] Close button not found, settings screen may already be dismissed:', error); // eslint-disable-line no-console
+            // Close button may not exist if the app is in an unexpected state after a prior test failure.
+            // Attempt to navigate back to a known safe state (notification settings → settings → close).
+            try {
+                await NotificationSettingsScreen.back();
+                await waitFor(this.closeButton).toExist().withTimeout(timeouts.TEN_SEC);
+                await this.closeButton.tap();
+                await expect(this.settingsScreen).not.toBeVisible();
+            } catch (secondError) {
+                console.warn('[SettingsScreen.close] Navigation failed after recovery attempt:', secondError); // eslint-disable-line no-console
+            }
         }
     };
 }
