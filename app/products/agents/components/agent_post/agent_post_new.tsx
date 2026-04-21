@@ -4,7 +4,7 @@
 import {regenerateResponse, stopGeneration} from '@agents/actions/remote/generation_controls';
 import {isConversationRequester} from '@agents/requester';
 import {invalidateConversation, useConversation, useTurnForPost} from '@agents/store/conversation_store';
-import {useStreamingState} from '@agents/store/streaming_store';
+import streamingStore, {useStreamingState} from '@agents/store/streaming_store';
 import {
     anyToolHasArguments,
     anyToolHasResult,
@@ -14,7 +14,7 @@ import {
     extractToolCallsForPost,
     hasAutoApprovedToolsForPost,
 } from '@agents/turn_content';
-import {type Annotation, type ToolCall} from '@agents/types';
+import {ToolApprovalStage, type Annotation, type ToolCall} from '@agents/types';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {View} from 'react-native';
 
@@ -107,6 +107,11 @@ const AgentPostNew = ({post, conversationId, currentUserId, location, isDM}: Age
     const [reasoning, setReasoning] = useState('');
     const [showReasoning, setShowReasoning] = useState(false);
 
+    // Default to 'call' so pending tools get accept/reject buttons during
+    // streaming, before the server writes the anchor turn with approval_state.
+    const [approvalStage, setApprovalStage] = useState<ToolApprovalStage>(ToolApprovalStage.Call);
+    const [isAutoApproved, setIsAutoApproved] = useState(false);
+
     // Populate from the conversation entity when a finalized turn for this
     // post is available and we're not actively streaming. Streaming events
     // take precedence while live, and we skip when the turn is missing so a
@@ -121,6 +126,8 @@ const AgentPostNew = ({post, conversationId, currentUserId, location, isDM}: Age
         const reasoningText = extractReasoningFromTurn(turn).summary;
         setReasoning(reasoningText);
         setShowReasoning(reasoningText !== '');
+        setApprovalStage(deriveApprovalStageForPost(conversation, post.id));
+        setIsAutoApproved(hasAutoApprovedToolsForPost(conversation, post.id));
     }, [conversation, turn, post.id, isGenerating]);
 
     // Overlay streaming state as events arrive. Only mutate when the
@@ -158,9 +165,6 @@ const AgentPostNew = ({post, conversationId, currentUserId, location, isDM}: Age
 
     const displayMessage = streamingState?.message ?? post.message ?? '';
 
-    const approvalStage = conversation ? deriveApprovalStageForPost(conversation, post.id) : null;
-    const isAutoApproved = conversation ? hasAutoApprovedToolsForPost(conversation, post.id) : false;
-
     const isRequester = currentUserId ? isConversationRequester({post, conversation, currentUserId}) : false;
     const canApprove = isRequester;
     const canExpand = isDM || isRequester;
@@ -191,6 +195,12 @@ const AgentPostNew = ({post, conversationId, currentUserId, location, isDM}: Age
         setAnnotations([]);
         setReasoning('');
         setShowReasoning(false);
+        setApprovalStage(ToolApprovalStage.Call);
+        setIsAutoApproved(false);
+
+        // Also clear the streaming store so the incoming 'start' event
+        // doesn't preserve stale tool calls from the previous response.
+        streamingStore.removePost(post.id);
         const {error} = await regenerateResponse(serverUrl, post.id);
         if (error) {
             showSnackBar({barType: SNACK_BAR_TYPE.AGENT_REGENERATE_ERROR});
@@ -212,7 +222,7 @@ const AgentPostNew = ({post, conversationId, currentUserId, location, isDM}: Age
                     isReasoningLoading={isReasoningLoading}
                 />
             )}
-            {isPrecontent ? (
+            {isPrecontent && (
                 <View style={styles.precontentContainer}>
                     <FormattedText
                         id='agents.generating'
@@ -220,20 +230,6 @@ const AgentPostNew = ({post, conversationId, currentUserId, location, isDM}: Age
                         style={styles.precontentText}
                     />
                     <StreamingIndicator/>
-                </View>
-            ) : (
-                <View style={styles.messageContainer}>
-                    {displayMessage ? (
-                        <Markdown
-                            baseTextStyle={styles.messageText}
-                            value={displayMessage}
-                            theme={theme}
-                            location={location}
-                        />
-                    ) : null}
-                    {isGenerating && !isPrecontent && (
-                        <StreamingIndicator/>
-                    )}
                 </View>
             )}
             {toolCalls.length > 0 && (
@@ -247,6 +243,21 @@ const AgentPostNew = ({post, conversationId, currentUserId, location, isDM}: Age
                     showResults={showResults}
                     isAutoApproved={isAutoApproved}
                 />
+            )}
+            {!isPrecontent && (displayMessage || isGenerating) && (
+                <View style={styles.messageContainer}>
+                    {displayMessage ? (
+                        <Markdown
+                            baseTextStyle={styles.messageText}
+                            value={displayMessage}
+                            theme={theme}
+                            location={location}
+                        />
+                    ) : null}
+                    {isGenerating && (
+                        <StreamingIndicator/>
+                    )}
+                </View>
             )}
             {annotations.length > 0 && (
                 <CitationsList annotations={annotations}/>

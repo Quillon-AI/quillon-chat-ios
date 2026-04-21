@@ -34,7 +34,7 @@ describe('ToolCard', () => {
         onToggleCollapse: jest.fn(),
         onApprove: jest.fn(),
         onReject: jest.fn(),
-        approvalStage: null,
+        approvalStage: ToolApprovalStage.Done,
     });
 
     describe('tool name display', () => {
@@ -277,7 +277,7 @@ describe('ToolCard', () => {
 
         it('should not show result phase buttons when not in result phase', () => {
             const props = getResultPhaseProps();
-            props.approvalStage = null;
+            props.approvalStage = ToolApprovalStage.Done;
             const {queryByText} = renderWithIntlAndTheme(<ToolCard {...props}/>);
 
             expect(queryByText('Share')).toBeNull();
@@ -319,7 +319,7 @@ describe('ToolCard', () => {
 
         it('should not show warning callout when not in result phase', () => {
             const props = getResultPhaseProps();
-            props.approvalStage = null;
+            props.approvalStage = ToolApprovalStage.Done;
             const {queryByTestId} = renderWithIntlAndTheme(<ToolCard {...props}/>);
 
             expect(queryByTestId('agents.tool_card.tool-123.warning')).toBeNull();

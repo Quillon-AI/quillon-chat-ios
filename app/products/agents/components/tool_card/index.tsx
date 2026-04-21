@@ -31,7 +31,7 @@ interface ToolCardProps {
     onToggleCollapse: (toolId: string) => void;
     onApprove?: (toolId: string) => void;
     onReject?: (toolId: string) => void;
-    approvalStage: ToolApprovalStage | null;
+    approvalStage: ToolApprovalStage;
     canExpand?: boolean;
     showArguments?: boolean;
     showResults?: boolean;
@@ -198,13 +198,11 @@ const ToolCard = ({
 }: ToolCardProps) => {
     const theme = useTheme();
     const styles = getStyleSheet(theme);
-    const contentOpacity = useSharedValue(isCollapsed ? 0 : 1);
     const chevronRotation = useSharedValue(isCollapsed ? 0 : 90);
 
     useEffect(() => {
-        contentOpacity.value = isCollapsed ? 0 : 1;
-        chevronRotation.value = isCollapsed ? 0 : 90;
-    }, [isCollapsed, contentOpacity, chevronRotation]);
+        chevronRotation.value = withTiming(isCollapsed ? 0 : 90, {duration: 200});
+    }, [isCollapsed, chevronRotation]);
 
     const isPending = tool.status === ToolCallStatus.Pending;
     const hasLocalDecision = localDecision !== undefined && localDecision !== null;
@@ -249,11 +247,8 @@ const ToolCard = ({
         if (!canExpand) {
             return;
         }
-        const newCollapsed = !isCollapsed;
-        contentOpacity.value = withTiming(newCollapsed ? 0 : 1, {duration: 200});
-        chevronRotation.value = withTiming(newCollapsed ? 0 : 90, {duration: 200});
         onToggleCollapse(tool.id);
-    }, [canExpand, isCollapsed, contentOpacity, chevronRotation, onToggleCollapse, tool.id]);
+    }, [canExpand, onToggleCollapse, tool.id]);
 
     const handleApprove = usePreventDoubleTap(useCallback(() => {
         onApprove?.(tool.id);
@@ -265,10 +260,6 @@ const ToolCard = ({
 
     const chevronAnimatedStyle = useAnimatedStyle(() => ({
         transform: [{rotate: `${chevronRotation.value}deg`}],
-    }));
-
-    const contentAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: contentOpacity.value,
     }));
 
     // Determine icon based on status
@@ -351,7 +342,7 @@ const ToolCard = ({
             </Pressable>
 
             {!isCollapsed && (
-                <Animated.View style={contentAnimatedStyle}>
+                <View>
                     {showArguments && (
                         <View
                             style={styles.argumentsContainer}
@@ -451,7 +442,7 @@ const ToolCard = ({
                             />
                         </View>
                     )}
-                </Animated.View>
+                </View>
             )}
 
             {isPending && !hasLocalDecision && isProcessing && (

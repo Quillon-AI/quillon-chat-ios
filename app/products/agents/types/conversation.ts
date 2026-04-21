@@ -74,6 +74,10 @@ export interface ContentBlock {
     tool_use_id?: string;
     content?: string;
 
+    // Timestamp (ms) at which the share/keep-private decision was recorded.
+    // Undefined → decision still pending; defined → decision made, no approval UI.
+    decided_at?: number;
+
     // File / Image fields
     filename?: string;
     mime_type?: string;
@@ -95,6 +99,11 @@ export interface Turn {
     tokens_out: number;
     sequence: number;
     created_at?: number;
+
+    // Set only on post-anchor assistant turns. Server-computed from the
+    // conversation state: 'call' → pending Accept/Reject; 'result' → pending
+    // Share/Keep private; 'done' → no user decision remains.
+    approval_state?: 'call' | 'result' | 'done';
 }
 
 export interface ConversationResponse {

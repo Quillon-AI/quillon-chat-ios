@@ -153,10 +153,12 @@ describe('StreamingPostStore', () => {
             // Subject should NOT complete - kept alive for potential reuse (regenerate)
             expect(completed).toBe(false);
 
-            // Verify subject can receive new streaming updates (regenerate scenario)
+            // Regenerate callers must clear state before re-starting so the
+            // new stream doesn't inherit the previous response's message or
+            // tools. See handleRegenerate in agent_post_new.tsx.
+            streamingStore.removePost(postId);
             streamingStore.startStreaming(postId);
-            expect(receivedStates).toHaveLength(3);
-            expect(receivedStates[2]).toMatchObject({postId, generating: true, precontent: true});
+            expect(receivedStates[receivedStates.length - 1]).toMatchObject({postId, generating: true, precontent: true, message: ''});
 
             subscription.unsubscribe();
         });
@@ -257,6 +259,65 @@ describe('StreamingPostStore', () => {
             expect(state).toBeDefined();
             expect(state?.toolCalls).toEqual([]);
             expect(state?.generating).toBe(false);
+        });
+
+        it('should merge additional tool rounds by id instead of replacing', () => {
+            const postId = 'post123';
+            streamingStore.startStreaming(postId);
+
+            const round1: ToolCall[] = [
+                {id: 'a', name: 'search', description: '', arguments: {q: 1}, status: ToolCallStatus.Pending},
+            ];
+            streamingStore.updateToolCalls(postId, JSON.stringify(round1));
+
+            // Round 2 arrives with a new tool — server emits only this round's calls.
+            const round2: ToolCall[] = [
+                {id: 'b', name: 'read', description: '', arguments: {q: 2}, status: ToolCallStatus.Pending},
+            ];
+            streamingStore.updateToolCalls(postId, JSON.stringify(round2));
+
+            const state = streamingStore.getStreamingState(postId);
+            expect(state?.toolCalls.map((t) => t.id)).toEqual(['a', 'b']);
+        });
+
+        it('preserves an early tool_call when start arrives second (WebSocket event race)', () => {
+            const postId = 'post123';
+
+            // tool_call arrives first because the server's tool_call broadcast
+            // uses UserId scope while 'start' uses ChannelId scope; delivery
+            // order at the client can flip.
+            streamingStore.updateToolCalls(postId, JSON.stringify([
+                {id: 'a', name: 'search', description: '', arguments: {}, status: ToolCallStatus.Pending},
+            ]));
+
+            // Then start arrives.
+            streamingStore.startStreaming(postId);
+
+            const state = streamingStore.getStreamingState(postId);
+            // The early tool is preserved so the UI shows the approval card.
+            expect(state?.toolCalls.map((t) => t.id)).toEqual(['a']);
+            expect(state?.generating).toBe(true);
+        });
+
+        it('should update existing tools in place when a later event changes their status', () => {
+            const postId = 'post123';
+            streamingStore.startStreaming(postId);
+
+            streamingStore.updateToolCalls(postId, JSON.stringify([
+                {id: 'a', name: 'search', description: '', arguments: {}, status: ToolCallStatus.Pending},
+                {id: 'b', name: 'read', description: '', arguments: {}, status: ToolCallStatus.Pending},
+            ]));
+
+            // Status update for tool 'a' — should replace in place, preserving order.
+            streamingStore.updateToolCalls(postId, JSON.stringify([
+                {id: 'a', name: 'search', description: '', arguments: {}, status: ToolCallStatus.Success, result: 'ok'},
+            ]));
+
+            const state = streamingStore.getStreamingState(postId);
+            expect(state?.toolCalls.map((t) => t.id)).toEqual(['a', 'b']);
+            expect(state?.toolCalls[0].status).toBe(ToolCallStatus.Success);
+            expect(state?.toolCalls[0].result).toBe('ok');
+            expect(state?.toolCalls[1].status).toBe(ToolCallStatus.Pending);
         });
     });
 

@@ -163,52 +163,13 @@ export function extractAnnotationsFromTurn(turn: Turn | undefined): Annotation[]
 }
 
 /**
- * Determine whether the tool approval UI should show the 'call' stage
- * (accept/reject tool execution) or the 'result' stage (share/keep-private),
- * across every turn that belongs to this post's response. Returns null when
- * there is nothing to approve.
+ * Returns the server-computed approval stage for the post's anchor turn.
+ * Defaults to 'done' (no buttons) when the anchor or the field is missing —
+ * safer than defaulting to a stage that would render approval controls.
  */
-export function deriveApprovalStageForPost(conversation: ConversationResponse, postId: string): ToolApprovalStage | null {
-    const turns = collectResponseTurns(conversation, postId);
-    if (turns.length === 0) {
-        return null;
-    }
-
-    const toolUseIDs = new Set<string>();
-    for (const t of turns) {
-        for (const block of t.content) {
-            if (block.type === BlockType.ToolUse && block.id) {
-                toolUseIDs.add(block.id);
-            }
-        }
-    }
-    if (toolUseIDs.size === 0) {
-        return null;
-    }
-
-    // Results for the anchor's tool_use blocks may live in a later tool_result
-    // turn (after user approval of pending tools), so look across the whole
-    // conversation.
-    const matchedResults: ContentBlock[] = [];
-    for (const t of conversation.turns) {
-        for (const block of t.content) {
-            if (block.type === BlockType.ToolResult && block.tool_use_id && toolUseIDs.has(block.tool_use_id)) {
-                matchedResults.push(block);
-            }
-        }
-    }
-
-    if (matchedResults.length === 0) {
-        return ToolApprovalStage.Call;
-    }
-
-    // If all matching results are already shared (auto_run_everywhere or DM
-    // context), the result-approval UI is not required.
-    if (matchedResults.every((b) => b.shared === true)) {
-        return ToolApprovalStage.Call;
-    }
-
-    return ToolApprovalStage.Result;
+export function deriveApprovalStageForPost(conversation: ConversationResponse, postId: string): ToolApprovalStage {
+    const anchor = conversation.turns.find((t) => t.post_id === postId && t.role === 'assistant');
+    return anchor?.approval_state ?? ToolApprovalStage.Done;
 }
 
 /** True if any tool_use block across the post's response is auto-approved. */

@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {CONTROL_SIGNALS} from '@agents/constants';
-import {type StreamingState, type PostUpdateWebsocketMessage} from '@agents/types';
+import {type StreamingState, type PostUpdateWebsocketMessage, type ToolCall} from '@agents/types';
 import {useEffect, useState} from 'react';
 import {BehaviorSubject, type Observable} from 'rxjs';
 
@@ -28,19 +28,37 @@ class StreamingPostStore {
     }
 
     /**
-     * Start streaming for a post
+     * Start streaming for a post.
+     *
+     * The server emits 'start' before any tool_call/text/reasoning broadcasts,
+     * but on the wire the events travel through different WebSocket scopes
+     * (tool_call is user-scoped, 'start' is channel-scoped), and the client
+     * can receive them out of order. If a tool_call landed first, we must
+     * preserve it — wiping here would drop the only evidence that a tool is
+     * pending approval. Regenerate paths are responsible for clearing state
+     * explicitly before triggering a new stream.
      */
     startStreaming(postId: string): void {
+        const existing = this.getStreamingState(postId);
+        const hasEarlyContent = Boolean(
+            existing && (
+                existing.toolCalls.length > 0 ||
+                existing.annotations.length > 0 ||
+                existing.message !== '' ||
+                existing.reasoning !== ''
+            ),
+        );
+
         const state: StreamingState = {
             postId,
             generating: true,
-            message: '',
-            precontent: true, // Show "Starting..." state
-            reasoning: '',
-            isReasoningLoading: false,
-            showReasoning: false,
-            toolCalls: [],
-            annotations: [],
+            message: existing?.message ?? '',
+            precontent: !hasEarlyContent,
+            reasoning: existing?.reasoning ?? '',
+            isReasoningLoading: existing?.isReasoningLoading ?? false,
+            showReasoning: existing?.showReasoning ?? false,
+            toolCalls: existing?.toolCalls ?? [],
+            annotations: existing?.annotations ?? [],
         };
 
         this.getSubject(postId).next(state);
@@ -119,16 +137,33 @@ class StreamingPostStore {
     }
 
     /**
-     * Update tool calls
+     * Update tool calls. Each tool round emits its own WebSocket event; merge
+     * by id so live display shows every round's calls instead of only the
+     * most recent round's. Existing tools update in place so status
+     * transitions (pending → accepted → success) don't shuffle the array.
      */
     updateToolCalls(postId: string, toolCallsJson: string): void {
         const state = this.getStreamingState(postId) ?? this.makeDefaultState(postId);
 
         try {
-            const toolCalls = JSON.parse(toolCallsJson);
+            const parsedToolCalls = JSON.parse(toolCallsJson) as ToolCall[];
+            const byId = new Map<string, number>();
+            const next = [...state.toolCalls];
+            for (let i = 0; i < next.length; i++) {
+                byId.set(next[i].id, i);
+            }
+            for (const tc of parsedToolCalls) {
+                const idx = byId.get(tc.id);
+                if (idx === undefined) {
+                    byId.set(tc.id, next.length);
+                    next.push(tc);
+                } else {
+                    next[idx] = tc;
+                }
+            }
             this.getSubject(postId).next({
                 ...state,
-                toolCalls,
+                toolCalls: next,
                 precontent: false,
             });
         } catch (error) {

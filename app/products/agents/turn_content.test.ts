@@ -254,66 +254,57 @@ describe('extractAnnotationsFromTurn', () => {
     });
 });
 
+// deriveApprovalStageForPost now reads the server-computed approval_state
+// field on the post-anchor assistant turn. The server owns the state
+// machine; these tests guard the pass-through and the fail-safe default.
 describe('deriveApprovalStageForPost', () => {
-    it('returns Call when pending tool_use blocks have no results yet', () => {
+    it('returns the server-set approval_state on the post anchor', () => {
         const conversation = makeConversation([
-            makeTurn({sequence: 0, role: 'user', content: []}),
             makeTurn({
-                sequence: 1,
+                sequence: 0,
                 role: 'assistant',
                 post_id: POST_ID,
-                content: [{type: BlockType.ToolUse, id: 'call1', name: 'x', status: ToolCallStatusString.Pending}],
-            }),
-        ]);
-
-        expect(deriveApprovalStageForPost(conversation, POST_ID)).toBe(ToolApprovalStage.Call);
-    });
-
-    it('returns Result when tool_result blocks exist but are not yet shared', () => {
-        const conversation = makeConversation([
-            makeTurn({sequence: 0, role: 'user', content: []}),
-            makeTurn({
-                sequence: 1,
-                role: 'assistant',
-                post_id: POST_ID,
-                content: [{type: BlockType.ToolUse, id: 'call1', name: 'x', status: ToolCallStatusString.Success}],
-            }),
-            makeTurn({
-                sequence: 2,
-                role: 'tool_result',
-                content: [{type: BlockType.ToolResult, tool_use_id: 'call1', content: 'ok', shared: false}],
+                approval_state: 'result',
+                content: [],
             }),
         ]);
 
         expect(deriveApprovalStageForPost(conversation, POST_ID)).toBe(ToolApprovalStage.Result);
     });
 
-    it('returns Call when every matching tool_result is already shared (DM / auto_run_everywhere)', () => {
+    it('passes through the Call stage when server sets it', () => {
         const conversation = makeConversation([
-            makeTurn({sequence: 0, role: 'user', content: []}),
             makeTurn({
-                sequence: 1,
+                sequence: 0,
                 role: 'assistant',
                 post_id: POST_ID,
-                content: [{type: BlockType.ToolUse, id: 'call1', name: 'x', status: ToolCallStatusString.AutoApproved}],
-            }),
-            makeTurn({
-                sequence: 2,
-                role: 'tool_result',
-                content: [{type: BlockType.ToolResult, tool_use_id: 'call1', content: 'ok', shared: true}],
+                approval_state: 'call',
+                content: [],
             }),
         ]);
 
         expect(deriveApprovalStageForPost(conversation, POST_ID)).toBe(ToolApprovalStage.Call);
     });
 
-    it('returns null when there are no tool_use blocks at all', () => {
+    it('defaults to Done when the anchor turn is missing', () => {
         const conversation = makeConversation([
             makeTurn({sequence: 0, role: 'user', content: []}),
-            makeTurn({sequence: 1, role: 'assistant', post_id: POST_ID, content: [{type: BlockType.Text, text: 'hi'}]}),
         ]);
 
-        expect(deriveApprovalStageForPost(conversation, POST_ID)).toBeNull();
+        expect(deriveApprovalStageForPost(conversation, POST_ID)).toBe(ToolApprovalStage.Done);
+    });
+
+    it('defaults to Done when approval_state is missing on the anchor', () => {
+        const conversation = makeConversation([
+            makeTurn({
+                sequence: 0,
+                role: 'assistant',
+                post_id: POST_ID,
+                content: [{type: BlockType.Text, text: 'hi'}],
+            }),
+        ]);
+
+        expect(deriveApprovalStageForPost(conversation, POST_ID)).toBe(ToolApprovalStage.Done);
     });
 });
 

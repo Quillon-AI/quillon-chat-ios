@@ -117,4 +117,52 @@ describe('ToolApprovalSet — tool card expansion (Bug #3)', () => {
         // Actionable (pending) tools default to expanded, so arguments are visible without a tap.
         expect(queryAllByTestId('mock-markdown').length).toBeGreaterThan(0);
     });
+
+    it('preserves natural tool order when mixing completed and pending tools', () => {
+        const tools: ToolCall[] = [
+            makeTool({id: 'a', name: 'first_tool', status: ToolCallStatus.Success}),
+            makeTool({id: 'b', name: 'second_tool', status: ToolCallStatus.Pending, result: undefined}),
+            makeTool({id: 'c', name: 'third_tool', status: ToolCallStatus.Success}),
+        ];
+
+        const {getAllByTestId} = renderWithIntlAndTheme(
+            <ToolApprovalSet
+                postId='p1'
+                toolCalls={tools}
+                approvalStage={ToolApprovalStage.Call}
+                canApprove={true}
+                canExpand={true}
+                showArguments={true}
+                showResults={true}
+            />,
+        );
+
+        // Tool name test IDs render in the array order — actionable tools must
+        // not be hoisted above non-actionable ones.
+        const names = getAllByTestId(/agents\.tool_card\.[abc]\.name$/);
+        expect(names.map((n) => n.props.testID)).toEqual([
+            'agents.tool_card.a.name',
+            'agents.tool_card.b.name',
+            'agents.tool_card.c.name',
+        ]);
+    });
+
+    it('renders approve/reject buttons for pending tools in the Call stage', () => {
+        const tool = makeTool({status: ToolCallStatus.Pending, result: undefined});
+
+        const {getByTestId} = renderWithIntlAndTheme(
+            <ToolApprovalSet
+                postId='p1'
+                toolCalls={[tool]}
+                approvalStage={ToolApprovalStage.Call}
+                canApprove={true}
+                canExpand={true}
+                showArguments={true}
+                showResults={true}
+            />,
+        );
+
+        expect(getByTestId('agents.tool_card.tu1.approve')).toBeTruthy();
+        expect(getByTestId('agents.tool_card.tu1.reject')).toBeTruthy();
+    });
 });

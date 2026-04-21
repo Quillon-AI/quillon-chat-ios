@@ -21,7 +21,7 @@ import ToolCard from '../tool_card';
 interface ToolApprovalSetProps {
     postId: string;
     toolCalls: ToolCall[];
-    approvalStage: ToolApprovalStage | null;
+    approvalStage: ToolApprovalStage;
     canApprove: boolean;
     canExpand: boolean;
     showArguments: boolean;
@@ -125,6 +125,9 @@ const ToolApprovalSet = ({postId, toolCalls, approvalStage, canApprove, canExpan
     const effectiveCanApprove = isAutoApproved && approvalStage === ToolApprovalStage.Call ? false : canApprove;
 
     const actionableTools = useMemo(() => {
+        if (approvalStage === ToolApprovalStage.Call) {
+            return toolCalls.filter((call) => call.status === ToolCallStatus.Pending);
+        }
         if (approvalStage === ToolApprovalStage.Result) {
             return toolCalls.filter((call) =>
                 call.status === ToolCallStatus.Success ||
@@ -132,7 +135,9 @@ const ToolApprovalSet = ({postId, toolCalls, approvalStage, canApprove, canExpan
                 call.status === ToolCallStatus.AutoApproved,
             );
         }
-        return toolCalls.filter((call) => call.status === ToolCallStatus.Pending);
+
+        // 'done' stage — server says no decision remains, render no buttons.
+        return [];
     }, [toolCalls, approvalStage]);
 
     const submitDecisions = useCallback(async (decisions: ToolDecision) => {
@@ -209,11 +214,28 @@ const ToolApprovalSet = ({postId, toolCalls, approvalStage, canApprove, canExpan
     }
 
     const actionableIds = new Set(actionableTools.map((t) => t.id));
-    const processedToolCalls = toolCalls.filter((call) => !actionableIds.has(call.id));
+    const isCallStage = approvalStage === ToolApprovalStage.Call;
+    const isResultStage = approvalStage === ToolApprovalStage.Result;
 
     // Helper to compute if a tool should be collapsed
     const isToolCollapsed = (tool: ToolCall) => {
-        const defaultExpanded = actionableIds.has(tool.id);
+        // Auto-approved tools are always collapsed by default — the user
+        // did not interact with them, so the expanded card would just be
+        // visual noise. Click still toggles.
+        if (tool.status === ToolCallStatus.AutoApproved) {
+            return !(expandedTools[tool.id] ?? false);
+        }
+
+        // Pending tools (call stage) expand by default so users see what
+        // they are being asked to approve. Executed tools in the result
+        // stage also expand so the output is visible during the share
+        // decision. Otherwise collapse.
+        let defaultExpanded = false;
+        if (isCallStage) {
+            defaultExpanded = tool.status === ToolCallStatus.Pending;
+        } else if (isResultStage) {
+            defaultExpanded = tool.status === ToolCallStatus.Success || tool.status === ToolCallStatus.Error;
+        }
         return !(expandedTools[tool.id] ?? defaultExpanded);
     };
 
@@ -222,40 +244,26 @@ const ToolApprovalSet = ({postId, toolCalls, approvalStage, canApprove, canExpan
             style={styles.container}
             testID='agents.tool_approval_set'
         >
-            {actionableTools.map((tool) => (
-                <ToolCard
-                    key={tool.id}
-                    tool={tool}
-                    isCollapsed={isToolCollapsed(tool)}
-                    isProcessing={isSubmitting}
-                    localDecision={toolDecisions[tool.id]}
-                    onToggleCollapse={toggleCollapse}
-                    onApprove={effectiveCanApprove ? handleApprove : undefined}
-                    onReject={effectiveCanApprove ? handleReject : undefined}
-                    approvalStage={approvalStage}
-                    canExpand={canExpand}
-                    showArguments={showArguments}
-                    showResults={showResults}
-                    isAutoApproved={isAutoApproved || tool.status === ToolCallStatus.AutoApproved}
-                />
-            ))}
-
-            {processedToolCalls.map((tool) => (
-                <ToolCard
-                    key={tool.id}
-                    tool={tool}
-                    isCollapsed={isToolCollapsed(tool)}
-                    isProcessing={false}
-                    onToggleCollapse={toggleCollapse}
-                    onApprove={effectiveCanApprove ? handleApprove : undefined}
-                    onReject={effectiveCanApprove ? handleReject : undefined}
-                    approvalStage={approvalStage}
-                    canExpand={canExpand}
-                    showArguments={showArguments}
-                    showResults={showResults}
-                    isAutoApproved={isAutoApproved || tool.status === ToolCallStatus.AutoApproved}
-                />
-            ))}
+            {toolCalls.map((tool) => {
+                const isActionable = actionableIds.has(tool.id);
+                return (
+                    <ToolCard
+                        key={tool.id}
+                        tool={tool}
+                        isCollapsed={isToolCollapsed(tool)}
+                        isProcessing={isActionable && isSubmitting}
+                        localDecision={isActionable ? toolDecisions[tool.id] : undefined}
+                        onToggleCollapse={toggleCollapse}
+                        onApprove={isActionable && effectiveCanApprove ? handleApprove : undefined}
+                        onReject={isActionable && effectiveCanApprove ? handleReject : undefined}
+                        approvalStage={approvalStage}
+                        canExpand={canExpand}
+                        showArguments={showArguments}
+                        showResults={showResults}
+                        isAutoApproved={isAutoApproved || tool.status === ToolCallStatus.AutoApproved}
+                    />
+                );
+            })}
 
             {actionableTools.length > 1 && isSubmitting && (
                 <View

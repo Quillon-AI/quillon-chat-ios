@@ -322,4 +322,140 @@ describe('AgentPostNew — old conversation tool calls (Bug #2)', () => {
         // Now tool cards render.
         expect(await findByText('Search Docs')).toBeTruthy();
     });
+
+    it('keeps a single pending tool visible after streaming ends and POST_EDITED clears streamingState', async () => {
+        // Channel scenario: agent streams a single pending tool, then the
+        // stream ends awaiting approval. POST_EDITED races in and clears
+        // streamingState. The invalidated conversation fetch resolves with
+        // the finalized anchor turn that carries the pending tool_use block.
+        const finalConversation = makeConversation({
+            user_id: USER_ID,
+            channel_id: 'channel1',
+            turns: [
+                {id: 't0', post_id: null, role: 'user', content: [], sequence: 0, tokens_in: 0, tokens_out: 0},
+                {
+                    id: 't1',
+                    post_id: POST_ID,
+                    role: 'assistant',
+                    sequence: 1,
+                    tokens_in: 0,
+                    tokens_out: 0,
+                    approval_state: 'call',
+                    content: [
+                        {
+                            type: BlockType.ToolUse,
+                            id: 'tu_pending',
+                            name: 'get_channel_info',
+                            input: {channel_id: 'abc'},
+                            status: ToolCallStatusString.Pending,
+                        },
+                    ],
+                },
+            ],
+        });
+
+        // First fetch (at mount): empty conversation. Second fetch (after
+        // stream end → invalidate): finalized conversation with anchor turn.
+        mockFetchConversation.mockResolvedValueOnce({data: makeConversation()});
+        mockFetchConversation.mockResolvedValueOnce({data: finalConversation});
+
+        const {findByText, findByTestId} = renderWithIntlAndTheme(
+            <AgentPostNew
+                post={makePost({message: ''})}
+                conversationId={CONV_ID}
+                currentUserId={USER_ID}
+                location={'Channel' as any}
+                isDM={false}
+            />,
+        );
+
+        // Stream start + tool_call event (status 0 === Pending).
+        await act(async () => {
+            streamingStore.handleWebSocketMessage({post_id: POST_ID, control: 'start'});
+            await flush();
+        });
+        await act(async () => {
+            streamingStore.handleWebSocketMessage({
+                post_id: POST_ID,
+                control: 'tool_call',
+                tool_call: JSON.stringify([{
+                    id: 'tu_pending',
+                    name: 'get_channel_info',
+                    description: '',
+                    arguments: {channel_id: 'abc'},
+                    status: 0,
+                }]),
+            });
+            await flush();
+        });
+
+        // Live rendering: tool visible with approve/reject.
+        expect(await findByText('Get Channel Info')).toBeTruthy();
+
+        // Stream ends awaiting approval.
+        await act(async () => {
+            streamingStore.handleWebSocketMessage({post_id: POST_ID, control: 'end'});
+            await flush();
+        });
+
+        // POST_EDITED races in and clears the streaming state. This is what
+        // handlePostEdited() does in posts.ts line 276.
+        await act(async () => {
+            streamingStore.removePost(POST_ID);
+            await flush();
+        });
+
+        // After the handoff the tool is still visible, and its approve/reject
+        // buttons are still active so the user can act on the pending call.
+        expect(await findByText('Get Channel Info')).toBeTruthy();
+        expect(await findByTestId('agents.tool_card.tu_pending.approve')).toBeTruthy();
+        expect(await findByTestId('agents.tool_card.tu_pending.reject')).toBeTruthy();
+    });
+
+    it('renders a single pending tool awaiting approval with approve/reject buttons', async () => {
+        // Channel scenario: user sent a message, the agent's first (and only)
+        // round emitted one pending tool_use block. No tool_result turn yet,
+        // because execution is blocked on user approval. Server's
+        // approval_state is 'call' on the anchor.
+        const conversation = makeConversation({
+            user_id: USER_ID,
+            channel_id: 'channel1',
+            turns: [
+                {id: 't0', post_id: null, role: 'user', content: [], sequence: 0, tokens_in: 0, tokens_out: 0},
+                {
+                    id: 't1',
+                    post_id: POST_ID,
+                    role: 'assistant',
+                    sequence: 1,
+                    tokens_in: 0,
+                    tokens_out: 0,
+                    approval_state: 'call',
+                    content: [
+                        {
+                            type: BlockType.ToolUse,
+                            id: 'tu_pending',
+                            name: 'get_channel_info',
+                            input: {channel_id: 'abc'},
+                            status: ToolCallStatusString.Pending,
+                        },
+                    ],
+                },
+            ],
+        });
+        mockFetchConversation.mockResolvedValue({data: conversation});
+
+        const {findByText, findByTestId} = renderWithIntlAndTheme(
+            <AgentPostNew
+                post={makePost({message: ''})}
+                conversationId={CONV_ID}
+                currentUserId={USER_ID}
+                location={'Channel' as any}
+                isDM={false}
+            />,
+        );
+
+        expect(await findByText('Get Channel Info')).toBeTruthy();
+        expect(await findByTestId('agents.tool_card.tu_pending.approve')).toBeTruthy();
+        expect(await findByTestId('agents.tool_card.tu_pending.reject')).toBeTruthy();
+    });
 });

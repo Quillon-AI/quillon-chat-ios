@@ -17,11 +17,14 @@ export const ToolCallStatus = {
 export type ToolCallStatus = typeof ToolCallStatus[keyof typeof ToolCallStatus];
 
 /**
- * Tool approval stage values
+ * Tool approval stage values. Mirrors the server-computed approval state for
+ * a post. 'done' means no user decision remains (auto-run, keep private, all
+ * rejected, or no tool_use blocks at all) — render no buttons.
  */
 export const ToolApprovalStage = {
     Call: 'call',
     Result: 'result',
+    Done: 'done',
 } as const;
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- TypeScript supports same-name type/value pairs as enum alternative
