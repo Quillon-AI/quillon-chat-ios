@@ -120,11 +120,10 @@ class CreateDirectMessageScreen {
 
         // Wait for any SVG animation overlay to clear before proceeding.
         // The plus-menu icon animation layer (RNSVGGroup) can intercept taps
-        // on the search input even after toBeVisible() passes.
+        // on the search input even after toBeVisible() passes. Dismissing the
+        // "Long-press on an item" tutorial overlay here makes the dismissal explicit
+        // regardless of the searchInput visibility approach.
         await wait(timeouts.ONE_SEC);
-        // if it appears. The overlay blocks 50% of the search input on first open and
-        // intercepts taps, causing subsequent interactions to fail. Calling closeTutorial()
-        // here makes the dismissal explicit regardless of the searchInput visibility approach.
         await this.closeTutorial();
 
         return this.createDirectMessageScreen;

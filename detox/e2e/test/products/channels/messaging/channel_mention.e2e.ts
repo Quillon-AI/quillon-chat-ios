@@ -24,7 +24,7 @@ import {
     ServerScreen,
 } from '@support/ui/screen';
 import {timeouts} from '@support/utils';
-import {expect} from 'detox';
+import {waitFor} from 'detox';
 
 describe('Messaging - Channel Mention', () => {
     const serverOneDisplayName = 'Server 1';
@@ -89,13 +89,10 @@ describe('Messaging - Channel Mention', () => {
         // when both posts are grouped under the same author header in the post list.
         await element(by.text(channelDisplayNameMention)).tap();
 
-        // Wait for navigation to complete instead of a fixed 1s sleep.
-        // On Android the deep-link navigation from a channel mention can take longer
-        // than 1s, causing the header assertion to read the old channel name.
+        // * Verify redirected to target channel. Use waitFor with a long timeout
+        // because deep-link navigation on Android can take longer than 1s, causing
+        // an immediate expect() to read the old channel name.
         await waitFor(ChannelScreen.headerTitle).toHaveText(targetChannel.display_name).withTimeout(timeouts.HALF_MIN);
-
-        // * Verify redirected to target channel
-        await expect(ChannelScreen.headerTitle).toHaveText(targetChannel.display_name);
 
         // # Go back to channel list screen
         await ChannelScreen.back();

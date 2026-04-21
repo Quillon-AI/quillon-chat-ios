@@ -73,6 +73,8 @@ class ChannelListScreen {
      * unreads → favorites until the total timeout is exhausted. This avoids both bridge-idle
      * synchronisation (which can stall indefinitely on iOS 26.x) and the split-budget problem
      * where a channel appearing in 'unreads' after 16 s would miss the 15 s channels window.
+     *
+     * If the "Couldn't load {teamName}" error screen appears, taps Retry and keeps polling.
      */
     waitForSidebarPublicChannelDisplayNameVisible = async (channelName: string, timeout = timeouts.ONE_MIN) => {
         const deadline = Date.now() + timeout;
@@ -80,6 +82,20 @@ class ChannelListScreen {
 
         /* eslint-disable no-await-in-loop */
         while (Date.now() < deadline) {
+            // Check if the "Couldn't load" error screen has appeared due to WebSocket
+            // connection failure. Detect it via the unique 'Retry' button (the error title
+            // contains a dynamic team name so by.text() exact-match won't work). Tap Retry
+            // and continue polling to give the reload time to finish.
+            try {
+                const retryButton = element(by.text('Retry'));
+                await waitFor(retryButton).toExist().withTimeout(timeouts.TWO_SEC);
+                await retryButton.tap();
+                await wait(timeouts.FOUR_SEC);
+                continue;
+            } catch {
+                // No error screen, proceed with normal polling
+            }
+
             for (const cat of categories) {
                 const remaining = deadline - Date.now();
                 if (remaining <= 0) {
@@ -187,6 +203,7 @@ class ChannelListScreen {
                 } catch {
                     // Alert not present, proceed normally
                 }
+
                 // If the back button is present we are inside a channel — tap it once to pop
                 // back to the channel list. We attempt this up to 3 times to handle nested
                 // navigation (e.g. thread → channel → channel list).
