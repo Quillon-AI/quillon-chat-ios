@@ -180,6 +180,17 @@ describe('Messaging - Message Permalink Preview', () => {
         await permalinkPreview.tap();
         await wait(timeouts.ONE_SEC);
 
+        // If the target channel was created after login, a "Join channel" modal may
+        // appear due to stale WebSocket sync. Handle it gracefully — the permalink
+        // navigation still works after joining.
+        try {
+            await waitFor(element(by.text('Join channel')).atIndex(0)).toExist().withTimeout(timeouts.FOUR_SEC);
+            await element(by.text('Join channel')).atIndex(1).tap();
+            await wait(timeouts.FOUR_SEC);
+        } catch {
+            // No Join modal — user was already a member, proceed normally.
+        }
+
         await PermalinkScreen.toBeVisible();
 
         const {postListPostItem: permalinkPostItem} = PermalinkScreen.getPostListPostItem(targetPost.post.id, targetMessage);
