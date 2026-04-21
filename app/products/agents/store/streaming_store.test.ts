@@ -294,6 +294,7 @@ describe('StreamingPostStore', () => {
             streamingStore.startStreaming(postId);
 
             const state = streamingStore.getStreamingState(postId);
+
             // The early tool is preserved so the UI shows the approval card.
             expect(state?.toolCalls.map((t) => t.id)).toEqual(['a']);
             expect(state?.generating).toBe(true);
