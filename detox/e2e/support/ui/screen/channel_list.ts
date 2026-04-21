@@ -176,7 +176,17 @@ class ChannelListScreen {
                 // to timeout immediately until the app is restarted.
                 await device.launchApp({newInstance: true, launchArgs: {detoxEnableSynchronization: 0}});
 
-                // After relaunch the app restores to the last visited screen (e.g. a channel).
+                // After relaunch, iOS may show a "Save Password" system alert that
+                // blocks interaction with the channel list. Dismiss it if present.
+                // The alert uses a label-based matcher (not testID) for iOS system alerts.
+                try {
+                    const savePasswordAlert = element(by.label('Save Password')).atIndex(0);
+                    await waitFor(savePasswordAlert).toExist().withTimeout(timeouts.TWO_SEC);
+                    await element(by.label('Not Now')).atIndex(0).tap();
+                    await wait(timeouts.ONE_SEC);
+                } catch {
+                    // Alert not present, proceed normally
+                }
                 // If the back button is present we are inside a channel — tap it once to pop
                 // back to the channel list. We attempt this up to 3 times to handle nested
                 // navigation (e.g. thread → channel → channel list).

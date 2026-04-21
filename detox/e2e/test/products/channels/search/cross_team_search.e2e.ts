@@ -186,13 +186,12 @@ describe('Search - Cross Team Search', () => {
         await TeamDropdownMenuScreen.getAllTeamsItem().tap();
 
         // * j) Verify the selector changed to All teams
-        // Use polling waitForElementToExist on Android: by.text() with waitFor().toBeVisible()
-        // fails because bridge-idle sync is blocked by the sheet close animation on API 35, and
-        // the 50% visibility threshold can fail for a text node inside a compound Pressable.
+        // Use polling waitForElementToExist: the testID-based selector is more reliable
+        // than by.text() which can fail on Android due to rendering differences.
         if (isAndroid()) {
-            await waitForElementToExist(element(by.text('All teams')), timeouts.TEN_SEC);
+            await waitForElementToExist(TeamDropdownMenuScreen.getAllTeamsItem(), timeouts.HALF_MIN);
         } else {
-            await waitFor(element(by.text('All teams'))).toBeVisible().withTimeout(timeouts.TEN_SEC);
+            await waitFor(TeamDropdownMenuScreen.getAllTeamsItem()).toBeVisible().withTimeout(timeouts.TEN_SEC);
         }
 
         // # k) In the "Search messages and files" field, type "horses" and press Enter
