@@ -4,6 +4,7 @@
 import AgentsHandler, {type AgentsHandlerMix} from '@agents/database/operators/handlers';
 
 import ServerDataOperatorBase from '@database/operator/server_data_operator/handlers';
+import BoardsHandler, {type BoardsHandlerMix} from '@database/operator/server_data_operator/handlers/boards';
 import CategoryHandler, {type CategoryHandlerMix} from '@database/operator/server_data_operator/handlers/category';
 import ChannelHandler, {type ChannelHandlerMix} from '@database/operator/server_data_operator/handlers/channel';
 import CustomProfileHandler, {type CustomProfileHandlerMix} from '@database/operator/server_data_operator/handlers/custom_profile';
@@ -20,6 +21,7 @@ import type {Database} from '@nozbe/watermelondb';
 
 interface ServerDataOperator extends
     AgentsHandlerMix,
+    BoardsHandlerMix,
     CategoryHandlerMix,
     ChannelHandlerMix,
     CustomProfileHandlerMix,
@@ -35,6 +37,7 @@ interface ServerDataOperator extends
 
 class ServerDataOperator extends mix(ServerDataOperatorBase).with(
     AgentsHandler,
+    BoardsHandler,
     CategoryHandler,
     ChannelHandler,
     CustomProfileHandler,
