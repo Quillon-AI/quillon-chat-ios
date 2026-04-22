@@ -155,7 +155,10 @@ jobs:
 
   e2e-ios:
     name: machine-${{ matrix.runId }}-os-${{ matrix.deviceOsVersion }}
-    runs-on: macos-15
+    # macos-26 ships the iOS 26.2 runtime pre-installed, avoiding a ~10min
+    # LaunchServicesMigrator + runtime install on every shard. Revert to
+    # macos-15 if macos-26 tooling instability causes regressions.
+    runs-on: macos-26
     continue-on-error: true
     timeout-minutes: ${{ inputs.low_bandwidth_mode && 240 || 180 }}
     env:
