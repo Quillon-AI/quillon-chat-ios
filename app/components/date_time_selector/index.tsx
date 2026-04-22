@@ -58,7 +58,7 @@ function toValidMinuteInterval(interval?: number): ValidMinuteInterval {
  * Parses flexible time string input into hours and minutes.
  * Supports: "13:40", "1:30pm", "1:30 PM", "2pm", "14:00", etc.
  */
-function parseTimeString(input: string): {hours: number; minutes: number} | null {
+export function parseTimeString(input: string): {hours: number; minutes: number} | null {
     const trimmed = input.trim().toLowerCase();
     if (!trimmed) {
         return null;

@@ -121,7 +121,7 @@ function valuesReducer(state: AppFormValues, action: ValuesAction) {
     return {...state, [action.name]: action.value};
 }
 
-function initValues(fields?: AppField[]) {
+export function initValues(fields?: AppField[]) {
     const values: AppFormValues = {};
     fields?.forEach((field) => {
         if (!field.name) {

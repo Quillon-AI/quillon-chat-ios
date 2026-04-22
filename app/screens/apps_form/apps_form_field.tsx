@@ -59,9 +59,9 @@ const appSelectOptionToDialogOption = (option: AppSelectOption): DialogOption =>
 
 const extractOptionValue = (v: AppSelectOption) => v.value || '';
 
-const isTimeOffset = (dateStr: string): boolean => /^[+-]\d{1,4}[HMS]$/.test(dateStr);
+export const isTimeOffset = (dateStr: string): boolean => /^[+-]\d{1,4}[HMS]$/.test(dateStr);
 
-const getDateValue = (value: AppFormValue, timezone?: string, isDateTime = false): Moment | undefined => {
+export const getDateValue = (value: AppFormValue, timezone?: string, isDateTime = false): Moment | undefined => {
     if (typeof value === 'string' && value) {
         // Resolve relative dates FIRST (today, +1d, etc.)
         const resolvedValue = resolveRelativeDate(value, timezone);
