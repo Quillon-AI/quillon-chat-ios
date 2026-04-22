@@ -86,8 +86,14 @@ Navigation.setLazyComponentRegistrator((screenName) => {
         case Screens.CHANNEL_NOTIFICATION_PREFERENCES:
             screen = withServerDatabase(require('@screens/channel_notification_preferences').default);
             break;
+        case Screens.CHANNEL_CONFIGURATION:
+            screen = withServerDatabase(require('@screens/channel_configuration').default);
+            break;
         case Screens.CHANNEL_SETTINGS:
             screen = withServerDatabase(require('@screens/channel_settings').default);
+            break;
+        case Screens.CHANNEL_SHARE:
+            screen = withServerDatabase(require('@screens/channel_share').default);
             break;
         case Screens.CHANNEL_FILES:
             screen = withServerDatabase(require('@screens/channel_files').default);
@@ -303,6 +309,11 @@ Navigation.setLazyComponentRegistrator((screenName) => {
         case Screens.SHOW_TRANSLATION:
             screen = withServerDatabase(require('@screens/show_translation').default);
             break;
+        case Screens.WATERMARK: {
+            const watermarkScreen = withServerDatabase(require('@screens/watermark').default);
+            Navigation.registerComponent(Screens.WATERMARK, () => watermarkScreen);
+            return;
+        }
         case Screens.CALL:
             screen = withServerDatabase(require('@calls/screens/call_screen').default);
             break;

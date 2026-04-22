@@ -19,7 +19,7 @@ import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {useIsTablet} from '@hooks/device';
 import PerformanceMetricsManager from '@managers/performance_metrics_manager';
-import {resetToTeams, openToS} from '@screens/navigation';
+import {resetToTeams, openToS, showWatermarkOverlay, dismissWatermarkOverlay} from '@screens/navigation';
 import NavigationStore from '@store/navigation_store';
 import {isMainActivity} from '@utils/helpers';
 import {tryRunAppReview} from '@utils/reviews';
@@ -32,11 +32,13 @@ import Servers from './servers';
 import type {LaunchType} from '@typings/launch';
 
 type ChannelProps = {
+    canJoinOtherTeams: boolean;
     hasChannels: boolean;
     isCRTEnabled: boolean;
     hasTeams: boolean;
     hasMoreThanOneTeam: boolean;
     isLicensed: boolean;
+    isWatermarkEnabled: boolean;
     showToS: boolean;
     launchType: LaunchType;
     coldStart?: boolean;
@@ -175,6 +177,14 @@ const ChannelListScreen = (props: ChannelProps) => {
     }, [props.launchType, props.coldStart]);
 
     useEffect(() => {
+        if (props.isWatermarkEnabled) {
+            showWatermarkOverlay();
+        } else {
+            dismissWatermarkOverlay();
+        }
+    }, [props.isWatermarkEnabled]);
+
+    useEffect(() => {
         PerformanceMetricsManager.finishLoad('HOME', serverUrl);
         PerformanceMetricsManager.measureTimeToInteraction();
     }, [serverUrl]);
@@ -201,7 +211,7 @@ const ChannelListScreen = (props: ChannelProps) => {
                             hasMoreThanOneTeam={props.hasMoreThanOneTeam}
                         />
                         <CategoriesList
-                            iconPad={canAddOtherServers && !props.hasMoreThanOneTeam}
+                            iconPad={canAddOtherServers && !props.hasMoreThanOneTeam && !props.canJoinOtherTeams}
                             isCRTEnabled={props.isCRTEnabled}
                             moreThanOneTeam={props.hasMoreThanOneTeam}
                             hasChannels={props.hasChannels}

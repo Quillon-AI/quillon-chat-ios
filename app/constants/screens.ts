@@ -22,7 +22,9 @@ export const CHANNEL_BOOKMARK = 'ChannelBookmarkAddOrEdit';
 export const CHANNEL_FILES = 'ChannelFiles';
 export const CHANNEL_INFO = 'ChannelInfo';
 export const CHANNEL_NOTIFICATION_PREFERENCES = 'ChannelNotificationPreferences';
+export const CHANNEL_CONFIGURATION = 'ChannelConfiguration';
 export const CHANNEL_SETTINGS = 'ChannelSettings';
+export const CHANNEL_SHARE = 'ChannelShare';
 export const CODE = 'Code';
 export const CONVERT_GM_TO_CHANNEL = 'ConvertGMToChannel';
 export const CREATE_DIRECT_MESSAGE = 'CreateDirectMessage';
@@ -96,6 +98,7 @@ export const THREAD_FOLLOW_BUTTON = 'ThreadFollowButton';
 export const THREAD_OPTIONS = 'ThreadOptions';
 export const USER_PROFILE = 'UserProfile';
 export const SHOW_TRANSLATION = 'ShowTranslation';
+export const WATERMARK = 'Watermark';
 
 export default {
     ABOUT,
@@ -115,7 +118,9 @@ export default {
     CHANNEL_FILES,
     CHANNEL_INFO,
     CHANNEL_NOTIFICATION_PREFERENCES,
+    CHANNEL_CONFIGURATION,
     CHANNEL_SETTINGS,
+    CHANNEL_SHARE,
     CODE,
     CONVERT_GM_TO_CHANNEL,
     COMPONENT_LIBRARY,
@@ -188,6 +193,7 @@ export default {
     THREAD_OPTIONS,
     USER_PROFILE,
     SHOW_TRANSLATION,
+    WATERMARK,
     ...PLAYBOOKS_SCREENS,
     ...AGENTS_SCREENS,
 } as const;
@@ -216,6 +222,7 @@ export const SCREENS_WITH_TRANSPARENT_BACKGROUND = new Set<string>([
     REVIEW_APP,
     SNACK_BAR,
     GENERIC_OVERLAY,
+    WATERMARK,
 ]);
 
 export const SCREENS_AS_BOTTOM_SHEET = new Set<string>([
