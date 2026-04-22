@@ -222,6 +222,18 @@ async function serverSetup() {
             // option appears in Notification Settings on all shards without requiring
             // each test suite's beforeAll to enable it first.
             TeamSettings: {ExperimentalEnableAutomaticReplies: true},
+
+            // Disable the watermark overlay (MM-68274): it renders as an absoluteFillObject
+            // at 45% opacity and persists as an RNN overlay across all screens. EarlGrey's
+            // hittability check requires 100% visual coverage at the activation point, so
+            // even pointerEvents='none' watermarks fail Detox gesture assertions.
+            ExperimentalSettings: {EnableWatermark: false},
+
+            // Enable the remote cluster service so the share_with_connected_workspaces
+            // suite's beforeAll can create a remote cluster. Per-test config patches hit
+            // a race where apiCreateRemoteCluster runs before the patch settles, causing
+            // "The remote cluster service is not enabled." on fresh test servers.
+            ConnectedWorkspacesSettings: {EnableRemoteClusterService: true},
         }, {headers});
         process.stdout.write('[globalSetup] ✅ Server configured for CI\n');
     } catch (err) {

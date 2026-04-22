@@ -88,7 +88,7 @@ class ChannelListScreen {
             // and continue polling to give the reload time to finish.
             try {
                 const retryButton = element(by.text('Retry'));
-                await waitFor(retryButton).toExist().withTimeout(timeouts.TWO_SEC);
+                await waitForElementToExist(retryButton, timeouts.TWO_SEC);
                 await retryButton.tap();
                 await wait(timeouts.FOUR_SEC);
                 continue;

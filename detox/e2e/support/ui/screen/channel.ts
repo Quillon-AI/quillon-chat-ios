@@ -309,7 +309,14 @@ class ChannelScreen {
             // Input not hittable (intro header covering it on iOS) — replaceText
             // will still work and focus the field.
         }
-        await this.postInput.replaceText(message);
+        try {
+            await this.postInput.replaceText(message);
+        } catch {
+            // Hittability failure from a transient UITransitionView (RNN navigation
+            // overlay) briefly covering the input. Wait for it to clear and retry once.
+            await wait(timeouts.ONE_SEC);
+            await this.postInput.replaceText(message);
+        }
         await this.tapSendButton();
         await wait(timeouts.TWO_SEC);
     };
