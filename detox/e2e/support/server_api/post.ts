@@ -27,17 +27,21 @@ import {getResponseFromError} from './common';
  * @param {string} option.rootId - The post ID to comment on
  * @param {Object} option.props - A general object property bag to attach to the post
  * @param {Date} option.createAt - The date the post is created at
+ * @param {string[]} option.fileIds - Optional list of file IDs to attach to the post
  * @return {Object} returns {post} on success or {error, status} on error
  */
-export const apiCreatePost = async (baseUrl: string, {channelId, message, rootId, props = {}, createAt = 0}: any): Promise<any> => {
+export const apiCreatePost = async (baseUrl: string, {channelId, message, rootId, props = {}, createAt = 0, fileIds}: any): Promise<any> => {
     try {
-        const payload = {
+        const payload: any = {
             channel_id: channelId,
             message,
             root_id: rootId,
             props,
             create_at: createAt,
         };
+        if (fileIds && fileIds.length > 0) {
+            payload.file_ids = fileIds;
+        }
         const response = await client.post(`${baseUrl}/api/v4/posts`, payload);
 
         return {post: response.data};

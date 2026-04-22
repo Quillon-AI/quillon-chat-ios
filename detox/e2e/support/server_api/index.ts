@@ -4,6 +4,7 @@
 import AccessControl from './access_control';
 import Bot from './bot';
 import Channel from './channel';
+import File from './file';
 import Ldap from './ldap';
 import Playbooks from './playbooks';
 import PlaybooksHelpers from './playbooks_helpers';
@@ -21,6 +22,7 @@ export {
     Bot,
     Channel,
     DemoPlugin,
+    File,
     Ldap,
     Playbooks,
     PlaybooksHelpers,

@@ -12,6 +12,7 @@ import {queryFilesForPost} from '@queries/servers/file';
 import {observePost, observePostAuthor, queryPostsBetween, observeIsPostPriorityEnabled} from '@queries/servers/post';
 import {queryReactionsForPost} from '@queries/servers/reaction';
 import {observeCanManageChannelMembers, observePermissionForPost} from '@queries/servers/role';
+import {observeConfigBooleanValue} from '@queries/servers/system';
 import {observeThreadById} from '@queries/servers/thread';
 import {observeCurrentUser} from '@queries/servers/user';
 import {isBoRPost} from '@utils/bor';
@@ -165,6 +166,7 @@ const withPost = withObservables(
             isFirstReply: of$(isFirstReply(post, previousPost)),
             isLastReply,
             isPostAddChannelMember,
+            isPermissionPoliciesEnabled: observeConfigBooleanValue(database, 'FeatureFlagPermissionPolicies'),
             isPostPriorityEnabled: observeIsPostPriorityEnabled(database),
             post: post.observe(),
             thread: isCRTEnabled ? observeThreadById(database, post.id) : of$(undefined),
