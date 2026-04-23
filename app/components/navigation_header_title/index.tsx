@@ -25,6 +25,11 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
         title: {
             color: theme.sidebarHeaderTextColor,
             ...typography('Heading', 300, 'SemiBold'),
+            textAlign: 'center',
+            width: '100%',
+        },
+        withSubtitle: {
+            ...typography('Heading', 200, 'SemiBold'),
         },
         subtitle: {
             color: changeOpacity(theme.sidebarHeaderTextColor, 0.72),
@@ -58,7 +63,7 @@ export default function NavigationHeaderTitle({title, subtitle, subtitleElement,
             disabled={!onPress}
             onPress={onPress}
         >
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, Boolean(subtitle || subtitleElement) ? styles.withSubtitle : undefined]}>{title}</Text>
             {Subtitle}
         </Pressable>
     );

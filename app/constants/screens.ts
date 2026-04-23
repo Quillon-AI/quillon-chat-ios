@@ -16,10 +16,12 @@ const CALL_HOST_CONTROLS = 'call_host_controls';
 const CHANNEL = 'channel';
 const CHANNEL_ADD_MEMBERS = 'channel_add_members';
 const CHANNEL_BOOKMARK = 'channel_bookmark';
+const CHANNEL_CONFIGURATION = 'channel_configuration';
 const CHANNEL_FILES = 'channel_files';
 const CHANNEL_INFO = '(channel_info)';
 const CHANNEL_LIST = 'channel_list';
 const CHANNEL_NOTIFICATION_PREFERENCES = 'channel_notification_preferences';
+const CHANNEL_SHARE = 'channel_share';
 const CHANNEL_SETTINGS = 'channel_settings';
 const CODE = 'code';
 const CONVERT_GM_TO_CHANNEL = 'convert_gm_to_channel';
@@ -102,7 +104,9 @@ export default {
     CHANNEL_INFO,
     CHANNEL_LIST,
     CHANNEL_NOTIFICATION_PREFERENCES,
+    CHANNEL_CONFIGURATION,
     CHANNEL_SETTINGS,
+    CHANNEL_SHARE,
     CODE,
     CONVERT_GM_TO_CHANNEL,
     COMPONENT_LIBRARY,

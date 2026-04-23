@@ -23,6 +23,7 @@ import type PostModel from '@typings/database/models/servers/post';
 
 type ThreadProps = {
     isCRTEnabled: boolean;
+    includeChannelBanner: boolean;
     showJoinCallBanner: boolean;
     isInACall: boolean;
     showIncomingCalls: boolean;
@@ -39,6 +40,7 @@ const safeAreaViewEdges: Edge[] = ['left', 'right', 'bottom'];
 
 const Thread = ({
     isCRTEnabled,
+    includeChannelBanner,
     rootId,
     rootPost,
     showJoinCallBanner,
@@ -114,6 +116,7 @@ const Thread = ({
                     scheduledPostCount={scheduledPostCount}
                     containerHeight={containerHeight}
                     enabled={isVisible}
+                    includeChannelBanner={includeChannelBanner}
                 />
             )}
             {showFloatingCallContainer &&

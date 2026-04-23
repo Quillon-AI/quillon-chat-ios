@@ -12,13 +12,14 @@ import ChannelSettingsScreen from '@screens/channel_settings';
 
 type ChannelSettingsProps = {
     channelId: string;
+    subtitle: string;
 }
 
 export default function ChannelSettingsRoute() {
     const theme = useTheme();
     const serverUrl = useServerUrl();
     const intl = useIntl();
-    const {channelId} = usePropsFromParams<ChannelSettingsProps>();
+    const {channelId, subtitle} = usePropsFromParams<ChannelSettingsProps>();
 
     useNavigationHeader({
         showWhenPushed: true,
@@ -26,6 +27,7 @@ export default function ChannelSettingsRoute() {
             headerTitle: () => (
                 <NavigationHeaderTitle
                     title={intl.formatMessage({id: 'channel_info.channel_settings', defaultMessage: 'Channel Settings'})}
+                    subtitle={subtitle}
                 />
             ),
             ...getHeaderOptions(theme),

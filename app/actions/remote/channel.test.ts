@@ -31,7 +31,6 @@ import {
     markChannelAsRead,
     unsetActiveChannelOnServer,
     joinIfNeededAndSwitchToChannel,
-    goToNPSChannel,
     fetchMissingDirectChannelsInfo,
     fetchDirectChannelsInfo,
     createDirectChannel,
@@ -40,6 +39,10 @@ import {
     fetchArchivedChannels,
     createGroupChannel,
     fetchSharedChannels,
+    fetchRemoteClusters,
+    fetchChannelSharedRemotes,
+    shareChannelWithRemote,
+    unshareChannelFromRemote,
     makeGroupChannel,
     getChannelMemberCountsByGroup,
     getChannelTimezones,
@@ -129,6 +132,10 @@ const mockClient = {
     savePreferences: jest.fn(),
     getRolesByNames: jest.fn((roles: string[]) => roles.map((r) => ({id: r, name: r} as Role))),
     getSharedChannels: jest.fn((teamId: string) => ([{id: channelId + 'shared', name: 'channel1shared', creatorId: user.id, team_id: teamId, shared: true}])),
+    getRemoteClusters: jest.fn(),
+    getChannelSharedRemotes: jest.fn(),
+    shareChannelWithRemote: jest.fn(),
+    unshareChannelFromRemote: jest.fn(),
     getChannelMemberCountsByGroup: jest.fn((channelId: string) => ({group_id: channelId, channel_member_count: 3, channel_member_timezones_count: 2})),
     getChannelTimezones: jest.fn(() => ['est']),
     autocompleteChannels: jest.fn((teamId: string) => ([{id: channelId, name: 'channel1', creatorId: user.id, team_id: teamId}])),
@@ -467,20 +474,6 @@ describe('app/actions/remote/channel', () => {
             expect(result).not.toHaveProperty('error');
         });
 
-        it('goToNPSChannel - handle not found database', async () => {
-            const {error} = await goToNPSChannel('foo');
-            expect(error).toBeDefined();
-        });
-
-        it('goToNPSChannel - base case', async () => {
-            await operator.handleSystem({systems: [{id: SYSTEM_IDENTIFIERS.CURRENT_USER_ID, value: user.id}, {id: SYSTEM_IDENTIFIERS.CURRENT_TEAM_ID, value: teamId}], prepareRecordsOnly: false});
-            await operator.handleUsers({users: [user], prepareRecordsOnly: false});
-
-            const result = await goToNPSChannel(serverUrl);
-            expect(result).toBeDefined();
-            expect(result).not.toHaveProperty('error');
-        });
-
         it('fetchChannels - base case', async () => {
             const {channels, error} = await fetchChannels(serverUrl, teamId);
             expect(error).toBeUndefined();
@@ -497,6 +490,68 @@ describe('app/actions/remote/channel', () => {
             const {channels, error} = await fetchSharedChannels(serverUrl, teamId);
             expect(error).toBeUndefined();
             expect(channels).toBeDefined();
+        });
+
+        describe('remote clusters and shared channel', () => {
+            it('fetchRemoteClusters - success', async () => {
+                const remoteClusters = [TestHelper.fakeRemoteClusterInfo({remote_id: 'rc1', name: 'Remote 1', site_url: 'https://remote1.com'})];
+                mockClient.getRemoteClusters.mockResolvedValue(remoteClusters);
+                const result = await fetchRemoteClusters(serverUrl);
+                expect(result.error).toBeUndefined();
+                expect(result.remoteClusters).toEqual(remoteClusters);
+                expect(mockClient.getRemoteClusters).toHaveBeenCalledWith({excludePlugins: true, onlyConfirmed: true});
+            });
+
+            it('fetchRemoteClusters - error', async () => {
+                mockClient.getRemoteClusters.mockRejectedValue(new Error('network'));
+                const result = await fetchRemoteClusters(serverUrl);
+                expect(result.remoteClusters).toBeUndefined();
+                expect(result.error).toBeDefined();
+            });
+
+            it('fetchChannelSharedRemotes - success', async () => {
+                const remotes = [TestHelper.fakeRemoteClusterInfo({remote_id: 'rc1', name: 'Remote 1', site_url: 'https://remote1.com'})];
+                mockClient.getChannelSharedRemotes.mockResolvedValue(remotes);
+                const result = await fetchChannelSharedRemotes(serverUrl, channelId);
+                expect(result.error).toBeUndefined();
+                expect(result.remotes).toEqual(remotes);
+                expect(mockClient.getChannelSharedRemotes).toHaveBeenCalledWith(channelId);
+            });
+
+            it('fetchChannelSharedRemotes - error', async () => {
+                mockClient.getChannelSharedRemotes.mockRejectedValue(new Error('network'));
+                const result = await fetchChannelSharedRemotes(serverUrl, channelId);
+                expect(result.remotes).toBeUndefined();
+                expect(result.error).toBeDefined();
+            });
+
+            it('shareChannelWithRemote - success', async () => {
+                mockClient.shareChannelWithRemote.mockResolvedValue(undefined as never);
+                const remoteId = 'remote-id-1';
+                const result = await shareChannelWithRemote(serverUrl, channelId, remoteId);
+                expect(result.error).toBeUndefined();
+                expect(mockClient.shareChannelWithRemote).toHaveBeenCalledWith(channelId, remoteId);
+            });
+
+            it('shareChannelWithRemote - error', async () => {
+                mockClient.shareChannelWithRemote.mockRejectedValue(new Error('network'));
+                const result = await shareChannelWithRemote(serverUrl, channelId, 'remote-id-1');
+                expect(result.error).toBeDefined();
+            });
+
+            it('unshareChannelFromRemote - success', async () => {
+                mockClient.unshareChannelFromRemote.mockResolvedValue(undefined as never);
+                const remoteId = 'remote-id-1';
+                const result = await unshareChannelFromRemote(serverUrl, channelId, remoteId);
+                expect(result.error).toBeUndefined();
+                expect(mockClient.unshareChannelFromRemote).toHaveBeenCalledWith(channelId, remoteId);
+            });
+
+            it('unshareChannelFromRemote - error', async () => {
+                mockClient.unshareChannelFromRemote.mockRejectedValue(new Error('network'));
+                const result = await unshareChannelFromRemote(serverUrl, channelId, 'remote-id-1');
+                expect(result.error).toBeDefined();
+            });
         });
 
         it('getChannelTimezones - base case', async () => {
@@ -778,90 +833,60 @@ describe('app/actions/remote/channel', () => {
             expect(updatedChannel).toBeDefined();
         });
     });
-});
 
-describe('setChannelAutotranslation', () => {
-    beforeAll(() => {
+    describe('setChannelAutotranslation', () => {
+        it('should update channel and call deletePostsForChannel when disabling autotranslation', async () => {
+            const post = TestHelper.fakePost({id: 'postid1', channel_id: channelId, root_id: ''});
+            const channelWithAutotranslation = TestHelper.fakeChannel({id: channelId, team_id: teamId, autotranslation: true});
+            await operator.handleChannel({channels: [channelWithAutotranslation], prepareRecordsOnly: false});
+            await operator.handlePosts({actionType: ActionType.POSTS.RECEIVED_IN_CHANNEL, order: [post.id], posts: [post], prepareRecordsOnly: false});
+            jest.mocked(mockClient.setChannelAutotranslation).mockResolvedValue({id: channelId, autotranslation: false} as Channel);
 
-        // @ts-ignore
-        NetworkManager.getClient = () => mockClient;
+            const result = await setChannelAutotranslation(serverUrl, channelId, false);
+
+            expect(result.error).toBeUndefined();
+            expect(result.channel).toBeDefined();
+            expect(result.channel!.autotranslation).toBe(false);
+            expect(mockClient.setChannelAutotranslation).toHaveBeenCalledWith(channelId, false);
+
+            expect(DeviceEventEmitter.emit).toHaveBeenCalledWith(Events.POST_DELETED_FOR_CHANNEL, {serverUrl, channelId, teamId});
+        });
+
+        it('should handle client error', async () => {
+            jest.mocked(mockClient.setChannelAutotranslation).mockRejectedValueOnce(new Error('API error'));
+
+            const result = await setChannelAutotranslation(serverUrl, channelId, true);
+
+            expect(result.error).toBeDefined();
+            expect(DeviceEventEmitter.emit).not.toHaveBeenCalled();
+        });
     });
 
-    beforeEach(async () => {
-        await DatabaseManager.init([serverUrl]);
-        operator = DatabaseManager.serverDatabases[serverUrl]!.operator;
-    });
+    describe('setMyChannelAutotranslation', () => {
+        it('should update myChannel and call deletePostsForChannel when autotranslation changes', async () => {
+            const post = TestHelper.fakePost({id: 'postid1', channel_id: channelId, root_id: ''});
+            const channel = TestHelper.fakeChannel({id: channelId, team_id: teamId});
+            const myChannelMember = TestHelper.fakeChannelMember({channel_id: channelId, autotranslation_disabled: false});
+            await operator.handleChannel({channels: [channel], prepareRecordsOnly: false});
+            await operator.handleMyChannel({channels: [channel], myChannels: [myChannelMember], prepareRecordsOnly: false});
+            await operator.handlePosts({actionType: ActionType.POSTS.RECEIVED_IN_CHANNEL, order: [post.id], posts: [post], prepareRecordsOnly: false});
+            jest.mocked(mockClient.setMyChannelAutotranslation).mockResolvedValue({} as ChannelMembership);
 
-    afterEach(async () => {
-        await DatabaseManager.destroyServerDatabase(serverUrl);
-    });
+            const result = await setMyChannelAutotranslation(serverUrl, channelId, false);
 
-    it('should update channel and call deletePostsForChannel when disabling autotranslation', async () => {
-        const post = TestHelper.fakePost({id: 'postid1', channel_id: channelId, root_id: ''});
-        const channelWithAutotranslation = TestHelper.fakeChannel({id: channelId, team_id: teamId, autotranslation: true});
-        await operator.handleChannel({channels: [channelWithAutotranslation], prepareRecordsOnly: false});
-        await operator.handlePosts({actionType: ActionType.POSTS.RECEIVED_IN_CHANNEL, order: [post.id], posts: [post], prepareRecordsOnly: false});
-        jest.mocked(mockClient.setChannelAutotranslation).mockResolvedValue({id: channelId, autotranslation: false} as Channel);
+            expect(result.error).toBeUndefined();
+            expect(result.data).toBe(true);
+            expect(mockClient.setMyChannelAutotranslation).toHaveBeenCalledWith(channelId, false);
+            expect(DeviceEventEmitter.emit).toHaveBeenCalledWith(Events.POST_DELETED_FOR_CHANNEL, {serverUrl, channelId, teamId});
+        });
 
-        const result = await setChannelAutotranslation(serverUrl, channelId, false);
+        it('should handle client error', async () => {
+            jest.mocked(mockClient.setMyChannelAutotranslation).mockRejectedValueOnce(new Error('API error'));
 
-        expect(result.error).toBeUndefined();
-        expect(result.channel).toBeDefined();
-        expect(result.channel!.autotranslation).toBe(false);
-        expect(mockClient.setChannelAutotranslation).toHaveBeenCalledWith(channelId, false);
+            const result = await setMyChannelAutotranslation(serverUrl, channelId, true);
 
-        expect(DeviceEventEmitter.emit).toHaveBeenCalledWith(Events.POST_DELETED_FOR_CHANNEL, {serverUrl, channelId, teamId});
-    });
-
-    it('should handle client error', async () => {
-        jest.mocked(mockClient.setChannelAutotranslation).mockRejectedValueOnce(new Error('API error'));
-
-        const result = await setChannelAutotranslation(serverUrl, channelId, true);
-
-        expect(result.error).toBeDefined();
-        expect(DeviceEventEmitter.emit).not.toHaveBeenCalled();
-    });
-});
-
-describe('setMyChannelAutotranslation', () => {
-    beforeAll(() => {
-
-        // @ts-ignore
-        NetworkManager.getClient = () => mockClient;
-    });
-
-    beforeEach(async () => {
-        await DatabaseManager.init([serverUrl]);
-        operator = DatabaseManager.serverDatabases[serverUrl]!.operator;
-    });
-
-    afterEach(async () => {
-        await DatabaseManager.destroyServerDatabase(serverUrl);
-    });
-
-    it('should update myChannel and call deletePostsForChannel when autotranslation changes', async () => {
-        const post = TestHelper.fakePost({id: 'postid1', channel_id: channelId, root_id: ''});
-        const channel = TestHelper.fakeChannel({id: channelId, team_id: teamId});
-        const myChannelMember = TestHelper.fakeChannelMember({channel_id: channelId, autotranslation_disabled: false});
-        await operator.handleChannel({channels: [channel], prepareRecordsOnly: false});
-        await operator.handleMyChannel({channels: [channel], myChannels: [myChannelMember], prepareRecordsOnly: false});
-        await operator.handlePosts({actionType: ActionType.POSTS.RECEIVED_IN_CHANNEL, order: [post.id], posts: [post], prepareRecordsOnly: false});
-        jest.mocked(mockClient.setMyChannelAutotranslation).mockResolvedValue({} as ChannelMembership);
-
-        const result = await setMyChannelAutotranslation(serverUrl, channelId, false);
-
-        expect(result.error).toBeUndefined();
-        expect(result.data).toBe(true);
-        expect(mockClient.setMyChannelAutotranslation).toHaveBeenCalledWith(channelId, false);
-        expect(DeviceEventEmitter.emit).toHaveBeenCalledWith(Events.POST_DELETED_FOR_CHANNEL, {serverUrl, channelId, teamId});
-    });
-
-    it('should handle client error', async () => {
-        jest.mocked(mockClient.setMyChannelAutotranslation).mockRejectedValueOnce(new Error('API error'));
-
-        const result = await setMyChannelAutotranslation(serverUrl, channelId, true);
-
-        expect(result.error).toBeDefined();
-        expect(DeviceEventEmitter.emit).not.toHaveBeenCalled();
+            expect(result.error).toBeDefined();
+            expect(DeviceEventEmitter.emit).not.toHaveBeenCalled();
+        });
     });
 });

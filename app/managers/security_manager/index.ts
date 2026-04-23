@@ -18,6 +18,7 @@ import IntuneManager from '@managers/intune_manager';
 import {
     IntuneConditionalLaunchBlockedReasons,
     type IntuneAuthRequiredEvent,
+    type IntuneComplianceFailedEvent,
     type IntuneConditionalLaunchBlockedEvent,
     type IntuneEnrollmentChangedEvent,
     type IntuneIdentitySwitchRequiredEvent,
@@ -36,6 +37,7 @@ import {
     showConditionalAccessAlert,
     showDeviceNotTrustedAlert,
     showIdentitySwitchRequiredAlert,
+    showMAMComplianceFailedAlert,
     showMAMDeclinedAlert,
     showMAMEnrollmentFailedAlert,
     showMAMEnrollmentRequiredAlert,
@@ -73,6 +75,7 @@ class SecurityManagerSingleton {
     intuneAuthSubscription?: EventSubscription;
     intuneBlockedSubscription?: EventSubscription;
     intuneIdentitySwitchSubscription?: EventSubscription;
+    intuneComplianceFailedSubscription?: EventSubscription;
 
     constructor() {
         AppState.addEventListener('change', this.onAppStateChange);
@@ -87,6 +90,7 @@ class SecurityManagerSingleton {
         this.intuneAuthSubscription = IntuneManager.subscribeToAuthRequired(this.onAuthRequired);
         this.intuneBlockedSubscription = IntuneManager.subscribeToConditionalLaunchBlocked(this.onConditionalLaunchBlocked);
         this.intuneIdentitySwitchSubscription = IntuneManager.subscribeToIdentitySwitchRequired(this.onIdentitySwitchRequired);
+        this.intuneComplianceFailedSubscription = IntuneManager.subscribeToComplianceFailed(this.onComplianceFailed);
     }
 
     /**
@@ -169,6 +173,7 @@ class SecurityManagerSingleton {
         this.intuneAuthSubscription?.remove();
         this.intuneBlockedSubscription?.remove();
         this.intuneIdentitySwitchSubscription?.remove();
+        this.intuneComplianceFailedSubscription?.remove();
 
         this.initialized = false;
         this.serverConfig = {};
@@ -417,6 +422,26 @@ class SecurityManagerSingleton {
         this.onWipeRequested({oid, serverUrls});
 
         showIdentitySwitchRequiredAlert(locale);
+    };
+
+    /**
+     * Handles MAM compliance failures from Intune SDK (post-enrollment check).
+     * Triggered when CA policy is applied after user is already enrolled.
+     */
+    onComplianceFailed = async (event: IntuneComplianceFailedEvent) => {
+        const {oid, serverUrls, reason, errorTitle, errorMessage} = event;
+
+        logDebug('SecurityManager: Compliance failed', {reason, serverCount: serverUrls.length});
+
+        Emm.enableBlurScreen(true);
+        Emm.applyBlurEffect(20);
+        this.onWipeRequested({oid, serverUrls});
+
+        const locale = serverUrls.length > 0 ? await getCurrentUserLocale(serverUrls[0]) : undefined;
+        showMAMComplianceFailedAlert(errorTitle, errorMessage, reason, locale, () => {
+            Emm.removeBlurEffect();
+            Emm.enableBlurScreen(false);
+        });
     };
 
     /**

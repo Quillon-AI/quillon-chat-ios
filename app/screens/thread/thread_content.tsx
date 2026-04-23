@@ -5,6 +5,7 @@ import {PortalProvider} from '@gorhom/portal';
 import React from 'react';
 import {StyleSheet} from 'react-native';
 
+import ChannelBanner from '@components/channel_banner';
 import {KeyboardAwarePostDraftContainer} from '@components/keyboard_aware_post_draft_container';
 import PostDraft from '@components/post_draft';
 import ScheduledPostIndicator from '@components/scheduled_post_indicator';
@@ -21,6 +22,7 @@ type ThreadContentProps = {
     scheduledPostCount: number;
     containerHeight: number;
     enabled?: boolean;
+    includeChannelBanner?: boolean;
 }
 
 const THREAD_POST_DRAFT_TESTID = 'thread.post_draft';
@@ -40,6 +42,7 @@ const ThreadContent = ({
     scheduledPostCount,
     containerHeight,
     enabled = true,
+    includeChannelBanner,
 }: ThreadContentProps) => {
     return (
         <KeyboardStateProvider
@@ -51,12 +54,21 @@ const ThreadContent = ({
                     textInputNativeID={THREAD_POST_INPUT_NATIVE_ID}
                     containerStyle={styles.flex}
                     renderList={({listRef, onTouchMove, onTouchEnd}) => (
-                        <ThreadPostList
-                            rootPost={rootPost}
-                            listRef={listRef}
-                            onTouchMove={onTouchMove}
-                            onTouchEnd={onTouchEnd}
-                        />
+                        <>
+                            {includeChannelBanner &&
+                                <ChannelBanner
+                                    channelId={rootPost.channelId}
+                                    isTopItem={true}
+                                    skipHeaderOffset={true}
+                                />
+                            }
+                            <ThreadPostList
+                                rootPost={rootPost}
+                                listRef={listRef}
+                                onTouchMove={onTouchMove}
+                                onTouchEnd={onTouchEnd}
+                            />
+                        </>
                     )}
                 >
                     {scheduledPostCount > 0 &&
