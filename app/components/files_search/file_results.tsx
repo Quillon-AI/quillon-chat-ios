@@ -84,7 +84,6 @@ const FileResults = ({
     }, [orderedGalleryItems]));
 
     const updateFileForGallery = useCallback((idx: number, file: FileInfo) => {
-        'worklet';
         orderedFileInfos[idx] = file;
     }, [orderedFileInfos]);
 
@@ -139,40 +138,30 @@ const FileResults = ({
         );
     }, [isChannelFiles, isFilterEnabled, searchValue]);
 
-    const memoFlatList = useMemo(() => (
-        <FlatList
-            ListHeaderComponent={
-                <FormattedText
-                    style={styles.resultsNumber}
-                    id='mobile.search.results'
-                    defaultMessage='{count} search {count, plural, one {result} other {results}}'
-                    values={{count: orderedFileInfos.length}}
-                />
-            }
-            ItemSeparatorComponent={Separator}
-            ListEmptyComponent={noResults}
-            contentContainerStyle={containerStyle}
-            data={orderedFileInfos}
-            indicatorStyle='black'
-            nestedScrollEnabled={true}
-            refreshing={false}
-            removeClippedSubviews={false}
-            renderItem={renderItem}
-            scrollToOverflowEnabled={true}
-            showsVerticalScrollIndicator={true}
-            testID='search_results.post_list.flat_list'
-        />
-    ), [
-        containerStyle,
-        noResults,
-        orderedFileInfos,
-        renderItem,
-        styles.resultsNumber,
-    ]);
-
     return (
         <>
-            {memoFlatList}
+            <FlatList
+                ListHeaderComponent={
+                    <FormattedText
+                        style={styles.resultsNumber}
+                        id='mobile.search.results'
+                        defaultMessage='{count} search {count, plural, one {result} other {results}}'
+                        values={{count: orderedFileInfos.length}}
+                    />
+                }
+                ItemSeparatorComponent={Separator}
+                ListEmptyComponent={noResults}
+                contentContainerStyle={containerStyle}
+                data={orderedFileInfos}
+                indicatorStyle='black'
+                nestedScrollEnabled={true}
+                refreshing={false}
+                removeClippedSubviews={false}
+                renderItem={renderItem}
+                scrollToOverflowEnabled={true}
+                showsVerticalScrollIndicator={true}
+                testID='search_results.post_list.flat_list'
+            />
             {!enableSecureFilePreview &&
             <Toasts
                 action={action}

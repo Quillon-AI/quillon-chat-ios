@@ -68,8 +68,6 @@ const PickerFooter = (props: BottomSheetFooterProps) => {
 
     return (
         <BottomSheetFooter
-
-            // style={heightAnimatedStyle}
             bottomInset={-insets.bottom}
             {...props}
         >

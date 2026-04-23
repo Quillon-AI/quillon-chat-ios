@@ -5,7 +5,6 @@ import {Alert} from 'react-native';
 
 import {doAppSubmit, postEphemeralCallResponseForCommandArgs} from '@actions/remote/apps';
 import {AppCommandParser} from '@components/autocomplete/slash_suggestion/app_command_parser/app_command_parser';
-import {Screens} from '@constants';
 import {AppCallResponseTypes} from '@constants/apps';
 import DatabaseManager from '@database/manager';
 import AppsManager from '@managers/apps_manager';
@@ -13,10 +12,10 @@ import IntegrationsManager from '@managers/integrations_manager';
 import NetworkManager from '@managers/network_manager';
 import {getChannelById} from '@queries/servers/channel';
 import {getConfig, getCurrentTeamId} from '@queries/servers/system';
-import {navigateToScreen} from '@screens/navigation';
 import {handleDeepLink, matchDeepLink} from '@utils/deep_link';
 import {getFullErrorMessage} from '@utils/errors';
 import {logDebug} from '@utils/log';
+import {openAppsForm} from '@utils/navigation';
 import {tryOpenURL} from '@utils/url';
 
 import type {Client} from '@client/rest';
@@ -111,7 +110,7 @@ export const executeAppCommand = async (serverUrl: string, intl: IntlShape, pars
             return {data: {}};
         case AppCallResponseTypes.FORM:
             if (callResp.form) {
-                navigateToScreen(Screens.APPS_FORM, {form: callResp.form, context: creq.context});
+                openAppsForm(callResp.form, creq.context);
             }
             return {data: {}};
         case AppCallResponseTypes.NAVIGATE:

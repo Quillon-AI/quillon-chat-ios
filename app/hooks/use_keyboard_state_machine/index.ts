@@ -1,7 +1,6 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {useCallback} from 'react';
 import {runOnUI} from 'react-native-reanimated';
 
 import {StateMachineEventType, type StateEvent} from '@keyboard';
@@ -31,7 +30,7 @@ export function useKeyboardStateMachine(context: KeyboardStateContextReturn): Us
     // Destructure to avoid passing context object into closures
     const {processEvent, isEmojiPickerActive} = context;
 
-    const processWithOptionalHardwareKeyboard = useCallback((event: StateEvent, asHardwareKeyboard = false) => {
+    const processWithOptionalHardwareKeyboard = (event: StateEvent, asHardwareKeyboard = false) => {
         'worklet';
 
         processEvent(event);
@@ -51,13 +50,13 @@ export function useKeyboardStateMachine(context: KeyboardStateContextReturn): Us
                 progress: 0,
             });
         }
-    }, [processEvent]);
+    };
 
     // User event dispatchers
     // CRITICAL: These are called from JS thread, so must use runOnUI to execute processEvent on UI thread
     // NOTE: runOnUI schedules async, so keyboard events may arrive first and be blocked
     // This is acceptable - the user event will eventually process and subsequent keyboard events work
-    const onUserFocusInput = useCallback((asHardwareKeyboard = false) => {
+    const onUserFocusInput = (asHardwareKeyboard = false) => {
         const value = asHardwareKeyboard ? 0 : undefined;
 
         runOnUI(processWithOptionalHardwareKeyboard)({
@@ -66,29 +65,29 @@ export function useKeyboardStateMachine(context: KeyboardStateContextReturn): Us
             height: value, // for backward compatibility with events from onStart which only have rawHeight
             progress: value, // assume fully open if height provided, otherwise 0
         }, asHardwareKeyboard);
-    }, [processWithOptionalHardwareKeyboard]);
+    };
 
-    const onUserOpenEmoji = useCallback(() => {
+    const onUserOpenEmoji = () => {
         runOnUI(processEvent)({
             type: StateMachineEventType.USER_OPEN_EMOJI,
         });
-    }, [processEvent]);
+    };
 
-    const onUserCloseEmoji = useCallback(() => {
+    const onUserCloseEmoji = () => {
         runOnUI(processEvent)({
             type: StateMachineEventType.USER_CLOSE_EMOJI,
         });
-    }, [processEvent]);
+    };
 
-    const onUserFocusEmojiSearch = useCallback((asHardwareKeyboard = false) => {
+    const onUserFocusEmojiSearch = (asHardwareKeyboard = false) => {
         runOnUI(processWithOptionalHardwareKeyboard)({type: StateMachineEventType.USER_FOCUS_EMOJI_SEARCH}, asHardwareKeyboard);
-    }, [processWithOptionalHardwareKeyboard]);
+    };
 
-    const onUserBlurEmojiSearch = useCallback(() => {
+    const onUserBlurEmojiSearch = () => {
         runOnUI(processEvent)({
             type: StateMachineEventType.USER_BLUR_EMOJI_SEARCH,
         });
-    }, [processEvent]);
+    };
 
     return {
         onUserFocusInput,

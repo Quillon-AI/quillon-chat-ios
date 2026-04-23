@@ -10,6 +10,7 @@ import {autoUpdateTimezone} from '@actions/remote/user';
 import {Events, Launch, Screens} from '@constants';
 import {useServerUrl} from '@context/server';
 import {useAppState} from '@hooks/device';
+import useDidMount from '@hooks/did_mount';
 import SecurityManager from '@managers/security_manager';
 import {getAllServers} from '@queries/app/servers';
 import {navigateToScreen, resetToRootRoute} from '@screens/navigation';
@@ -39,10 +40,10 @@ export function useHomeScreenEffects(props: LaunchProps) {
     const appState = useAppState();
     const serverUrl = useServerUrl();
 
-    useEffect(() => {
+    useDidMount(() => {
         SecurityManager.start();
         updateTimezoneIfNeeded();
-    }, []);
+    });
 
     const handleFindChannels = useCallback(() => {
         if (!NavigationStore.isScreenInStack(Screens.FIND_CHANNELS)) {
@@ -91,7 +92,7 @@ export function useHomeScreenEffects(props: LaunchProps) {
         }
     }, [appState, serverUrl]);
 
-    useEffect(() => {
+    useDidMount(() => {
         if (props.launchType === Launch.DeepLink) {
             if (props.launchError) {
                 alertInvalidDeepLink(intl);
@@ -107,8 +108,5 @@ export function useHomeScreenEffects(props: LaunchProps) {
                 });
             }
         }
-
-    // only run on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    });
 }
