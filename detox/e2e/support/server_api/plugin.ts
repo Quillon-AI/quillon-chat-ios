@@ -35,34 +35,15 @@ const prepackagedPlugins = new Set([
     'zoom',
 ]);
 
-/**
- * Get the latest release version from GitHub releases
- * @param {string} repo - GitHub repository in format 'owner/repo'
- * @return {Promise<string>} returns latest version string without 'v' prefix
- */
-export const apiGetLatestPluginVersion = async (repo: string): Promise<string> => {
-    try {
-        const response = await client.get(`https://api.github.com/repos/${repo}/releases/latest`);
-        const tagName = response.data.tag_name;
-
-        // Remove 'v' prefix if present (e.g., 'v0.10.2' -> '0.10.2')
-        return tagName.startsWith('v') ? tagName.substring(1) : tagName;
-    } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to fetch latest version for ${repo}:`, err);
-        throw new Error(`Could not determine latest plugin version for ${repo}. GitHub API may be unavailable.`);
-    }
-};
-
-// Test Plugin Constants (mattermost-plugin-test for E2E interactive dialog testing)
-export const TestPlugin = {
-    id: 'com.mattermost.test-plugin',
-    repo: 'mattermost/mattermost-plugin-test',
-
-    async getLatestDownloadUrl() {
-        const latestVersion = await apiGetLatestPluginVersion(this.repo);
-        return `https://github.com/${this.repo}/releases/download/v${latestVersion}/mattermost-plugin-test-v${latestVersion}-linux-amd64.tar.gz`;
-    },
+// Demo Plugin Constants
+// The tarball must be pre-downloaded and placed at detox/e2e/support/fixtures/<filename>.
+// Download command:
+//   curl -L -o detox/e2e/support/fixtures/mattermost-plugin-demo-v0.11.1.tar.gz \
+//     https://github.com/mattermost/mattermost-plugin-demo/releases/download/v0.11.1/mattermost-plugin-demo-v0.11.1.tar.gz
+export const DemoPlugin = {
+    id: 'com.mattermost.demo-plugin',
+    version: '0.11.1',
+    filename: 'mattermost-plugin-demo-v0.11.1.tar.gz',
 } as const;
 
 /**
@@ -75,7 +56,7 @@ export const apiDisableNonPrepackagedPlugins = async (baseUrl: string): Promise<
         return;
     }
     plugins.active.forEach(async (plugin: any) => {
-        if (plugin.id !== TestPlugin.id && !prepackagedPlugins.has(plugin.id)) {
+        if (plugin.id !== DemoPlugin.id && !prepackagedPlugins.has(plugin.id)) {
             await apiDisablePluginById(baseUrl, plugin.id);
         }
     });
@@ -220,209 +201,56 @@ export const apiGetPluginStatus = async (baseUrl: string, pluginId: string, vers
 };
 
 /**
- * Upload and enable test plugin, handling various states.
- * @param {Object} options - configuration object
- * @param {string} options.baseUrl - the base server URL
- * @param {string} options.version - expected plugin version
- * @param {boolean} options.force - whether to force install if already exists
- * @return {Object} returns plugin data on success or {error, status} on error
+ * Install and enable a plugin from a pre-downloaded tarball in fixtures.
+ * Webapp-style state machine: no-op if active at matching version,
+ * enable if installed but inactive (and version matches), otherwise
+ * remove any stale copy, upload fresh bytes, and enable.
+ * @param {string} baseUrl - the base server URL
+ * @param {string} filename - tarball filename in detox/e2e/support/fixtures/
+ * @param {string} pluginId - the plugin ID
+ * @param {string} version - expected plugin version
+ * @return {Object} returns {plugin} on success or {error, status} on error
  */
-export const apiUploadAndEnablePlugin = async (options: {
-    baseUrl: string;
-    version?: string;
-    force?: boolean;
-}): Promise<any> => {
-    const {baseUrl, version, force = false} = options;
-    const id = TestPlugin.id;
-
+export const installAndEnablePlugin = async (
+    baseUrl: string,
+    filename: string,
+    pluginId: string,
+    version: string,
+): Promise<any> => {
     try {
-        // Check current plugin status
-        const statusResult = await apiGetPluginStatus(baseUrl, id, version);
-        if (statusResult.error) {
-            return statusResult;
+        const status = await apiGetPluginStatus(baseUrl, pluginId, version);
+        if (status.error) {
+            return status;
         }
 
-        // If already active with correct version, return early
-        if (statusResult.isActive && version && statusResult.isVersionMatch) {
-            return {plugin: statusResult.plugin, message: 'Plugin is already active with correct version'};
+        if (status.isActive && status.isVersionMatch) {
+            return {plugin: status.plugin};
         }
 
-        // If installed but inactive, try to enable it first (regardless of version)
-        if (statusResult.isInstalled && !statusResult.isActive) {
-            // eslint-disable-next-line no-console
-            console.log(`Found existing plugin version ${statusResult.plugin?.version} (inactive). Attempting to activate it...`);
-
-            const enableResult = await apiEnablePluginById(baseUrl, id);
-
-            // eslint-disable-next-line no-console
-            console.log('Enable existing plugin API response:', {
-                status: enableResult.status,
-                error: enableResult.error,
-            });
-
+        if (status.isInstalled && status.isVersionMatch && !status.isActive) {
+            const enableResult = await apiEnablePluginById(baseUrl, pluginId);
             if (enableResult.error) {
-                // eslint-disable-next-line no-console
-                console.log('Failed to activate existing plugin. Will try to install new version.');
-            } else {
-                // Wait and verify activation
-                await new Promise((resolve) => setTimeout(resolve, 2000));
-                const verifyStatus = await apiGetPluginStatus(baseUrl, id);
-
-                // eslint-disable-next-line no-console
-                console.log('Existing plugin activation verification:', {
-                    isActive: verifyStatus.isActive,
-                    version: verifyStatus.plugin?.version,
-                });
-
-                return {plugin: verifyStatus.plugin, message: 'Plugin was inactive with correct version, now enabled'};
+                return enableResult;
             }
+            return {plugin: status.plugin};
         }
 
-        // Store the existing version before attempting installation
-        const existingVersion = statusResult.isInstalled ? statusResult.plugin?.version : null;
-
-        // Plugin needs to be installed - get URL from TestPlugin repo
-        const url = await TestPlugin.getLatestDownloadUrl();
-        // eslint-disable-next-line no-console
-        console.log(`Attempting to install plugin from: ${url}`);
-
-        const installResult = await apiInstallPluginFromUrl(baseUrl, url, force);
-
-        if (installResult.error) {
-            // eslint-disable-next-line no-console
-            console.log('Plugin installation failed:', {
-                error: installResult.error,
-                status: installResult.status,
-            });
-
-            // Check if there's an existing plugin we can try to activate as fallback
-            const fallbackStatusCheck = await apiGetPluginStatus(baseUrl, id);
-            if (fallbackStatusCheck.isInstalled) {
-                // eslint-disable-next-line no-console
-                console.log(`Installation failed, but found existing plugin version ${fallbackStatusCheck.plugin?.version}. Attempting to activate it as fallback...`);
-
-                const fallbackEnableResult = await apiEnablePluginById(baseUrl, id);
-
-                // eslint-disable-next-line no-console
-                console.log('Fallback enable plugin API response:', {
-                    status: fallbackEnableResult.status,
-                    statusText: fallbackEnableResult.statusText,
-                    data: fallbackEnableResult.data,
-                    error: fallbackEnableResult.error,
-                });
-
-                if (fallbackEnableResult.error) {
-                    // eslint-disable-next-line no-console
-                    console.log('Fallback activation also failed. Returning original installation error.');
-                    return {
-                        error: installResult.error,
-                        status: installResult.status,
-                        message: `Plugin installation failed (HTTP ${installResult.status}) and fallback activation also failed`,
-                    };
-                }
-
-                // Wait for activation
-                await new Promise((resolve) => setTimeout(resolve, 2000));
-
-                // Verify fallback activation worked
-                const fallbackVerifyStatus = await apiGetPluginStatus(baseUrl, id);
-                // eslint-disable-next-line no-console
-                console.log('Fallback activation verification:', {
-                    isInstalled: fallbackVerifyStatus.isInstalled,
-                    isActive: fallbackVerifyStatus.isActive,
-                    version: fallbackVerifyStatus.plugin?.version,
-                });
-
-                if (fallbackVerifyStatus.isActive) {
-                    return {
-                        plugin: fallbackVerifyStatus.plugin,
-                        message: `Installation failed but activated existing plugin version ${fallbackVerifyStatus.plugin?.version} as fallback`,
-                    };
-                }
-
-                // eslint-disable-next-line no-console
-                console.log('Fallback activation succeeded but plugin is not active. Returning error.');
-                return {
-                    error: installResult.error,
-                    status: installResult.status,
-                    message: `Plugin installation failed (HTTP ${installResult.status}), fallback activation attempted but plugin not active`,
-                };
-            }
-
-            // No existing plugin to fall back to
-            // eslint-disable-next-line no-console
-            console.log('Installation failed and no existing plugin found for fallback.');
-            return installResult;
+        // Version mismatch or not installed — remove any existing copy, upload, enable.
+        if (status.isInstalled) {
+            await apiRemovePluginById(baseUrl, pluginId);
         }
 
-        // eslint-disable-next-line no-console
-        console.log('Plugin installation succeeded');
+        const uploadResult = await apiUploadPlugin(baseUrl, filename);
+        if (uploadResult.error) {
+            return uploadResult;
+        }
 
-        // Wait a moment for installation to complete
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Enable the newly installed plugin
-        // eslint-disable-next-line no-console
-        console.log('Attempting to enable newly installed plugin...');
-        const enableResult = await apiEnablePluginById(baseUrl, id);
-
-        // Log the enable API response for debugging
-        // eslint-disable-next-line no-console
-        console.log('Enable plugin API response:', {
-            status: enableResult.status,
-            statusText: enableResult.statusText,
-            data: enableResult.data,
-            error: enableResult.error,
-        });
-
+        const enableResult = await apiEnablePluginById(baseUrl, pluginId);
         if (enableResult.error) {
-            // eslint-disable-next-line no-console
-            console.log(`Enable failed with HTTP ${enableResult.status}. Checking if plugin is actually active...`);
-
-            // Check if plugin is actually active despite the error
-            const verifyStatusAfterError = await apiGetPluginStatus(baseUrl, id);
-            // eslint-disable-next-line no-console
-            console.log('Plugin status after enable error:', {
-                isInstalled: verifyStatusAfterError.isInstalled,
-                isActive: verifyStatusAfterError.isActive,
-                version: verifyStatusAfterError.plugin?.version,
-            });
-
-            if (verifyStatusAfterError.isActive) {
-                // eslint-disable-next-line no-console
-                console.log('Plugin is actually active despite enable error. Treating as success.');
-                return {
-                    plugin: verifyStatusAfterError.plugin,
-                    message: `Plugin enabled successfully (despite HTTP ${enableResult.status} timeout)`,
-                };
-            }
-
-            // Return error with consistent format
-            return {
-                error: enableResult.error,
-                status: enableResult.status,
-                message: `Failed to enable plugin: HTTP ${enableResult.status}`,
-            };
+            return enableResult;
         }
 
-        // Wait a moment for enablement to complete
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Check plugin status immediately after enable to verify it activated
-        const enableStatusCheck = await apiGetPluginStatus(baseUrl, id);
-        // eslint-disable-next-line no-console
-        console.log('Plugin status immediately after enable:', {
-            isInstalled: enableStatusCheck.isInstalled,
-            isActive: enableStatusCheck.isActive,
-            version: enableStatusCheck.plugin?.version,
-        });
-
-        const message = existingVersion? `Installed version ${enableStatusCheck.plugin?.version || 'unknown'} over existing version ${existingVersion}`: 'Plugin uploaded and enabled successfully';
-
-        return {
-            plugin: enableStatusCheck.plugin,
-            message,
-        };
+        return uploadResult;
     } catch (err) {
         return getResponseFromError(err);
     }
@@ -433,12 +261,11 @@ export const Plugin = {
     apiDisablePluginById,
     apiEnablePluginById,
     apiGetAllPlugins,
-    apiGetLatestPluginVersion,
     apiGetPluginStatus,
     apiInstallPluginFromUrl,
     apiRemovePluginById,
     apiUploadPlugin,
-    apiUploadAndEnablePlugin,
+    installAndEnablePlugin,
 };
 
 export default Plugin;
