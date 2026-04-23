@@ -46,6 +46,8 @@ jest.mock('@screens/navigation', () => {
     };
 });
 
+jest.mock('@utils/navigation');
+
 const serverUrl = 'baseHandler.test.com';
 let operator: ServerDataOperator;
 
