@@ -28,6 +28,7 @@ describe('screens/settings/report_problem/report_problem', () => {
             serverVersion: '7.8.0',
             appVersion: '2.0.0',
             appPlatform: 'ios',
+            deviceModel: 'iPhone 14',
         },
     };
 

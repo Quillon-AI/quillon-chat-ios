@@ -63,6 +63,7 @@ describe('observeReportAProblemMetadata', () => {
                         serverVersion: '7.8.0 (Build 123)',
                         appVersion: '1.2.3 (Build 456)',
                         appPlatform: 'somePlatform',
+                        deviceModel: 'Unknown',
                     });
                     done();
                 });
@@ -78,6 +79,7 @@ describe('observeReportAProblemMetadata', () => {
                 serverVersion: 'Unknown (Build Unknown)',
                 appVersion: '1.2.3 (Build 456)',
                 appPlatform: 'somePlatform',
+                deviceModel: 'Unknown',
             });
             done();
         });

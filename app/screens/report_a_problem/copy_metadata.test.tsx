@@ -27,6 +27,7 @@ describe('screens/report_a_problem/copy_metadata', () => {
         serverVersion: '7.8.0',
         appVersion: '2.0.0',
         appPlatform: 'ios',
+        deviceModel: 'iPhone 14',
     };
     const componentId = 'ReportProblem';
 
@@ -80,6 +81,7 @@ describe('screens/report_a_problem/copy_metadata', () => {
             serverVersion: '',
             appVersion: '',
             appPlatform: '',
+            deviceModel: '',
         };
 
         const {getByText} = renderWithIntl(

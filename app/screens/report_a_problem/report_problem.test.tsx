@@ -7,6 +7,7 @@ import {View} from 'react-native';
 
 import {savePreference} from '@actions/remote/preference';
 import {Preferences, Screens} from '@constants';
+import {DEFAULT_REPORT_A_PROBLEM_EMAIL} from '@constants/report_a_problem';
 import {renderWithIntl} from '@test/intl-test-helper';
 import {logDebug} from '@utils/log';
 import {emailLogs, getDefaultReportAProblemLink, shareLogs} from '@utils/share_logs';
@@ -48,13 +49,14 @@ describe('screens/report_a_problem/report_problem', () => {
         allowDownloadLogs: true,
         attachLogsEnabled: false,
         currentUserId: 'user1',
-        isLicensed: true,
+        isFreeEdition: false,
         metadata: {
             currentUserId: 'user1',
             currentTeamId: 'team1',
             serverVersion: '7.8.0',
             appVersion: '2.0.0',
             appPlatform: 'ios',
+            deviceModel: 'iPhone 14',
         },
     };
 
@@ -165,11 +167,12 @@ describe('screens/report_a_problem/report_problem', () => {
         });
     });
 
-    it('handles default report type when licensed', async () => {
+    it('handles default report type when paid edition', async () => {
         const props = {
             ...baseProps,
             reportAProblemType: 'default',
-            isLicensed: true,
+            isFreeEdition: false,
+            siteName: 'Test Site',
         };
 
         const {getByText} = renderWithIntl(
@@ -178,16 +181,16 @@ describe('screens/report_a_problem/report_problem', () => {
 
         await act(async () => {
             fireEvent.press(getByText('Report a problem'));
-            expect(getDefaultReportAProblemLink).toHaveBeenCalledWith(true);
-            expect(tryOpenURL).toHaveBeenCalledWith('default-link');
+            expect(emailLogs).toHaveBeenCalledWith(props.metadata, props.siteName, DEFAULT_REPORT_A_PROBLEM_EMAIL, false);
+            expect(tryOpenURL).not.toHaveBeenCalled();
         });
     });
 
-    it('handles default report type when not licensed', async () => {
+    it('handles default report type when free edition', async () => {
         const props = {
             ...baseProps,
             reportAProblemType: 'default',
-            isLicensed: false,
+            isFreeEdition: true,
         };
 
         const {getByText} = renderWithIntl(
@@ -198,6 +201,7 @@ describe('screens/report_a_problem/report_problem', () => {
             fireEvent.press(getByText('Report a problem'));
             expect(getDefaultReportAProblemLink).toHaveBeenCalledWith(false);
             expect(tryOpenURL).toHaveBeenCalledWith('default-link');
+            expect(emailLogs).not.toHaveBeenCalled();
         });
     });
 

@@ -5,6 +5,7 @@
 
 import {Database, Q} from '@nozbe/watermelondb';
 import {nativeApplicationVersion, nativeBuildVersion} from 'expo-application';
+import {modelName} from 'expo-device';
 import {Platform} from 'react-native';
 import {of as of$, Observable, combineLatest} from 'rxjs';
 import {switchMap, distinctUntilChanged} from 'rxjs/operators';
@@ -633,6 +634,7 @@ export const observeReportAProblemMetadata = (database: Database) => {
             serverVersion: `${version} (Build ${build})`,
             appVersion: `${nativeApplicationVersion} (Build ${nativeBuildVersion})`,
             appPlatform: Platform.OS,
+            deviceModel: modelName ?? 'Unknown',
         })),
     );
 };
