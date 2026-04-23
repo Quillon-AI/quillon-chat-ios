@@ -9,6 +9,16 @@ import {pathWithPrefix} from '@utils/file';
 
 import type {ReportAProblemMetadata} from '@typings/screens/report_a_problem';
 
+const buildEmailBody = (metadata: ReportAProblemMetadata) => [
+    'Please share a description of the problem with reproduction steps:',
+    '',
+    '',
+    'You may also attach the mobile logs and any relevant screen captures.',
+    '',
+    'App metadata',
+    metadataToString(metadata),
+].join('\n');
+
 export const shareLogs = async (metadata: ReportAProblemMetadata, siteName: string | undefined, reportAProblemMail: string | undefined, excludeLogs: boolean = false) => {
     try {
         const logPaths = await TurboLogger.getLogPaths();
@@ -18,15 +28,7 @@ export const shareLogs = async (metadata: ReportAProblemMetadata, siteName: stri
             email: reportAProblemMail,
             failOnCancel: false,
             urls: attachments.length ? attachments : undefined,
-            message: [
-                'Please share a description of the problem with reproduction steps:',
-                '',
-                '',
-                'You may also attach the mobile logs and any relevant screen captures.',
-                '',
-                'App metadata',
-                metadataToString(metadata),
-            ].join('\n'),
+            message: buildEmailBody(metadata),
         });
     } catch (e: unknown) {
         Alert.alert('Error', `${e}`);
@@ -42,15 +44,7 @@ export const emailLogs = async (metadata: ReportAProblemMetadata, siteName: stri
             subject: `Problem with ${siteName || 'Mattermost'} mobile app`,
             email: reportAProblemMail,
             urls: attachments.length ? attachments : undefined,
-            message: [
-                'Please share a description of the problem with reproduction steps:',
-                '',
-                '',
-                'You may also attach the mobile logs and any relevant screen captures.',
-                '',
-                'App metadata',
-                metadataToString(metadata),
-            ].join('\n'),
+            message: buildEmailBody(metadata),
         });
     } catch (e: unknown) {
         Alert.alert('Error', `${e}`);

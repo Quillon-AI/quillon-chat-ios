@@ -176,6 +176,34 @@ describe('screens/report_a_problem/index', () => {
         expect(getByTestId('currentUserId')).toHaveTextContent('user2');
     });
 
+    it('should treat Entry SKU as free edition even when licensed', async () => {
+        await operator.handleSystem({
+            systems: [
+                {id: SYSTEM_IDENTIFIERS.LICENSE, value: {IsLicensed: 'true', SkuShortName: 'entry'}},
+            ],
+            prepareRecordsOnly: false,
+        });
+
+        const Component = enhanced;
+        const {getByTestId} = renderWithEverything(<Component componentId={'ReportProblem'}/>, {database});
+
+        expect(getByTestId('isFreeEdition')).toHaveTextContent('true');
+    });
+
+    it('should treat non-Entry licensed SKU as paid edition', async () => {
+        await operator.handleSystem({
+            systems: [
+                {id: SYSTEM_IDENTIFIERS.LICENSE, value: {IsLicensed: 'true', SkuShortName: 'professional'}},
+            ],
+            prepareRecordsOnly: false,
+        });
+
+        const Component = enhanced;
+        const {getByTestId} = renderWithEverything(<Component componentId={'ReportProblem'}/>, {database});
+
+        expect(getByTestId('isFreeEdition')).toHaveTextContent('false');
+    });
+
     it('should react to attachLogsEnabled preference value changes', async () => {
         await operator.handlePreferences({
             preferences: [{

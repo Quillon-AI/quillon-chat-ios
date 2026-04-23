@@ -129,6 +129,8 @@ const ReportProblem = ({
                 }
                 return;
             }
+            case 'hidden':
+                return;
         }
 
         // Old servers where reportAProblemType is not defined

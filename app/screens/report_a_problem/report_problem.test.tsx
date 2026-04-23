@@ -205,6 +205,22 @@ describe('screens/report_a_problem/report_problem', () => {
         });
     });
 
+    it('does nothing when reportAProblemType is hidden', async () => {
+        const props = {
+            ...baseProps,
+            reportAProblemType: 'hidden',
+        };
+
+        // The button is not rendered when type is hidden, but if handleReport
+        // were called directly it should be a no-op.
+        const {queryByText} = renderWithIntl(<ReportProblem {...props}/>);
+
+        expect(queryByText('Report a problem')).toBeNull();
+        expect(emailLogs).not.toHaveBeenCalled();
+        expect(tryOpenURL).not.toHaveBeenCalled();
+        expect(shareLogs).not.toHaveBeenCalled();
+    });
+
     it('handles legacy behavior when reportAProblemType is not defined', async () => {
         const props = {
             ...baseProps,
