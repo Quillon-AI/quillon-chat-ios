@@ -271,7 +271,11 @@ export default function SearchHandler(props: Props) {
         return () => {
             loadedChannels.current = async () => {/* Do nothing */};
         };
-    }, [doGetChannels, joinedChannels]);
+
+        // We don't care about `doGetChannels` changes as long as
+        // it is up to date when the effect runs.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [joinedChannels]);
 
     useEffect(() => {
         if (!isSearch) {

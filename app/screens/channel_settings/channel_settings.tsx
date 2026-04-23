@@ -14,7 +14,7 @@ import {navigateBack} from '@screens/navigation';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 
 import Archive from './archive';
-import ChannelAutotranslation from './channel_autotranslation';
+import ChannelConfigurationOption from './channel_configuration_option';
 import ChannelInfoOption from './channel_info';
 import ConvertPrivate from './convert_private';
 
@@ -29,6 +29,7 @@ type Props = {
     displayName: string;
     isCallsEnabledInChannel: boolean;
     canManageAutotranslations: boolean;
+    canManageSharedChannel: boolean;
     type?: ChannelType;
 }
 
@@ -60,6 +61,7 @@ const ChannelSettings = ({
     displayName,
     isCallsEnabledInChannel,
     canManageAutotranslations,
+    canManageSharedChannel,
     type,
 }: Props) => {
     const theme = useTheme();
@@ -102,8 +104,11 @@ const ChannelSettings = ({
                 {convertGMOptionAvailable &&
                 <ConvertToChannelLabel channelId={channelId}/>
                 }
-                {canManageAutotranslations &&
-                <ChannelAutotranslation channelId={channelId}/>
+                {(canManageAutotranslations || canManageSharedChannel) &&
+                <ChannelConfigurationOption
+                    channelId={channelId}
+                    channelDisplayName={displayName}
+                />
                 }
                 {(canArchive || canUnarchive) &&
                 <>

@@ -65,7 +65,7 @@ const SkinToneSelector = ({skinTone = 'default', containerWidth, isSearching, tu
         padding: 0,
     }), [isTablet]);
 
-    const exiting = useCallback((values: ExitAnimationsValues) => {
+    const exiting = (values: ExitAnimationsValues) => {
         'worklet';
         const animations = {
             originX: withTiming(containerWidth.value, {duration: 250}),
@@ -79,9 +79,9 @@ const SkinToneSelector = ({skinTone = 'default', containerWidth, isSearching, tu
             initialValues,
             animations,
         };
-    }, [containerWidth.value]);
+    };
 
-    const entering = useCallback((values: EntryAnimationsValues) => {
+    const entering = (values: EntryAnimationsValues) => {
         'worklet';
         const animations = {
             originX: withTiming(values.targetOriginX, {duration: 250}),
@@ -95,7 +95,7 @@ const SkinToneSelector = ({skinTone = 'default', containerWidth, isSearching, tu
             initialValues,
             animations,
         };
-    }, [containerWidth.value]);
+    };
 
     const collapse = useCallback(() => {
         setExpanded(false);

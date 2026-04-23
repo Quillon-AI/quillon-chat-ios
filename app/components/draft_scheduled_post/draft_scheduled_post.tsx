@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import React, {useCallback, useMemo} from 'react';
-import {Keyboard, View} from 'react-native';
+import {Keyboard, View, type PressableStateCallbackType} from 'react-native';
 import {Pressable} from 'react-native-gesture-handler';
 
 import {switchToThread} from '@actions/local/thread';
@@ -118,11 +118,15 @@ const DraftAndScheduledPost: React.FC<Props> = ({
 
     const borPost = useMemo(() => isBoRPost(post), [post]);
 
+    const pressableStyle = useCallback(({pressed}: PressableStateCallbackType) =>
+        (pressed ? {backgroundColor: changeOpacity(theme.centerChannelColor, 0.1)} : undefined),
+    [theme.centerChannelColor]);
+
     return (
         <Pressable
             onLongPress={onLongPress}
             onPress={onPress}
-            style={({pressed}) => (pressed ? {backgroundColor: changeOpacity(theme.centerChannelColor, 0.1)} : undefined)}
+            style={pressableStyle}
             testID='draft_post'
         >
             <View style={style.container}>

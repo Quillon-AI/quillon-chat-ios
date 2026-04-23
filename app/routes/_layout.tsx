@@ -23,6 +23,7 @@ import InAppNotificationContainer from '@screens/in_app_notification';
 import ReviewAppContainer from '@screens/review_app';
 import ShareFeedbackContainer from '@screens/share_feedback';
 import SnackBarContainer from '@screens/snack_bar';
+import WatermarkContainer from '@screens/watermark';
 import EphemeralStore from '@store/ephemeral_store';
 import {NavigationStore, useCurrentScreen} from '@store/navigation_store';
 
@@ -216,6 +217,8 @@ export default function RootLayout() {
                                 </Stack>
                                 <PortalHost name='snack_bar'/>
                                 <SnackBarContainer/>
+                                <PortalHost name='watermark'/>
+                                <WatermarkContainer/>
                             </KeyboardProvider>
                             <PortalHost name='notification'/>
                             <InAppNotificationContainer/>

@@ -152,9 +152,6 @@ const determineRoute = async (props: LaunchProps): Promise<ExpoRouterLaunchResul
                 DeviceEventEmitter.emit(Events.SESSION_EXPIRED, serverUrl);
 
                 // Return current route - SessionManager will handle the rest
-                // TODO: Determine if this is the correct approach for Expo Router
-                // or if we should modify SecurityManager.onSessionExpired or create another function to return a route instead
-                // and then have it include the route to go after home is loaded
                 return determineRouteFromLaunchProps({launchType: Launch.Normal, coldStart: false});
             }
             break;

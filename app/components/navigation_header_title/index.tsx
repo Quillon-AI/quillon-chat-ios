@@ -1,8 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {useMemo} from 'react';
-import {Platform, Pressable, Text, View} from 'react-native';
+import React, {useCallback, useMemo} from 'react';
+import {Platform, Pressable, Text, View, type PressableStateCallbackType} from 'react-native';
 
 import {useTheme} from '@context/theme';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
@@ -25,6 +25,11 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
         title: {
             color: theme.sidebarHeaderTextColor,
             ...typography('Heading', 300, 'SemiBold'),
+            textAlign: 'center',
+            width: '100%',
+        },
+        withSubtitle: {
+            ...typography('Heading', 200, 'SemiBold'),
         },
         subtitle: {
             color: changeOpacity(theme.sidebarHeaderTextColor, 0.72),
@@ -37,7 +42,7 @@ export default function NavigationHeaderTitle({title, subtitle, subtitleElement,
     const theme = useTheme();
     const styles = getStyleSheet(theme);
 
-    const Subtitle = useMemo(() => {
+    const subtitleComponent = useMemo(() => {
         if (subtitle && subtitleElement) {
             return (
                 <View>
@@ -52,14 +57,16 @@ export default function NavigationHeaderTitle({title, subtitle, subtitleElement,
         return null;
     }, [styles.subtitle, subtitle, subtitleElement]);
 
+    const pressableStyle = useCallback(({pressed}: PressableStateCallbackType) => [styles.container, pressed && {opacity: 0.72}], [styles.container]);
+
     return (
         <Pressable
-            style={({pressed}) => [styles.container, pressed && {opacity: 0.72}]}
+            style={pressableStyle}
             disabled={!onPress}
             onPress={onPress}
         >
-            <Text style={styles.title}>{title}</Text>
-            {Subtitle}
+            <Text style={[styles.title, Boolean(subtitle || subtitleElement) ? styles.withSubtitle : undefined]}>{title}</Text>
+            {subtitleComponent}
         </Pressable>
     );
 }

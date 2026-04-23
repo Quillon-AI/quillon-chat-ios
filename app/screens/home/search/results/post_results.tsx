@@ -152,4 +152,4 @@ const PostResults = ({
     );
 };
 
-export default PostResults;
+export default React.memo(PostResults);

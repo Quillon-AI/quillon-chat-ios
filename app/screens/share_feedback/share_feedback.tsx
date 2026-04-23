@@ -5,15 +5,15 @@ import {useIntl} from 'react-intl';
 import {BackHandler, Pressable, Text, TouchableOpacity, View} from 'react-native';
 import Animated, {runOnJS, SlideInDown, SlideOutDown} from 'react-native-reanimated';
 
-import {goToNPSChannel} from '@actions/remote/channel';
-import {giveFeedbackAction} from '@actions/remote/nps';
 import Button from '@components/button';
 import CompassIcon from '@components/compass_icon';
 import ShareFeedbackIllustration from '@components/illustrations/share_feedback';
-import {useServerUrl} from '@context/server';
+import AboutLinks from '@constants/about_links';
 import {useTheme} from '@context/theme';
+import {logError} from '@utils/log';
 import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 import {typography} from '@utils/typography';
+import {tryOpenURL} from '@utils/url';
 
 type ShareFeedbackProps = {
     onDismiss: () => void;
@@ -85,13 +85,16 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     },
 }));
 
+function logFeedbackForumOpenError(error: unknown) {
+    logError('ShareFeedback.onPressYes', error);
+}
+
 const ShareFeedback = ({
     onDismiss,
 }: ShareFeedbackProps) => {
     const intl = useIntl();
     const theme = useTheme();
     const styles = getStyleSheet(theme);
-    const serverUrl = useServerUrl();
 
     const [show, setShow] = useState(true);
 
@@ -105,10 +108,9 @@ const ShareFeedback = ({
     const onPressYes = useCallback(async () => {
         close(async () => {
             onDismiss();
-            await goToNPSChannel(serverUrl);
-            giveFeedbackAction(serverUrl);
+            tryOpenURL(AboutLinks.FEEDBACK_FORUM, logFeedbackForumOpenError);
         });
-    }, [close, onDismiss, serverUrl]);
+    }, [close, onDismiss]);
 
     const onPressNo = useCallback(() => {
         close(onDismiss);

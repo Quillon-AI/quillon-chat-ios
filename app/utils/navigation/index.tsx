@@ -131,3 +131,8 @@ export function openAttachmentOptions(
     const componentHeight = TITLE_HEIGHT + bottomSheetSnapPoint(4 + (props.showAttachLogs ? 1 : 0), ITEM_HEIGHT);
     bottomSheet(renderContent, [1, componentHeight]);
 }
+
+export function openAppsForm(form: AppForm, context: AppContext) {
+    const props = {form, context};
+    navigateToScreen(Screens.APPS_FORM, props);
+}

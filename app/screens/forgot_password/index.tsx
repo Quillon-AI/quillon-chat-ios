@@ -174,7 +174,6 @@ const ForgotPassword = ({serverUrl, theme}: ForgotPasswordProps) => {
             <KeyboardAwareScrollView
                 bounces={false}
                 contentContainerStyle={styles.innerContainer}
-                bottomOffset={62}
                 keyboardDismissMode='on-drag'
                 keyboardShouldPersistTaps='handled'
                 scrollToOverflowEnabled={true}

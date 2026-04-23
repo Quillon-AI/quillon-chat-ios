@@ -12,15 +12,17 @@ import {navigateToChannelInfoScreen} from '@screens/navigation';
 
 type Props = {
     channelId: string;
+    channelDisplayName: string;
 }
 
-const ChannelSettings = ({channelId}: Props) => {
+const ChannelSettings = ({channelId, channelDisplayName}: Props) => {
     const {formatMessage} = useIntl();
+
     const title = formatMessage({id: 'channel_info.channel_settings', defaultMessage: 'Channel Settings'});
 
     const goToChannelSettings = usePreventDoubleTap(useCallback(async () => {
-        navigateToChannelInfoScreen(Screens.CHANNEL_SETTINGS, {channelId});
-    }, [channelId]));
+        navigateToChannelInfoScreen(Screens.CHANNEL_SETTINGS, {channelId, subtitle: channelDisplayName});
+    }, [channelId, channelDisplayName]));
 
     return (
         <OptionItem

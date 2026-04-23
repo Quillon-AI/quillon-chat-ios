@@ -1480,7 +1480,7 @@ PODS:
     - Yoga
   - react-native-netinfo (11.4.1):
     - React-Core
-  - react-native-network-client (1.9.2):
+  - react-native-network-client (1.9.3):
     - Alamofire (~> 5.10.2)
     - DoubleConversion
     - glog

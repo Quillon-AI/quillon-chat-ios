@@ -4,8 +4,7 @@
 import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
 
 import {observeIsPostAcknowledgementsEnabled, observePersistentNotificationsEnabled} from '@queries/servers/post';
-
-import {observeConfigIntValue} from '../../queries/servers/system';
+import {observeConfigIntValue} from '@queries/servers/system';
 
 import PostPriorityPicker, {type PostPriorityPickerProps} from './post_priority_picker';
 

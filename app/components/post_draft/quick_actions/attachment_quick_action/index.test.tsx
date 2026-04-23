@@ -148,7 +148,51 @@ describe('AttachmentQuickAction', () => {
 
             await waitFor(() => {
                 expect(mockOpenAttachmentOptions).toHaveBeenCalledWith(
-                    expect.objectContaining({maxFileCount: 20}),
+                    expect.objectContaining({
+                        maxFileCount: 20,
+                    }),
+                );
+            });
+        });
+
+        it('should pass showAttachLogs to openAttachmentOptions', async () => {
+            const {getByTestId} = renderWithIntlAndTheme(
+                <AttachmentQuickAction
+                    {...baseProps}
+                    showAttachLogs={true}
+                />,
+            );
+
+            const button = getByTestId('test-attachment');
+            fireEvent.press(button);
+
+            await waitFor(() => {
+                expect(mockOpenAttachmentOptions).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        showAttachLogs: true,
+                    }),
+                );
+            });
+        });
+
+        it('should handle default fileCount when not provided', async () => {
+            const propsWithoutFileCount = {
+                ...baseProps,
+            };
+            delete (propsWithoutFileCount as {fileCount?: number}).fileCount;
+
+            const {getByTestId} = renderWithIntlAndTheme(
+                <AttachmentQuickAction {...propsWithoutFileCount}/>,
+            );
+
+            const button = getByTestId('test-attachment');
+            fireEvent.press(button);
+
+            await waitFor(() => {
+                expect(mockOpenAttachmentOptions).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        fileCount: 0,
+                    }),
                 );
             });
         });

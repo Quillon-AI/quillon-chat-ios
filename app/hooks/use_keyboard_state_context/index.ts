@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {useCallback, useEffect} from 'react';
+import {useEffect} from 'react';
 import {useSharedValue, withDelay, withTiming, type SharedValue} from 'react-native-reanimated';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
@@ -90,7 +90,7 @@ export function useKeyboardStateContext(config: UseKeyboardStateContextConfig): 
     }, [config.enabled, isEnabled]);
 
     // Helper: Create snapshot by reading all SharedValues
-    const createStateSnapshot = useCallback((): StateSnapshot => {
+    const createStateSnapshot = (): StateSnapshot => {
         'worklet';
         return {
             inputAccessoryHeight: inputAccessoryHeight.value,
@@ -111,13 +111,10 @@ export function useKeyboardStateContext(config: UseKeyboardStateContextConfig): 
             tabBarHeight: tabBarHeight.value,
             safeAreaBottom: safeAreaBottom.value,
         };
-
-        // SharedValues are stable refs, no deps needed
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    };
 
     // Helper: Apply updates to SharedValues
-    const applyUpdates = useCallback((updates: ActionUpdates | void): void => {
+    const applyUpdates = (updates: ActionUpdates | void): void => {
         'worklet';
         if (!updates) {
             return;
@@ -161,12 +158,10 @@ export function useKeyboardStateContext(config: UseKeyboardStateContextConfig): 
             }
         }
 
-        // SharedValues are stable refs, no deps needed
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    };
 
     // Main function: Process state machine events
-    const processEvent = useCallback((event: StateEvent): void => {
+    const processEvent = (event: StateEvent): void => {
         'worklet';
 
         // Check if keyboard event processing is enabled
@@ -324,12 +319,10 @@ export function useKeyboardStateContext(config: UseKeyboardStateContextConfig): 
             currentState.value = snapshot.currentState;
         }
 
-        // SharedValues are stable refs, createStateSnapshot and applyUpdates are stable
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [createStateSnapshot, applyUpdates]);
+    };
 
     // Check if emoji picker is active
-    const isEmojiPickerActiveFunc = useCallback((): boolean => {
+    const isEmojiPickerActiveFunc = (): boolean => {
         'worklet';
         const state = currentState.value;
         return state === InputContainerStateType.EMOJI_PICKER_OPEN ||
@@ -337,9 +330,7 @@ export function useKeyboardStateContext(config: UseKeyboardStateContextConfig): 
             state === InputContainerStateType.EMOJI_TO_KEYBOARD ||
             state === InputContainerStateType.EMOJI_SEARCH_ACTIVE;
 
-        // SharedValues are stable refs, no deps needed
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    };
 
     // Return all SharedValues + functions
     return {

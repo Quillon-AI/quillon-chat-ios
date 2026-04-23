@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, {type ComponentProps} from 'react';
+import React, {act, type ComponentProps} from 'react';
 
 import PerformanceMetricsManager from '@managers/performance_metrics_manager';
 import {renderWithEverything, waitFor} from '@test/intl-test-helper';
@@ -31,9 +31,14 @@ jest.mock('@components/team_sidebar', () => () => null);
 jest.mock('@components/connection_banner', () => () => null);
 jest.mock('@components/announcement_banner', () => () => null);
 jest.mock('@calls/components/floating_call_container', () => () => null);
+jest.mock('@screens/navigation', () => ({
+    resetToTeams: jest.fn(),
+    openToS: jest.fn(),
+}));
 
 function getBaseProps(): ComponentProps<typeof ChannelListScreen> {
     return {
+        canJoinOtherTeams: false,
         hasChannels: true,
         hasCurrentUser: true,
         hasMoreThanOneTeam: true,
@@ -61,12 +66,39 @@ describe('performance metrics', () => {
 
     it('finish load on load', async () => {
         const props = getBaseProps();
+        renderWithEverything(<ChannelListScreen {...props}/>, {database, serverUrl});
+        await act(async () => {
+            expect(PerformanceMetricsManager.finishLoad).toHaveBeenCalledWith('HOME', serverUrl);
+        });
+    });
+});
+
+describe('team sidebar visibility', () => {
+    let database: Database;
+    const serverUrl = 'http://www.someserverurl.com';
+
+    beforeAll(async () => {
+        const server = await TestHelper.setupServerDatabase(serverUrl);
+        database = server.database;
+    });
+
+    it('should render when canJoinOtherTeams is true and user has only one team', async () => {
+        const props = getBaseProps();
+        props.canJoinOtherTeams = true;
+        props.hasMoreThanOneTeam = false;
         const {getByTestId} = renderWithEverything(<ChannelListScreen {...props}/>, {database, serverUrl});
         await waitFor(() => {
             expect(getByTestId('channel_list.screen')).toBeTruthy();
         });
+    });
+
+    it('should render when canJoinOtherTeams is false and user has only one team', async () => {
+        const props = getBaseProps();
+        props.canJoinOtherTeams = false;
+        props.hasMoreThanOneTeam = false;
+        const {getByTestId} = renderWithEverything(<ChannelListScreen {...props}/>, {database, serverUrl});
         await waitFor(() => {
-            expect(PerformanceMetricsManager.finishLoad).toHaveBeenCalledWith('HOME', serverUrl);
+            expect(getByTestId('channel_list.screen')).toBeTruthy();
         });
     });
 });

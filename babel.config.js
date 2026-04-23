@@ -31,6 +31,7 @@ module.exports = {
                 '@managers': './app/managers',
                 '@playbooks': './app/products/playbooks',
                 '@queries': './app/queries',
+                '@routes': './app/routes',
                 '@screens': './app/screens',
                 '@share': './share_extension',
                 '@store': './app/store',

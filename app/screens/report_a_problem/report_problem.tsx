@@ -25,7 +25,6 @@ import CopyMetadata from './copy_metadata';
 import {getCommonStyleSheet} from './styles';
 
 import type {ReportAProblemMetadata} from '@typings/screens/report_a_problem';
-export const REPORT_PROBLEM_CLOSE_BUTTON_ID = 'close-report-problem';
 
 type Props = {
     reportAProblemMail?: string;
@@ -146,7 +145,10 @@ const ReportProblem = ({
     });
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView
+            style={styles.container}
+            testID='report_problem.screen'
+        >
             <View style={styles.body}>
                 <ScrollView contentContainerStyle={styles.content}>
                     <View style={styles.detailsSection}>

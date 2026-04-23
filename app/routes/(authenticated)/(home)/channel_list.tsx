@@ -10,7 +10,7 @@ import {useHomeScreenEffects} from '@screens/home/hooks/use_home_effects';
 import type {LaunchProps} from '@typings/launch';
 
 export default function HomeTab() {
-    const props = usePropsFromParams<LaunchProps & {componentId?: string}>();
+    const props = usePropsFromParams<LaunchProps>();
 
     // Run all the shared Home screen effects
     useHomeScreenEffects(props);

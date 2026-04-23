@@ -375,7 +375,7 @@ const ServerItem = ({
                     <RectButton
                         onPress={onServerPressed}
                         style={styles.button}
-                        rippleColor={processColor(changeOpacity(theme.centerChannelColor, 0.16)) ?? processColor('rgba(0, 0, 0, 0.16)')}
+                        rippleColor={processColor(changeOpacity(theme.centerChannelColor, 0.16))}
                     >
                         <View style={serverStyle}>
                             {!switching &&
