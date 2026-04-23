@@ -36,14 +36,13 @@ const prepackagedPlugins = new Set([
 ]);
 
 // Demo Plugin Constants
-// The tarball must be pre-downloaded and placed at detox/e2e/support/fixtures/<filename>.
-// Download command:
-//   curl -L -o detox/e2e/support/fixtures/mattermost-plugin-demo-v0.11.1.tar.gz \
-//     https://github.com/mattermost/mattermost-plugin-demo/releases/download/v0.11.1/mattermost-plugin-demo-v0.11.1.tar.gz
+// The tarball is auto-downloaded into detox/e2e/support/fixtures/<filename>
+// by downloadPluginIfMissing(), invoked from the test's beforeAll.
 export const DemoPlugin = {
     id: 'com.mattermost.demo-plugin',
     version: '0.11.1',
     filename: 'mattermost-plugin-demo-v0.11.1.tar.gz',
+    downloadUrl: 'https://github.com/mattermost/mattermost-plugin-demo/releases/download/v0.11.1/mattermost-plugin-demo-v0.11.1.tar.gz',
 } as const;
 
 /**

@@ -9,6 +9,7 @@
 // - Use element testID when selecting an element. Create one if none.
 // *******************************************************************
 
+import {downloadPluginIfMissing} from '@support/plugin_download';
 import {
     DemoPlugin,
     Plugin,
@@ -116,10 +117,7 @@ async function pluginInstallAndEnable(siteUrl: string) {
         DemoPlugin.version,
     );
     if (result.error) {
-        throw new Error(
-            `Failed to install demo plugin: ${result.error} (status: ${result.status}). ` +
-            `Ensure detox/e2e/support/fixtures/${DemoPlugin.filename} exists — see DemoPlugin comment in plugin.ts for download command.`,
-        );
+        throw new Error(`Failed to install demo plugin: ${result.error} (status: ${result.status})`);
     }
 }
 
@@ -155,6 +153,7 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
                 }},
         });
 
+        await downloadPluginIfMissing(DemoPlugin.downloadUrl, DemoPlugin.filename);
         await pluginInstallAndEnable(siteOneUrl);
 
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
