@@ -616,6 +616,16 @@ const observeIsSelfHosterStarter = (database: Database) => {
     );
 };
 
+export const observeIsFreeEdition = (database: Database) => {
+    return observeLicense(database).pipe(
+        switchMap((license) => {
+            const isLicensed = license?.IsLicensed === 'true';
+            const isEntry = license?.SkuShortName === License.SKU_SHORT_NAME.Entry;
+            return of$(!isLicensed || isEntry);
+        }),
+    );
+};
+
 export const observeReportAProblemMetadata = (database: Database) => {
     const currentUserId = observeCurrentUserId(database);
     const currentTeamId = observeCurrentTeamId(database);
