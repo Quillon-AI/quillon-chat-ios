@@ -9,7 +9,7 @@ import DatabaseManager from '@database/manager';
 import {getConfigValue} from '@queries/servers/system';
 import {isMinimumServerVersion} from '@utils/helpers';
 
-import {queryServerDisplayName, queryAllActiveServers, getServer, getAllServers, getActiveServer, getActiveServerUrl, getServerByIdentifier, getServerByDisplayName, getServerDisplayName, observeServerDisplayName, observeAllActiveServers, areAllServersSupported} from './servers';
+import {queryServerDisplayName, queryAllActiveServers, getServer, getAllServers, getActiveServer, getActiveServerUrl, getServerByIdentifier, getServerByDisplayName, getServerDisplayName, getServersWithWipedAt, observeServerDisplayName, observeAllActiveServers, areAllServersSupported} from './servers';
 
 jest.mock('@database/manager', () => ({
     getAppDatabaseAndOperator: jest.fn(),
@@ -140,6 +140,26 @@ describe('Servers Queries', () => {
         mockServerModel.query.mockReturnValueOnce({fetch: jest.fn().mockResolvedValue(servers)} as any);
         const result = await getActiveServerUrl();
         expect(result).toEqual('https://example2.com');
+    });
+
+    test('getServersWithWipedAt should query for rows where wiped_at > 0', async () => {
+        const wipedServers = [{url: 'https://wiped.test', wipedAt: 1700000000000}];
+        mockServerModel.query.mockReturnValueOnce({fetch: jest.fn().mockResolvedValue(wipedServers)} as any);
+
+        const result = await getServersWithWipedAt();
+
+        expect(mockDatabase.get).toHaveBeenCalledWith(SERVERS);
+        expect(mockServerModel.query).toHaveBeenCalledWith(Q.where('wiped_at', Q.gt(0)));
+        expect(result).toEqual(wipedServers);
+    });
+
+    it('getServersWithWipedAt should return an empty array if there is an error', async () => {
+        mockedGetAppDatabaseAndOperator.mockImplementationOnce(() => {
+            throw new Error('Error');
+        });
+
+        const result = await getServersWithWipedAt();
+        expect(result).toEqual([]);
     });
 
     test('getServerByIdentifier should return a server by identifier', async () => {

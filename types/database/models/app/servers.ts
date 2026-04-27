@@ -25,6 +25,9 @@ declare class ServersModel extends Model {
 
     /** diagnostic_id: Determines the installation identifier of a server */
     identifier: string;
+
+    /** wiped_at: The last time this server's database was wiped by Mobile Ephemeral Mode */
+    wipedAt: number;
 }
 
 export default ServersModel;

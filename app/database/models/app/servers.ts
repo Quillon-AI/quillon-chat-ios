@@ -32,4 +32,7 @@ export default class ServersModel extends Model implements ServersModelInterface
 
     /** identifier: Determines the installation identifier of a server */
     @field('identifier') identifier!: string;
+
+    /** wiped_at: The last time this server's database was wiped by Mobile Ephemeral Mode */
+    @field('wiped_at') wipedAt!: number;
 }

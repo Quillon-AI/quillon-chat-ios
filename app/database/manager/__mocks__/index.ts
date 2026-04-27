@@ -197,6 +197,18 @@ class DatabaseManagerSingleton {
         }
     };
 
+    public updateServerWipedAt = async (serverUrl: string, wipedAt: number) => {
+        const appDatabase = this.appDatabase?.database;
+        if (appDatabase) {
+            const server = await this.getServer(serverUrl);
+            await appDatabase.write(async () => {
+                await server?.update((record) => {
+                    record.wipedAt = wipedAt;
+                });
+            });
+        }
+    };
+
     private isServerPresent = async (serverUrl: string): Promise<boolean> => {
         const server = await this.getServer(serverUrl);
         return Boolean(server);
