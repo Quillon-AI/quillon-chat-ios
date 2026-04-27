@@ -149,6 +149,9 @@ describe('Interactive Dialog - Basic Dialog (Plugin)', () => {
                 Plugins: {
                     'com.mattermost.demo-plugin': {
                         'DialogOnlyMode': true,
+                        'username': 'demouser',
+                        'channelname': 'demo',
+                        'lastname': 'User',
                     },
                 }},
         });
