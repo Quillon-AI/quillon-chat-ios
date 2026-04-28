@@ -65,7 +65,6 @@ type PostProps = {
     isSaved?: boolean;
     isLastReply?: boolean;
     isPostAddChannelMember: boolean;
-    isPermissionPoliciesEnabled: boolean;
     isPostPriorityEnabled: boolean;
     location: AvailableScreens;
     post: PostModel;
@@ -156,7 +155,6 @@ const Post = ({
     previousPost,
     isLastPost,
     isChannelAutotranslated,
-    isPermissionPoliciesEnabled,
 }: PostProps) => {
     const pressDetected = useRef(false);
     const intl = useIntl();
@@ -414,7 +412,6 @@ const Post = ({
                 isJumboEmoji={isJumboEmoji}
                 isLastReply={isLastReply}
                 isPendingOrFailed={isPendingOrFailed}
-                isPermissionPoliciesEnabled={isPermissionPoliciesEnabled}
                 isPostAcknowledgementEnabled={isPostAcknowledgementEnabled}
                 isPostAddChannelMember={isPostAddChannelMember}
                 location={location}

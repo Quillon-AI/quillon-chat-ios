@@ -36,7 +36,6 @@ describe('performance metrics', () => {
             hasReplies: false,
             highlightReplyBar: false,
             isEphemeral: false,
-            isPermissionPoliciesEnabled: false,
             isPostAddChannelMember: false,
             isPostPriorityEnabled: false,
             location: 'Channel',
