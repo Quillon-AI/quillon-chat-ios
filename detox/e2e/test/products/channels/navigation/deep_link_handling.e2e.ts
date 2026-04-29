@@ -10,7 +10,7 @@
 /**
  * Tests for deep link handling with Expo Router
  * for channels, permalinks, and user profiles.
- * 
+ *
  * Proposed in issue #YAS-159
  */
 
@@ -69,7 +69,7 @@ describe('Deep Link Handling', () => {
     it('should navigate to channel from deep link when app is backgrounded', async () => {
         // # Launch app with channel deep link
         const deepLink = `mattermost://${serverOneUrl}/channels/${testChannel.team_id}/${testChannel.name}`;
-        
+
         await device.launchApp({
             newInstance: false,
             url: deepLink,
@@ -88,7 +88,7 @@ describe('Deep Link Handling', () => {
 
         // # Launch app with permalink deep link
         const deepLink = `mattermost://${serverOneUrl}/channels/${testChannel.team_id}/${testChannel.name}/${testPost.id}`;
-        
+
         await device.launchApp({
             newInstance: true,
             url: deepLink,
@@ -102,7 +102,7 @@ describe('Deep Link Handling', () => {
     it('should handle deep link to non-existent channel gracefully', async () => {
         // # Launch app with invalid channel deep link
         const deepLink = `mattermost://${serverOneUrl}/channels/${testChannel.team_id}/nonexistent-channel`;
-        
+
         await device.launchApp({
             newInstance: false,
             url: deepLink,
@@ -110,6 +110,7 @@ describe('Deep Link Handling', () => {
 
         // * Verify app doesn't crash and shows appropriate state
         await wait(timeouts.TWO_SEC);
+
         // Should either show channel list or error state
         await expect(ChannelListScreen.channelListScreen).toBeVisible();
     });
@@ -117,7 +118,7 @@ describe('Deep Link Handling', () => {
     it('should navigate to user profile from deep link', async () => {
         // # Launch app with user profile deep link
         const deepLink = `mattermost://${serverOneUrl}/messages/${testUser.id}`;
-        
+
         await device.launchApp({
             newInstance: false,
             url: deepLink,
@@ -142,7 +143,7 @@ describe('Deep Link Handling', () => {
 
         // # Launch with deep link to original channel
         const deepLink = `mattermost://${serverOneUrl}/channels/${testChannel.team_id}/${testChannel.name}`;
-        
+
         await device.launchApp({
             newInstance: false,
             url: deepLink,
@@ -161,7 +162,7 @@ describe('Deep Link Handling', () => {
 
         // # Launch with deep link
         const deepLink = `mattermost://${serverOneUrl}/channels/${testChannel.team_id}/${testChannel.name}`;
-        
+
         await device.launchApp({
             newInstance: false,
             url: deepLink,
@@ -176,7 +177,7 @@ describe('Deep Link Handling', () => {
     it('should handle malformed deep links without crashing', async () => {
         // # Launch app with malformed deep link
         const deepLink = 'mattermost://invalid-url-format';
-        
+
         await device.launchApp({
             newInstance: false,
             url: deepLink,
@@ -184,6 +185,7 @@ describe('Deep Link Handling', () => {
 
         // * Verify app doesn't crash
         await wait(timeouts.TWO_SEC);
+
         // App should remain in stable state
         await expect(ChannelListScreen.channelListScreen).toBeVisible();
     });
