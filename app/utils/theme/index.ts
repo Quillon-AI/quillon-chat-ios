@@ -228,13 +228,14 @@ const themeTypeMap: ThemeTypeMap = {
     Quartz: 'quartz',
     Indigo: 'indigo',
     Onyx: 'onyx',
+    Quillon: 'quillon',
     custom: 'custom',
 };
 
 // setThemeDefaults will set defaults on the theme for any unset properties.
 export function setThemeDefaults(theme: ExtendedTheme): Theme {
     const themes = Preferences.THEMES as Record<ThemeKey, ExtendedTheme>;
-    const defaultTheme = themes.denim;
+    const defaultTheme = themes.quillon;
 
     const processedTheme = {...theme};
 
