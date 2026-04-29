@@ -1,14 +1,14 @@
 {
-    "AuthUrlScheme": "mmauth://",
-    "AuthUrlSchemeDev": "mmauthbeta://",
-    "DefaultServerUrl": "",
-    "DefaultServerName": "",
-    "TestServerUrl": "http://localhost:8065",
-    "AutoSelectServerUrl": false,
+    "AuthUrlScheme": "quillonauth://",
+    "AuthUrlSchemeDev": "quillonauthbeta://",
+    "DefaultServerUrl": "https://chat.quillon.ru",
+    "DefaultServerName": "Quillon Chat",
+    "TestServerUrl": "https://chat.quillon.ru",
+    "AutoSelectServerUrl": true,
 
-    "WebsiteURL": "https://mattermost.com",
-    "ServerNoticeURL": "https://github.com/mattermost/mattermost-server/blob/master/NOTICE.txt",
-    "MobileNoticeURL": "https://github.com/mattermost/mattermost-mobile/blob/master/NOTICE.txt",
+    "WebsiteURL": "https://quillon.ru",
+    "ServerNoticeURL": "https://quillon.ru",
+    "MobileNoticeURL": "https://quillon.ru",
 
     "RudderApiKey": "",
 

@@ -42,7 +42,7 @@ public class GekidouLogger {
 
     private var logHandler: GekidouLogHandler?
     private let lock = NSLock()
-    private let osLog = OSLog(subsystem: "com.mattermost.Gekidou", category: "default")
+    private let osLog = OSLog(subsystem: "ru.quillon.Gekidou", category: "default")
 
     private init() {
     }

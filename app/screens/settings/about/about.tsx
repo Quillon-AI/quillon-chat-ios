@@ -34,7 +34,7 @@ import TosPrivacyContainer from './tos_privacy';
 
 import type {AvailableScreens} from '@typings/screens/navigation';
 
-const MATTERMOST_BUNDLE_IDS = ['com.mattermost.rnbeta', 'com.mattermost.rn'];
+const MATTERMOST_BUNDLE_IDS = ['ru.quillon.chat'];
 
 const TABLET_EXTRA_PADDING = 20;
 
@@ -217,7 +217,7 @@ const About = ({componentId, config, license}: AboutProps) => {
                 <View style={styles.logoContainer}>
                     <CompassIcon
                         color={theme.centerChannelColor}
-                        name='mattermost'
+                        name='quillon'
                         size={80}
                         testID='about.logo'
                     />
