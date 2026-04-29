@@ -10,7 +10,7 @@
 /**
  * Tests for navigation stack integrity under rapid navigation
  * to detect race conditions in extractScreenIds and BehaviorSubject updates.
- * 
+ *
  * Proposed in issue #YAS-159
  */
 
@@ -72,7 +72,7 @@ describe('Navigation Stack Integrity', () => {
         await ChannelScreen.toBeVisible();
 
         // # Rapidly navigate to thread and back multiple times
-        // eslint-disable-next-line no-await-in-loop
+        /* eslint-disable no-await-in-loop */
         for (let i = 0; i < 3; i++) {
             // # Open post options
             await ChannelScreen.openPostOptionsFor(testPost.id, testPost.message);
@@ -89,6 +89,7 @@ describe('Navigation Stack Integrity', () => {
             // # Close post options if still open
             await device.pressBack();
         }
+        /* eslint-enable no-await-in-loop */
 
         // * Verify navigation stack is stable
         await expect(ChannelScreen.headerTitle).toBeVisible();
@@ -100,7 +101,7 @@ describe('Navigation Stack Integrity', () => {
         await ChannelScreen.toBeVisible();
 
         // # Rapidly open and close channel info
-        // eslint-disable-next-line no-await-in-loop
+        /* eslint-disable no-await-in-loop */
         for (let i = 0; i < 3; i++) {
             await ChannelInfoScreen.open();
             await ChannelInfoScreen.toBeVisible();
@@ -108,6 +109,7 @@ describe('Navigation Stack Integrity', () => {
             await ChannelInfoScreen.close();
             await ChannelScreen.toBeVisible();
         }
+        /* eslint-enable no-await-in-loop */
 
         // * Verify channel screen is still functional
         await expect(ChannelScreen.headerTitle).toHaveText(testChannel.display_name);
@@ -127,7 +129,7 @@ describe('Navigation Stack Integrity', () => {
         await ChannelScreen.toBeVisible();
 
         // # Rapidly switch between channels
-        // eslint-disable-next-line no-await-in-loop
+        /* eslint-disable no-await-in-loop */
         for (let i = 0; i < 3; i++) {
             await ChannelScreen.back();
             await ChannelListScreen.toBeVisible();
@@ -138,6 +140,7 @@ describe('Navigation Stack Integrity', () => {
             await ChannelScreen.open(channelsCategory, testChannel.name);
             await ChannelScreen.toBeVisible();
         }
+        /* eslint-enable no-await-in-loop */
 
         // * Verify final channel is displayed correctly
         await expect(ChannelScreen.headerTitle).toHaveText(testChannel.display_name);

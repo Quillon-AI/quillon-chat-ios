@@ -10,7 +10,7 @@
 /**
  * Tests for tablet-specific bottom sheet presentation vs iPhone modal
  * for CHANNEL_INFO and other MODAL_SCREENS.
- * 
+ *
  * Proposed in issue #YAS-159
  */
 
@@ -36,12 +36,10 @@ describe('Tablet Modal Behavior', () => {
     const serverOneDisplayName = 'Server 1';
     const channelsCategory = 'channels';
     let testChannel: any;
-    let testUser: any;
 
     beforeAll(async () => {
         const {channel, user} = await Setup.apiInit(siteOneUrl);
         testChannel = channel;
-        testUser = user;
 
         await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
         await LoginScreen.login(user);
@@ -69,14 +67,14 @@ describe('Tablet Modal Behavior', () => {
             // * On tablet, verify bottom sheet presentation
             // Bottom sheets should use close button but support gesture dismissal
             await expect(ChannelInfoScreen.closeButton).toBeVisible();
-            
+
             // * Verify bottom sheet can be dismissed
             await ChannelInfoScreen.close();
             await ChannelScreen.toBeVisible();
         } else {
             // * On phone, verify modal presentation
             await expect(ChannelInfoScreen.closeButton).toBeVisible();
-            
+
             // # Close using button
             await ChannelInfoScreen.close();
             await ChannelScreen.toBeVisible();
@@ -131,15 +129,16 @@ describe('Tablet Modal Behavior', () => {
         const headerTitle = testChannel.display_name;
 
         // # Open and close channel info multiple times
-        // eslint-disable-next-line no-await-in-loop
+        /* eslint-disable no-await-in-loop */
         for (let i = 0; i < 3; i++) {
             await ChannelInfoScreen.open();
             await ChannelInfoScreen.toBeVisible();
-            
+
             await ChannelInfoScreen.close();
-            
+
             await ChannelScreen.toBeVisible();
         }
+        /* eslint-enable no-await-in-loop */
 
         // * Verify channel screen state is preserved
         await expect(ChannelScreen.headerTitle).toHaveText(headerTitle);

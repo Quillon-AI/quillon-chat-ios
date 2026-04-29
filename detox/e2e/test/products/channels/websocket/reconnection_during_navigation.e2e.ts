@@ -10,7 +10,7 @@
 /**
  * Tests for WebSocket reconnection during server switch
  * to verify race condition fixes in websocket/index.ts.
- * 
+ *
  * Proposed in issue #YAS-159
  */
 
@@ -30,7 +30,6 @@ import {
     LoginScreen,
     ServerScreen,
 } from '@support/ui/screen';
-import {getRandomId} from '@support/utils';
 import {expect} from 'detox';
 
 describe('WebSocket Reconnection During Navigation', () => {
@@ -90,7 +89,7 @@ describe('WebSocket Reconnection During Navigation', () => {
 
     it('should maintain WebSocket connection during rapid server switches', async () => {
         // # Switch servers multiple times rapidly
-        // eslint-disable-next-line no-await-in-loop
+        /* eslint-disable no-await-in-loop */
         for (let i = 0; i < 2; i++) {
             // Switch to server 2
             await HomeScreen.openServerList();
@@ -104,6 +103,7 @@ describe('WebSocket Reconnection During Navigation', () => {
             await ServerScreen.connectToServer(serverOneUrl, serverOneDisplayName);
             await ChannelListScreen.toBeVisible();
         }
+        /* eslint-enable no-await-in-loop */
 
         // * Verify final state is stable
         await expect(ChannelListScreen.channelListScreen).toBeVisible();

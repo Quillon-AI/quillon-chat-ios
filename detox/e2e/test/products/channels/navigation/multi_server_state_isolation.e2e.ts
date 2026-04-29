@@ -10,7 +10,7 @@
 /**
  * Tests for multi-server navigation state isolation
  * to prevent state leakage between servers.
- * 
+ *
  * Proposed in issue #YAS-159
  */
 
@@ -30,7 +30,6 @@ import {
     LoginScreen,
     ServerScreen,
 } from '@support/ui/screen';
-import {getRandomId} from '@support/utils';
 import {expect} from 'detox';
 
 describe('Multi-Server Navigation State Isolation', () => {
@@ -117,8 +116,8 @@ describe('Multi-Server Navigation State Isolation', () => {
     });
 
     it('should handle rapid server switching without state corruption', async () => {
-        // # Switch servers multiple times
-        // eslint-disable-next-line no-await-in-loop
+        // # Switch servers multiple times rapidly
+        /* eslint-disable no-await-in-loop */
         for (let i = 0; i < 3; i++) {
             // Switch to server 2
             await HomeScreen.openServerList();
@@ -138,6 +137,7 @@ describe('Multi-Server Navigation State Isolation', () => {
             // Verify server 1 state
             await expect(ChannelListScreen.channelListScreen).toBeVisible();
         }
+        /* eslint-enable no-await-in-loop */
 
         // * Final state should be stable
         await ChannelListScreen.toBeVisible();
