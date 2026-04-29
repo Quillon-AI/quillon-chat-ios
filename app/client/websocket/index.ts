@@ -17,7 +17,7 @@ const WEBSOCKET_TIMEOUT = toMilliseconds({seconds: 30});
 const MIN_WEBSOCKET_RETRY_TIME = toMilliseconds({seconds: 3});
 const MAX_WEBSOCKET_RETRY_TIME = toMilliseconds({minutes: 5});
 const PING_INTERVAL = toMilliseconds({seconds: 30});
-const WAIT_FOR_CLOSE_TIMEOUT = 500;
+const WAIT_FOR_CLOSE_TIMEOUT = 2000;
 const DEFAULT_OPTIONS = {
     forceConnection: true,
 };
