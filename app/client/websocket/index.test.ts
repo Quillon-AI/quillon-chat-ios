@@ -446,8 +446,8 @@ describe('WebSocketClient', () => {
 
             const waitPromise = client.waitForClose();
 
-            // Advance past the 500ms timeout
-            await advanceTimers(600);
+            // Advance past the 2000ms timeout
+            await advanceTimers(2100);
 
             await expect(waitPromise).resolves.toBeUndefined();
         });
