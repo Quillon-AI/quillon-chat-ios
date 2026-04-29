@@ -7,6 +7,8 @@ import {EventEmitter} from 'events';
 import {getOrCreateWebSocketClient, WebSocketReadyState, type WebSocketClientInterface} from '@mattermost/react-native-network-client';
 import {encode} from '@msgpack/msgpack';
 
+type WebSocketClientWithBinary = WebSocketClientInterface & {sendBinary?: (data: string) => void};
+
 import Calls from '@constants/calls';
 import DatabaseManager from '@database/manager';
 import {getConfigValue} from '@queries/servers/system';
@@ -25,7 +27,7 @@ export class WebSocketClient extends EventEmitter {
     private readonly serverUrl: string;
     private readonly wsPath: string;
     private authToken: string;
-    private wsClient: WebSocketClientInterface | null = null;
+    private wsClient: WebSocketClientWithBinary | null = null;
     private seqNo = 1;
     private serverSeqNo = 0;
     private connID = '';

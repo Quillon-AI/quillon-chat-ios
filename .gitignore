@@ -135,3 +135,9 @@ node_modules/@mattermost/intune
 .claude/settings.local.json
 .codex/
 .cursor/
+
+# Graphify cache
+graphify-out/
+
+# TypeScript build info
+*.tsbuildinfo
