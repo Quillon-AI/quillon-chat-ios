@@ -426,6 +426,13 @@ export default class WebSocketClient {
     public invalidate() {
         clearTimeout(this.connectionTimeout);
         clearInterval(this.pingInterval);
+
+        // Fallback cleanup for pending waitForClose promise
+        if (this.pendingCloseResolver) {
+            this.pendingCloseResolver();
+            this.pendingCloseResolver = undefined;
+        }
+
         this.conn?.invalidate();
         this.conn = undefined;
     }
