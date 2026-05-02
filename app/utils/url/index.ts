@@ -71,7 +71,14 @@ export async function getServerUrlAfterRedirect(serverUrl: string, useHttp = fal
             headers,
         });
         if (resp.redirectUrls?.length) {
-            url = resp.redirectUrls[resp.redirectUrls.length - 1];
+            const redirectUrl = resp.redirectUrls[resp.redirectUrls.length - 1];
+            // Extract only origin from redirect URL — servers redirect / to /login, not to a new host.
+            const parsed = urlParse(redirectUrl, true);
+            if (parsed.host) {
+                url = `${parsed.protocol}//${parsed.host}`;
+            } else {
+                url = redirectUrl;
+            }
         }
     } catch (error) {
         logDebug('getServerUrlAfterRedirect error', url, error);

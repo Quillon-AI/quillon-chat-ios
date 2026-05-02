@@ -130,7 +130,10 @@ const AnimatedOptionBox = ({
                                 size={24}
                             />
                             <Text
-                                numberOfLines={1}
+                                numberOfLines={2}
+                                ellipsizeMode='tail'
+                                adjustsFontSizeToFit={true}
+                                minimumFontScale={0.85}
                                 style={[styles.text, {color: pressed ? theme.buttonBg : changeOpacity(theme.centerChannelColor, 0.56)}]}
                                 testID={`${testID}.label`}
                             >
@@ -144,7 +147,10 @@ const AnimatedOptionBox = ({
                                 size={24}
                             />
                             <Text
-                                numberOfLines={1}
+                                numberOfLines={2}
+                                ellipsizeMode='tail'
+                                adjustsFontSizeToFit={true}
+                                minimumFontScale={0.85}
                                 style={[styles.text, {color: animatedColor}]}
                                 testID={`${testID}.animated`}
                             >

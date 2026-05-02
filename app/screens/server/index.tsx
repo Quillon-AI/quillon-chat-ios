@@ -99,7 +99,7 @@ const Server = ({
     const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
     const styles = getStyleSheet(theme);
     const {formatMessage} = intl;
-    const disableServerUrl = Boolean(managedConfig?.allowOtherServers === 'false' && managedConfig?.serverUrl);
+    const disableServerUrl = Boolean((managedConfig?.allowOtherServers === 'false' && managedConfig?.serverUrl) || LocalConfig.AutoSelectServerUrl);
     const additionalServer = launchType === Launch.AddServerFromDeepLink || launchType === Launch.AddServer;
 
     const dismiss = () => {

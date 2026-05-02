@@ -40,7 +40,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
     },
     text: {
         color: changeOpacity(theme.centerChannelColor, 0.56),
-        paddingHorizontal: 5,
+        paddingHorizontal: 4,
         width: '100%',
         textAlign: 'center',
         ...typography('Body', 50, 'SemiBold'),
@@ -112,7 +112,10 @@ const OptionBox = ({
                         size={24}
                     />
                     <Text
-                        numberOfLines={1}
+                        numberOfLines={2}
+                        ellipsizeMode='tail'
+                        adjustsFontSizeToFit={true}
+                        minimumFontScale={0.85}
                         style={[styles.text, {color: destructColor || ((pressed || activated) ? theme.buttonBg : changeOpacity(theme.centerChannelColor, 0.56))}]}
                         testID={`${testID}.label`}
                     >

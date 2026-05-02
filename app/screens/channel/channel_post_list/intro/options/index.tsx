@@ -23,6 +23,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         marginTop: 28,
         width: '100%',
+        paddingHorizontal: 12,
     },
     margin: {
         marginRight: 8,
@@ -30,12 +31,15 @@ const styles = StyleSheet.create({
     item: {
         alignItems: 'center',
         borderRadius: 4,
-        height: 70,
+        minHeight: 78,
+        height: undefined,
         justifyContent: 'center',
         maxHeight: undefined,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        width: 112,
+        paddingHorizontal: 6,
+        paddingVertical: 10,
+        flex: 1,
+        maxWidth: 124,
+        minWidth: 96,
     },
 });
 
