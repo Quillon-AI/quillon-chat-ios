@@ -25,7 +25,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
 const messages = defineMessages({
     mattermost: {
         id: 'about.mattermost',
-        defaultMessage: 'Mattermost',
+        defaultMessage: 'Quillon Chat',
     },
     teamEditiont0: {
         id: 'about.teamEditiont0',

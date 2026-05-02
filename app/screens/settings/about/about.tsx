@@ -5,12 +5,11 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import {applicationId, nativeApplicationVersion, nativeBuildVersion} from 'expo-application';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {useIntl} from 'react-intl';
-import {Text, View} from 'react-native';
+import {Image, Text, View} from 'react-native';
 
 import {getLicenseLoadMetric} from '@actions/remote/license';
 import Config from '@assets/config.json';
 import Button from '@components/button';
-import CompassIcon from '@components/compass_icon';
 import FormattedText from '@components/formatted_text';
 import SettingContainer from '@components/settings/container';
 import AboutLinks from '@constants/about_links';
@@ -215,10 +214,9 @@ const About = ({componentId, config, license}: AboutProps) => {
         <SettingContainer testID='about'>
             <View style={isTablet ? styles.tabletContentWrapper : undefined}>
                 <View style={styles.logoContainer}>
-                    <CompassIcon
-                        color={theme.centerChannelColor}
-                        name='quillon'
-                        size={80}
+                    <Image
+                        source={require('@assets/images/quillon_logo.png')}
+                        style={{width: 80, height: 80, borderRadius: 18}}
                         testID='about.logo'
                     />
                     <Title
@@ -334,7 +332,7 @@ const About = ({componentId, config, license}: AboutProps) => {
                     />
                     {!MATTERMOST_BUNDLE_IDS.includes(applicationId || '') &&
                     <FormattedText
-                        defaultMessage='{site} is powered by Mattermost'
+                        defaultMessage='{site} работает на Quillon Chat'
                         id={'settings.about.powered_by'}
                         style={styles.footerText}
                         testID='about.powered_by'
@@ -345,7 +343,7 @@ const About = ({componentId, config, license}: AboutProps) => {
                         style={styles.thinLine}
                     />
                     <FormattedText
-                        defaultMessage='Copyright 2015-{currentYear} Mattermost, Inc. All rights reserved'
+                        defaultMessage='Copyright 2025-{currentYear} Quillon. Все права защищены'
                         id={'settings.about.copyright'}
                         style={[styles.footerText, styles.copyrightText]}
                         testID='about.copyright'
@@ -361,7 +359,7 @@ const About = ({componentId, config, license}: AboutProps) => {
                     <View style={styles.noticeContainer}>
                         <FormattedText
                             id={'settings.notice_text'}
-                            defaultMessage='Mattermost is made possible by the open source software used in our {platform} and {mobile}.'
+                            defaultMessage='Quillon Chat создан с использованием программ с открытым исходным кодом в нашем {platform} и {mobile}.'
                             style={styles.footerText}
                             values={{
                                 platform: (

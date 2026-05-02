@@ -9,8 +9,8 @@ import {logError} from '@utils/log';
 
 const channelConfig = {
     id: 'calls_channel',
-    name: 'Mattermost',
-    description: 'Mattermost Calls microphone while app is in the background',
+    name: 'Quillon Chat',
+    description: 'Микрофон звонков Quillon Chat при работе приложения в фоне',
     enableVibration: false,
 };
 
@@ -23,10 +23,10 @@ export const foregroundServiceStart = async () => {
     const notificationConfig = {
         channelId: 'calls_channel',
         id: 345678,
-        title: 'Mattermost',
-        text: 'Mattermost Calls Microphone',
+        title: 'Quillon Chat',
+        text: 'Микрофон звонков Quillon Chat',
         icon: '',
-        button: 'Stop',
+        button: 'Стоп',
     };
     try {
         await VIForegroundService.getInstance().startService(notificationConfig);

@@ -11,8 +11,7 @@ import {changeOpacity, makeStyleSheetFromTheme} from '@utils/theme';
 const getStyleSheet = makeStyleSheetFromTheme((theme) => {
     return {
         emoji: {
-            color: '#000',
-            fontWeight: 'bold',
+            color: theme.centerChannelColor,
         },
         highlight: {
             backgroundColor: changeOpacity(theme.buttonBg, 0.08),

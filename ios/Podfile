@@ -110,6 +110,33 @@ post_install do |installer|
       end
     end
 
+    # Alamofire SessionDelegate has a duplicate `let allHeaders` block that
+    # Xcode 26's stricter Swift compiler flags as "Invalid redeclaration".
+    # Remove the second (identical) block to fix the build.
+    alamofire_delegate = File.join(installer.sandbox.root, 'Alamofire/Source/Core/SessionDelegate.swift')
+    if File.exist?(alamofire_delegate)
+      content = File.read(alamofire_delegate)
+      patch_marker = '// [PATCHED] removed duplicate allHeaders block for Xcode 26'
+      unless content.include?(patch_marker)
+        duplicate_block = <<~'SWIFT'
+
+                let allHeaders = (downloadRequest.response)?.allHeaderFields as? NSDictionary ?? NSDictionary()
+                let sizeString = (allHeaders["X-Uncompressed-Content-Length"] ?? allHeaders["x-uncompressed-content-length"]) as? String
+                if (sizeString != nil) {
+                    let size = Int64(sizeString!)
+                    downloadRequest.updateDownloadProgress(bytesWritten: bytesWritten,
+                                                       totalBytesExpectedToWrite: size!)
+                    return
+                }
+        SWIFT
+        if content.scan(duplicate_block).length >= 2
+          patched = content.sub(duplicate_block, "\n        #{patch_marker}\n")
+          File.write(alamofire_delegate, patched)
+          Pod::UI.puts 'Patched Alamofire SessionDelegate.swift: removed duplicate allHeaders block.'
+        end
+      end
+    end
+
     # ensure stdlib is embedded for Gekidou to work correctly in extensions
     %w[NotificationService MattermostShare].each do |ext_name|
       target = installer.aggregate_targets.flat_map(&:user_project).flat_map(&:targets).find { |x| x.name == ext_name }

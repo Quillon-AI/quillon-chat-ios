@@ -31,7 +31,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => {
         countHighlight: {
             color: theme.buttonBg,
         },
-        customEmojiStyle: {color: '#000'},
+        customEmojiStyle: {color: theme.centerChannelColor},
         emoji: {marginHorizontal: 5},
         highlight: {
             backgroundColor: changeOpacity(theme.buttonBg, 0.08),

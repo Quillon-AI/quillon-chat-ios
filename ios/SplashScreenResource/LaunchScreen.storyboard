@@ -29,7 +29,7 @@
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <color key="backgroundColor" red="0.031" green="0.035" blue="0.039" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="o2q-4f-QhC" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="4Ey-7v-4Dg"/>
                             <constraint firstItem="zb7-2j-YSv" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="OEP-e6-f2h"/>
@@ -48,8 +48,5 @@
     <resources>
         <image name="SplashBackground" width="896" height="896"/>
         <image name="SplashIcon" width="300" height="300"/>
-        <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
     </resources>
 </document>
