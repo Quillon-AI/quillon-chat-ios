@@ -23,6 +23,7 @@ import PushNotifications from '@init/push_notifications';
 import NetworkManager from '@managers/network_manager';
 import SecurityManager from '@managers/security_manager';
 import {getServerByDisplayName, getServerByIdentifier} from '@queries/app/servers';
+import Loading from '@components/loading';
 import Background from '@screens/background';
 import {dismissModal, goToScreen, loginAnimationOptions, popTopScreen} from '@screens/navigation';
 import {getErrorMessage} from '@utils/errors';
@@ -402,6 +403,30 @@ const Server = ({
 
         displayLogin(headRequest.url, data.config!, data.license!);
     };
+
+    // When the server URL is forced (AutoSelectServerUrl=true) and we're in
+    // the auto-connect happy path, hide the form behind the splash background
+    // + spinner — the user shouldn't see "Let's Connect to a Server" they have
+    // no choice over. If anything goes wrong (urlError/displayNameError set),
+    // we fall back to the regular form so they can retry/contact admin.
+    const autoConnecting = disableServerUrl && !urlError && !displayNameError && !preauthSecretError;
+    if (autoConnecting) {
+        return (
+            <View
+                style={styles.flex}
+                testID='server.screen.auto'
+                nativeID={SecurityManager.getShieldScreenId(componentId, false, true)}
+            >
+                <Background theme={theme}/>
+                <View style={[styles.flex, {alignItems: 'center', justifyContent: 'center'}]}>
+                    <Loading
+                        color={theme.buttonBg}
+                        size='large'
+                    />
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View
