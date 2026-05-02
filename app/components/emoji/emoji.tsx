@@ -1,152 +1,63 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {withDatabase, withObservables} from '@nozbe/watermelondb/react';
 import React from 'react';
 import {StyleSheet, Text} from 'react-native';
-import {of as of$} from 'rxjs';
-import {switchMap} from 'rxjs/operators';
 
-import {fetchCustomEmojiInBatch} from '@actions/remote/custom_emoji';
-import ExpoImage from '@components/expo_image';
-import {useServerUrl} from '@context/server';
-import NetworkManager from '@managers/network_manager';
-import {queryCustomEmojisByName} from '@queries/servers/custom_emoji';
-import {observeConfigBooleanValue} from '@queries/servers/system';
 import {EmojiIndicesByAlias, Emojis} from '@utils/emoji';
-import {isUnicodeEmoji} from '@utils/emoji/helpers';
 
 import type {EmojiProps} from '@typings/components/emoji';
-import type {WithDatabaseArgs} from '@typings/database/database';
 
-const assetImages = new Map([['mattermost.png', require('@assets/images/emojis/mattermost.png')]]);
+const HEX_RE = /^[0-9a-f]+$/i;
 
-const Emoji = (props: EmojiProps) => {
-    const {
-        customEmojis,
-        imageStyle,
-        displayTextOnly,
-        emojiName,
-        literal = '',
-        testID,
-        textStyle,
-        commonStyle,
-    } = props;
-    const serverUrl = useServerUrl();
-    let assetImage = '';
-    let unicode;
-    let imageUrl = '';
+const codePointsToString = (image: string): string => {
+    return image.split('-').reduce((acc, c) => {
+        const cp = parseInt(c, 16);
+        if (cp <= 0xFFFF) {
+            return acc + String.fromCharCode(cp);
+        }
+        const adjusted = cp - 0x10000;
+        return acc + String.fromCharCode(0xD800 + (adjusted >> 10), 0xDC00 + (adjusted & 0x3FF));
+    }, '');
+};
+
+const isUnicodeImage = (image: string): boolean => {
+    return image.split('-').every((c) => HEX_RE.test(c));
+};
+
+const Emoji = ({emojiName, literal = '', testID, textStyle, commonStyle, ...props}: EmojiProps) => {
     const name = emojiName.trim();
-    if (EmojiIndicesByAlias.has(name)) {
-        const emoji = Emojis[EmojiIndicesByAlias.get(name)!];
-        if (emoji.category === 'custom') {
-            assetImage = emoji.fileName;
-        } else {
-            unicode = emoji.image;
-        }
-    } else {
-        const custom = customEmojis.find((ce) => ce.name === name);
-        if (custom) {
-            try {
-                const client = NetworkManager.getClient(serverUrl);
-                imageUrl = client.getCustomEmojiImageUrl(custom.id);
-            } catch {
-                // do nothing
-            }
-        } else if (name && (name.length > 1 || !isUnicodeEmoji(name))) {
-            fetchCustomEmojiInBatch(serverUrl, name);
-        }
-    }
 
     let size = props.size;
-    let fontSize = size;
     if (!size && textStyle) {
         const flatten = StyleSheet.flatten(textStyle);
-        fontSize = flatten.fontSize;
-        size = fontSize;
+        size = flatten.fontSize;
     }
 
-    if (displayTextOnly || (!imageUrl && !assetImage && !unicode)) {
+    const idx = EmojiIndicesByAlias.get(name);
+    const emoji = idx !== undefined ? Emojis[idx] : undefined;
+
+    const sizeStyle = size ? {fontSize: size} : undefined;
+
+    if (emoji && emoji.image && isUnicodeImage(emoji.image)) {
         return (
             <Text
-                style={[commonStyle, textStyle]}
+                style={[commonStyle, textStyle, sizeStyle]}
                 testID={testID}
             >
-                {literal}
-            </Text>);
-    }
-
-    const width = size;
-    const height = size;
-
-    if (unicode && !imageUrl) {
-        const codeArray = unicode.split('-');
-        const code = codeArray.reduce((acc: string, c: string) => {
-            return acc + String.fromCodePoint(parseInt(c, 16));
-        }, '');
-
-        return (
-            <Text
-                style={[commonStyle, textStyle, {fontSize: size, color: '#000'}]}
-                testID={testID}
-            >
-                {code}
+                {codePointsToString(emoji.image)}
             </Text>
         );
     }
 
-    const key = (`${assetImage}-${height}-${width}`);
-    if (assetImage) {
-        const image = assetImages.get(assetImage);
-        if (!image) {
-            return null;
-        }
-
-        return (
-            <ExpoImage
-                id={`emoji-${emojiName}`}
-                source={image}
-                style={[commonStyle, imageStyle, {width, height}]}
-                contentFit='contain'
-                testID={testID}
-                recyclingKey={key}
-                transition={0}
-                cachePolicy='memory'
-            />
-        );
-    }
-
-    if (!imageUrl) {
-        return null;
-    }
-
     return (
-        <ExpoImage
-            id={`emoji-${emojiName}`}
-            style={[commonStyle, imageStyle, {width, height}]}
-            source={{uri: imageUrl}}
-            contentFit='contain'
+        <Text
+            style={[commonStyle, textStyle, sizeStyle]}
             testID={testID}
-            recyclingKey={key}
-            cachePolicy='disk'
-            placeholder={require('@assets/images/thumb.png')}
-            placeholderContentFit='contain'
-            transition={0}
-        />
+        >
+            {literal || `:${name}:`}
+        </Text>
     );
 };
 
-const withCustomEmojis = withObservables(['emojiName'], ({database, emojiName}: WithDatabaseArgs & {emojiName: string}) => {
-    const hasEmojiBuiltIn = EmojiIndicesByAlias.has(emojiName);
-
-    const displayTextOnly = hasEmojiBuiltIn ? of$(false) : observeConfigBooleanValue(database, 'EnableCustomEmoji').pipe(
-        switchMap((value) => of$(!value)),
-    );
-
-    return {
-        displayTextOnly,
-        customEmojis: hasEmojiBuiltIn ? of$([]) : queryCustomEmojisByName(database, [emojiName]).observe(),
-    };
-});
-
-export default withDatabase(withCustomEmojis(Emoji));
+export default Emoji;
