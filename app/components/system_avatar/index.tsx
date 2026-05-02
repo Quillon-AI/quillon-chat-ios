@@ -13,7 +13,7 @@ type Props = {
 const SystemAvatar = ({theme}: Props) => {
     return (
         <CompassIcon
-            name='mattermost'
+            name='information-outline'
             color={theme.centerChannelColor}
             size={ViewConstants.PROFILE_PICTURE_SIZE}
         />

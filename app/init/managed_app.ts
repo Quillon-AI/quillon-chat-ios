@@ -45,11 +45,11 @@ const messages = defineMessages({
     },
     notSecuredIOS: {
         id: 'mobile.managed.not_secured.ios',
-        defaultMessage: 'This device must be secured with biometrics or passcode to use Mattermost.\n\nGo to Settings > Face ID & Passcode.',
+        defaultMessage: 'This device must be secured with biometrics or passcode to use Quillon Chat.\n\nGo to Settings > Face ID & Passcode.',
     },
     notSecuredAndroid: {
         id: 'mobile.managed.not_secured.android',
-        defaultMessage: 'This device must be secured with a screen lock to use Mattermost.',
+        defaultMessage: 'This device must be secured with a screen lock to use Quillon Chat.',
     },
 });
 
@@ -60,7 +60,7 @@ class ManagedAppSingleton {
     performingAuthentication = false;
     previousAppState?: AppStateStatus;
     processConfigTimeout?: NodeJS.Timeout;
-    vendor = 'Mattermost';
+    vendor = 'Quillon Chat';
     cacheConfig?: ManagedConfig = undefined;
 
     constructor() {

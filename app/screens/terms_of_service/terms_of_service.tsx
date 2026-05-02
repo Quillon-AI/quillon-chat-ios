@@ -95,7 +95,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
 });
 
 const TermsOfService = ({
-    siteName = 'Mattermost',
+    siteName = 'Quillon Chat',
     showToS,
     componentId,
 }: Props) => {

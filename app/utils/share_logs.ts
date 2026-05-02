@@ -35,7 +35,7 @@ export const emailLogs = async (metadata: ReportAProblemMetadata, siteName: stri
         if (Platform.OS === 'ios') {
             // iOS does not support sharing with different mail apps, so we use a mailto link
 
-            const subject = `Problem with ${siteName || 'Mattermost'} React Native app`;
+            const subject = `Problem with ${siteName || 'Quillon Chat'} React Native app`;
             const body = metadataToString(metadata);
             const url = `mailto:${reportAProblemMail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             tryOpenURL(url);

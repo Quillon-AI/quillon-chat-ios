@@ -39,15 +39,15 @@ type LearnMoreProps = {
 const messages = defineMessages({
     teamEditionLearn: {
         id: 'about.teamEditionLearn',
-        defaultMessage: 'Join the Mattermost community at ',
+        defaultMessage: 'Узнайте больше о Quillon Chat на ',
     },
     enterpriseEditionLearn: {
         id: 'about.enterpriseEditionLearn',
-        defaultMessage: 'Learn more about Enterprise Edition at ',
+        defaultMessage: 'Подробнее о Корпоративной редакции читайте на ',
     },
     planNameLearn: {
         id: 'about.planNameLearn',
-        defaultMessage: 'Learn more about Mattermost {planName} at ',
+        defaultMessage: 'Узнать больше о Quillon Chat {planName} можно на сайте ',
     },
 });
 
