@@ -1,0 +1,37 @@
+diff --git a/node_modules/@mattermost/react-native-paste-input/ios/PasteTextInputSpecs/States.h b/node_modules/@mattermost/react-native-paste-input/ios/PasteTextInputSpecs/States.h
+index 6902be2..55ffe76 100644
+--- a/node_modules/@mattermost/react-native-paste-input/ios/PasteTextInputSpecs/States.h
++++ b/node_modules/@mattermost/react-native-paste-input/ios/PasteTextInputSpecs/States.h
+@@ -9,7 +9,6 @@
+ 
+ #include <react/renderer/attributedstring/AttributedStringBox.h>
+ #include <react/renderer/attributedstring/ParagraphAttributes.h>
+-#include <react/renderer/textlayoutmanager/TextLayoutManager.h>
+ 
+ namespace facebook::react {
+ 
+@@ -27,10 +26,6 @@ class PasteTextInputState final {
+ 
+   /*
+    * All content of <TextInput> component represented as an `AttributedString`.
+-   * This stores the previous computed *from the React tree*. This usually
+-   * doesn't change as the TextInput contents are being updated. If it does
+-   * change, we need to wipe out current contents of the TextInput and replace
+-   * with the new value from the tree.
+    */
+   AttributedString reactTreeAttributedString{};
+ 
+@@ -40,13 +35,6 @@ class PasteTextInputState final {
+    */
+   ParagraphAttributes paragraphAttributes;
+ 
+-  /*
+-   * `TextLayoutManager` provides a connection to platform-specific
+-   * text rendering infrastructure which is capable to render the
+-   * `AttributedString`.
+-   */
+-  std::shared_ptr<const TextLayoutManager> layoutManager;
+-
+   size_t mostRecentEventCount{0};
+ };
+ 
