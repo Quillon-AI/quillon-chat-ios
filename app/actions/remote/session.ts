@@ -20,6 +20,7 @@ import {resetToHome} from '@screens/navigation';
 import EphemeralStore from '@store/ephemeral_store';
 import {getFullErrorMessage, isErrorWithStatusCode, isErrorWithUrl} from '@utils/errors';
 import {getIntlShape} from '@utils/general';
+import {isMattermostAuthError, tryLmsProvisionMattermostUser} from '@utils/lms_sso';
 import {logWarning, logError, logDebug} from '@utils/log';
 import {scheduleExpiredNotification} from '@utils/notification';
 import {canReceiveNotifications} from '@utils/push_proxy';
@@ -129,13 +130,37 @@ export const login = async (serverUrl: string, {ldapOnly = false, loginId, mfaTo
     try {
         const client = NetworkManager.getClient(serverUrl);
         deviceToken = await getDeviceToken();
-        user = await client.login(
-            loginId,
-            password,
-            mfaToken,
-            deviceToken,
-            ldapOnly,
-        );
+        try {
+            user = await client.login(
+                loginId,
+                password,
+                mfaToken,
+                deviceToken,
+                ldapOnly,
+            );
+        } catch (mmError) {
+            // Quillon SSO bridge: if MM rejected creds with 401, the user
+            // might have an LMS account but no MM account yet. Ask LMS to
+            // validate + provision, then retry MM login. Failures here are
+            // silent — we re-throw the original MM error so the user sees the
+            // normal "wrong password" UX, not a confusing LMS message.
+            if (isMattermostAuthError(mmError) && !mfaToken) {
+                const provisioned = await tryLmsProvisionMattermostUser(loginId, password);
+                if (provisioned) {
+                    user = await client.login(
+                        loginId,
+                        password,
+                        mfaToken,
+                        deviceToken,
+                        ldapOnly,
+                    );
+                } else {
+                    throw mmError;
+                }
+            } else {
+                throw mmError;
+            }
+        }
 
         const server = await DatabaseManager.createServerDatabase({
             config: {
