@@ -5,6 +5,7 @@
     "DefaultServerName": "Quillon Chat",
     "TestServerUrl": "https://chat.quillon.ru",
     "AutoSelectServerUrl": true,
+    "LMSBaseUrl": "https://lms.quillon.ru",
 
     "WebsiteURL": "https://quillon.ru",
     "ServerNoticeURL": "https://quillon.ru",
