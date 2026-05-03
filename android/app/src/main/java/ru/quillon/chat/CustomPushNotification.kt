@@ -1,4 +1,4 @@
-package com.mattermost.rnbeta
+package ru.quillon.chat
 
 import android.app.PendingIntent
 import android.content.Context

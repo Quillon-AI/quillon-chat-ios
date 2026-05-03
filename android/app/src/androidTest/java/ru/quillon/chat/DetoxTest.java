@@ -1,4 +1,4 @@
-package com.mattermost.rnbeta;
+package ru.quillon.chat;
 
 import com.wix.detox.Detox;
 import com.wix.detox.config.DetoxConfig;

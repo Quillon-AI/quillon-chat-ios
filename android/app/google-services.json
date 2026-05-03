@@ -77,6 +77,31 @@
           ]
         }
       }
+    },
+    {
+      "_comment": "PLACEHOLDER for ru.quillon.chat — lets build succeed after package rename. FCM will NOT actually deliver pushes until a real Firebase project is created for Quillon and this file is regenerated.",
+      "client_info": {
+        "mobilesdk_app_id": "1:184930218130:android:c7debfa7ea3f75a7",
+        "android_client_info": {
+          "package_name": "ru.quillon.chat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "184930218130-8nahrspll1opff0uogtkh2qsv8coqngo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASRwdI3DKpyjt_gMbL1MpViI3BTHB9rFg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

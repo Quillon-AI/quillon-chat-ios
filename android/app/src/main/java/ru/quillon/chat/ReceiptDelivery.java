@@ -1,4 +1,4 @@
-package com.mattermost.rnbeta;
+package ru.quillon.chat;
 
 import android.os.Bundle;
 
