@@ -72,6 +72,7 @@ export async function getServerUrlAfterRedirect(serverUrl: string, useHttp = fal
         });
         if (resp.redirectUrls?.length) {
             const redirectUrl = resp.redirectUrls[resp.redirectUrls.length - 1];
+
             // Extract only origin from redirect URL — servers redirect / to /login, not to a new host.
             const parsed = urlParse(redirectUrl, true);
             if (parsed.host) {

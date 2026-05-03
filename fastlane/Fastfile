@@ -398,6 +398,7 @@ platform :ios do
       match(
           api_key: api_key,
           type: ENV['MATCH_TYPE'] || 'adhoc',
+          force: ENV['MATCH_FORCE_REGENERATE'] == 'true',
       )
     end
   end
@@ -640,10 +641,9 @@ platform :ios do
     end
 
     # Sync the provisioning profiles using match
+    # Quillon patch: prefer ASC API key path; fall back to Apple ID only when no
+    # api key is configured (upstream tries both, which 2FA-prompts on dev Macs).
     if ENV['SYNC_PROVISIONING_PROFILES'] == 'true'
-      if !ENV['MATCH_PASSWORD'].nil? && !ENV['MATCH_PASSWORD'].empty?
-        match(type: ENV['MATCH_TYPE'] || 'adhoc')
-      end
       if !ENV['IOS_API_KEY_ID'].nil? && !ENV['IOS_API_KEY_ID'].empty?
         api_key = get_apple_api_key()
         match(
@@ -726,7 +726,7 @@ platform :ios do
       target = 'Mattermost'
       if id.include? 'NotificationService'
         target = 'NotificationService'
-      elsif id.include? 'MattermostShare'
+      elsif id.include?('MattermostShare') || id.end_with?('.Share')
         target = 'MattermostShare'
       end
 

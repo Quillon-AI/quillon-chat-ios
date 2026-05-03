@@ -135,3 +135,5 @@ node_modules/@mattermost/intune
 .claude/settings.local.json
 .codex/
 .cursor/
+ios/AuthKey_*.p8
+fastlane/.env
