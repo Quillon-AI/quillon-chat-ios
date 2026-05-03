@@ -1,4 +1,5 @@
-// Copyright (c) 2026-present Quillon, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 /**
  * Quillon SSO bridge: when MM rejects credentials with 401, ask LMS to validate
@@ -66,6 +67,29 @@ export const tryLmsProvisionMattermostUser = async (loginId: string, password: s
     }
 };
 
+// MM returns these error ids when MFA is required or a submitted token is
+// invalid. Mirrors `MFA_EXPECTED_ERRORS` in app/screens/login/form.tsx — keep
+// in sync if MM adds new variants.
+const MFA_ERROR_IDS = new Set([
+    'mfa.validate_token.authenticate.app_error',
+    'ent.mfa.validate_token.authenticate.app_error',
+    'api.context.mfa_required.app_error',
+]);
+
+/**
+ * Did MM reject this login because the user has MFA enabled and we either
+ * didn't send a token or sent a wrong one? In that case the SSO bridge must
+ * NOT trigger LMS provisioning — the user already exists, they just need to
+ * complete the MFA step (handled by the original Mattermost login flow).
+ */
+export const isMfaRequiredError = (error: unknown): boolean => {
+    const e = error as {server_error_id?: string} | undefined;
+    if (!e || typeof e !== 'object' || !e.server_error_id) {
+        return false;
+    }
+    return MFA_ERROR_IDS.has(e.server_error_id);
+};
+
 /**
  * Heuristic: did the MM /api/v4/users/login call reject because of bad/missing
  * credentials? We only want to fall back to LMS provisioning in that case —
@@ -76,9 +100,16 @@ export const isMattermostAuthError = (error: unknown): boolean => {
     if (!e || typeof e !== 'object') {
         return false;
     }
+
+    // MFA-required also surfaces as 401, but it means "user exists, finish
+    // 2FA", not "wrong password". Rule it out before the generic 401 check.
+    if (isMfaRequiredError(e)) {
+        return false;
+    }
     if (e.status_code === 401) {
         return true;
     }
+
     // MM uses these error ids for "wrong password" / "user not found"
     return e.server_error_id === 'api.user.login.invalid_credentials_email_username' ||
         e.server_error_id === 'api.user.check_user_password.invalid.app_error' ||

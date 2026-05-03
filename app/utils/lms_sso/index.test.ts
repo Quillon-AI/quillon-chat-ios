@@ -1,6 +1,7 @@
-// Copyright (c) 2026-present Quillon, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
-import {isMattermostAuthError, tryLmsProvisionMattermostUser} from './';
+import {isMattermostAuthError, isMfaRequiredError, tryLmsProvisionMattermostUser} from './';
 
 const mockResponse = (ok: boolean, status = ok ? 200 : 401) => ({ok, status} as Response);
 
@@ -23,11 +24,41 @@ describe('lms_sso', () => {
             expect(isMattermostAuthError({status_code: 400, server_error_id: 'api.context.mfa_required.app_error'})).toBe(false);
         });
 
+        it('returns false when MFA is required (even on 401)', () => {
+            // MM surfaces "user has MFA, finish 2FA step" as 401 — must not
+            // trigger the LMS provision fallback.
+            expect(isMattermostAuthError({
+                status_code: 401,
+                server_error_id: 'mfa.validate_token.authenticate.app_error',
+            })).toBe(false);
+            expect(isMattermostAuthError({
+                status_code: 401,
+                server_error_id: 'ent.mfa.validate_token.authenticate.app_error',
+            })).toBe(false);
+        });
+
         it('returns false for null/undefined/non-object', () => {
             expect(isMattermostAuthError(null)).toBe(false);
             expect(isMattermostAuthError(undefined)).toBe(false);
             expect(isMattermostAuthError('string error')).toBe(false);
             expect(isMattermostAuthError(42)).toBe(false);
+        });
+    });
+
+    describe('isMfaRequiredError', () => {
+        it('returns true for known MFA server_error_ids', () => {
+            expect(isMfaRequiredError({server_error_id: 'mfa.validate_token.authenticate.app_error'})).toBe(true);
+            expect(isMfaRequiredError({server_error_id: 'ent.mfa.validate_token.authenticate.app_error'})).toBe(true);
+            expect(isMfaRequiredError({server_error_id: 'api.context.mfa_required.app_error'})).toBe(true);
+        });
+
+        it('returns false for non-MFA errors', () => {
+            expect(isMfaRequiredError({server_error_id: 'api.user.login.invalid_credentials_email_username'})).toBe(false);
+            expect(isMfaRequiredError({status_code: 401})).toBe(false);
+            expect(isMfaRequiredError({})).toBe(false);
+            expect(isMfaRequiredError(null)).toBe(false);
+            expect(isMfaRequiredError(undefined)).toBe(false);
+            expect(isMfaRequiredError('not an error object')).toBe(false);
         });
     });
 
@@ -47,9 +78,9 @@ describe('lms_sso', () => {
         });
 
         it('calls LMS auth then provision when both succeed', async () => {
-            const fetchMock = jest.fn()
-                .mockResolvedValueOnce(mockResponse(true))
-                .mockResolvedValueOnce(mockResponse(true));
+            const fetchMock = jest.fn().
+                mockResolvedValueOnce(mockResponse(true)).
+                mockResolvedValueOnce(mockResponse(true));
             global.fetch = fetchMock;
 
             const result = await tryLmsProvisionMattermostUser('alice@quillon.ru', 'pw');
@@ -73,9 +104,9 @@ describe('lms_sso', () => {
         });
 
         it('returns false if provision fails after auth succeeds', async () => {
-            const fetchMock = jest.fn()
-                .mockResolvedValueOnce(mockResponse(true))
-                .mockResolvedValueOnce(mockResponse(false, 503));
+            const fetchMock = jest.fn().
+                mockResolvedValueOnce(mockResponse(true)).
+                mockResolvedValueOnce(mockResponse(false, 503));
             global.fetch = fetchMock;
 
             const result = await tryLmsProvisionMattermostUser('alice@quillon.ru', 'pw');
@@ -91,9 +122,9 @@ describe('lms_sso', () => {
         });
 
         it('trims whitespace from loginId', async () => {
-            const fetchMock = jest.fn()
-                .mockResolvedValueOnce(mockResponse(true))
-                .mockResolvedValueOnce(mockResponse(true));
+            const fetchMock = jest.fn().
+                mockResolvedValueOnce(mockResponse(true)).
+                mockResolvedValueOnce(mockResponse(true));
             global.fetch = fetchMock;
 
             await tryLmsProvisionMattermostUser('  alice@quillon.ru  ', 'pw');

@@ -139,11 +139,15 @@ export const login = async (serverUrl: string, {ldapOnly = false, loginId, mfaTo
                 ldapOnly,
             );
         } catch (mmError) {
-            // Quillon SSO bridge: if MM rejected creds with 401, the user
-            // might have an LMS account but no MM account yet. Ask LMS to
-            // validate + provision, then retry MM login. Failures here are
-            // silent — we re-throw the original MM error so the user sees the
-            // normal "wrong password" UX, not a confusing LMS message.
+            // Quillon SSO bridge: if MM rejected creds with 401 (and it's
+            // not a "finish your MFA" 401 — see isMattermostAuthError), the
+            // user might have an LMS account but no MM account yet. Ask LMS
+            // to validate + provision, then retry MM login. The `!mfaToken`
+            // guard skips the bridge on MFA retries — at that point we know
+            // the MM user already exists and is just verifying 2FA.
+            // Failures here are silent — we re-throw the original MM error
+            // so the user sees the normal "wrong password" / MFA UX, not a
+            // confusing LMS message.
             if (isMattermostAuthError(mmError) && !mfaToken) {
                 const provisioned = await tryLmsProvisionMattermostUser(loginId, password);
                 if (provisioned) {
