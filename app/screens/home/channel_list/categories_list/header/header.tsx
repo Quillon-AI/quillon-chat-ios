@@ -3,7 +3,7 @@
 
 import React, {useCallback, useEffect} from 'react';
 import {useIntl} from 'react-intl';
-import {type Insets, Text, TouchableWithoutFeedback, View} from 'react-native';
+import {type Insets, Image, Text, TouchableWithoutFeedback, View} from 'react-native';
 import Animated, {useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
 
 import {logout} from '@actions/remote/session';
@@ -42,6 +42,10 @@ const getStyles = makeStyleSheetFromTheme((theme: Theme) => ({
     headingStyles: {
         color: theme.sidebarText,
         ...typography('Heading', 700),
+    },
+    brandLogo: {
+        height: 32,
+        width: 92,  // matches 707:248 aspect ratio of source SVG
     },
     subHeadingStyles: {
         color: changeOpacity(theme.sidebarText, 0.64),
@@ -185,26 +189,18 @@ const ChannelListHeader = ({
                             onPress={onHeaderPress}
                         >
                             <View style={styles.headerRow}>
-                                <Text
-                                    numberOfLines={2}
-                                    ellipsizeMode='tail'
-                                    style={styles.headingStyles}
+                                <Image
+                                    source={require('@assets/images/quillon_horizontal.png')}
+                                    style={styles.brandLogo}
+                                    resizeMode='contain'
+                                    accessibilityLabel={displayName}
                                     testID='channel_list_header.team_display_name'
-                                >
-                                    {displayName}
-                                </Text>
+                                />
                             </View>
                         </TouchableWithoutFeedback>
                     </View>
                     <View style={styles.subHeadingView}>
-                        <Text
-                            numberOfLines={1}
-                            ellipsizeMode='tail'
-                            style={styles.subHeadingStyles}
-                            testID='channel_list_header.server_display_name'
-                        >
-                            {serverDisplayName}
-                        </Text>
+                        {/* Quillon: hide server URL subtitle (single-server build) */}
                         {pushProxyStatus !== PUSH_PROXY_STATUS_VERIFIED && (
                             <TouchableWithFeedback
                                 onPress={onPushAlertPress}

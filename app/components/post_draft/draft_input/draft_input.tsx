@@ -5,7 +5,7 @@ import RewritingIndicator from '@agents/components/rewriting_indicator';
 import React, {useCallback} from 'react';
 import {useIntl} from 'react-intl';
 import {Keyboard, type LayoutChangeEvent, Platform, ScrollView, View} from 'react-native';
-import {type Edge, SafeAreaView} from 'react-native-safe-area-context';
+import {type Edge, SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {Screens} from '@constants';
 import {useKeyboardAnimationContext} from '@context/keyboard_animation';
@@ -66,6 +66,11 @@ export type Props = {
 }
 
 const SCHEDULED_POST_PICKER_BUTTON = 'close-scheduled-post-picker';
+// Channel screen already consumes the bottom safe-area inset on the parent
+// SafeAreaView (mode='margin'), so re-adding 'bottom' here is a no-op.
+// Keep the original (left/right) but enforce a hard min-padding on the action
+// bar so it never collides with the home-indicator zone on devices where the
+// keyboard-aware container shrinks the parent below safe area.
 const SAFE_AREA_VIEW_EDGES: Edge[] = ['left', 'right'];
 
 const getStyleSheet = makeStyleSheetFromTheme((theme) => {
@@ -95,10 +100,9 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             alignItems: 'flex-end',
             flexDirection: 'row',
             justifyContent: 'center',
-            paddingBottom: 2,
+            paddingBottom: 8,
             backgroundColor: theme.centerChannelBg,
             borderWidth: 1,
-            borderBottomWidth: 0,
             borderColor: changeOpacity(theme.centerChannelColor, 0.20),
             borderTopLeftRadius: 12,
             borderTopRightRadius: 12,
@@ -148,6 +152,7 @@ function DraftInput({
     const serverUrl = useServerUrl();
     const theme = useTheme();
     const isTablet = useIsTablet();
+    const insets = useSafeAreaInsets();
 
     const {inputRef, focusInput: focus} = useKeyboardAnimationContext();
 

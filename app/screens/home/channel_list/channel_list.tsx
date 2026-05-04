@@ -82,7 +82,8 @@ const ChannelListScreen = (props: ChannelProps) => {
     const insets = useSafeAreaInsets();
     const serverUrl = useServerUrl();
     const params = route.params as {direction: string};
-    const canAddOtherServers = managedConfig?.allowOtherServers !== 'false';
+    // Quillon: single-server build; hide the multi-server switcher rail.
+    const canAddOtherServers = false;
 
     const handleBackPress = useCallback(() => {
         const isHomeScreen = NavigationStore.getVisibleScreen() === Screens.HOME;

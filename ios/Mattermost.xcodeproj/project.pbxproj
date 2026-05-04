@@ -2142,7 +2142,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = ru.quillon.chat;
 				PRODUCT_MODULE_NAME = Mattermost;
 				PRODUCT_NAME = "Quillon Chat";
-				PROVISIONING_PROFILE = "d1563015-0de9-45ab-b30e-f4f978e1507d";
+				PROVISIONING_PROFILE = "bb382309-5279-47e7-b1d0-f88c88cb02c2";
 				PROVISIONING_PROFILE_SPECIFIER = "match AppStore ru.quillon.chat";
 				SWIFT_OBJC_BRIDGING_HEADER = "Mattermost/Mattermost-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -2242,7 +2242,7 @@
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = ru.quillon.chat.NotificationService;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "e64d4743-06e3-4d4d-bc33-2e8a4f50ba5c";
+				PROVISIONING_PROFILE = "e78dab05-a6f6-47e4-9dd0-b2a0c61afa33";
 				PROVISIONING_PROFILE_SPECIFIER = "match AppStore ru.quillon.chat.NotificationService";
 				SKIP_INSTALL = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -2347,7 +2347,7 @@
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = ru.quillon.chat.Share;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "a010ac92-33fa-4049-8f50-b95b3164aeb6";
+				PROVISIONING_PROFILE = "85416f77-6bbf-40fb-a797-2725a437c937";
 				PROVISIONING_PROFILE_SPECIFIER = "match AppStore ru.quillon.chat.Share";
 				SKIP_INSTALL = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;

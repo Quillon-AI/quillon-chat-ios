@@ -409,6 +409,42 @@ const Server = ({
     // + spinner — the user shouldn't see "Let's Connect to a Server" they have
     // no choice over. If anything goes wrong (urlError/displayNameError set),
     // we fall back to the regular form so they can retry/contact admin.
+    //
+    // Quillon: transient network errors during auto-connect retry up to 3
+    // times with back-off (1s, 2s, 4s) before falling back to the form, so
+    // a flaky cellular tap on cold launch doesn't dump the user onto a
+    // "configure your server" screen they have no business seeing.
+    const AUTO_CONNECT_MAX_RETRIES = 3;
+    const autoConnectAttemptsRef = useRef(0);
+
+    useEffect(() => {
+        if (!disableServerUrl) {
+            return undefined;
+        }
+        if (!urlError) {
+            return undefined;
+        }
+        if (autoConnectAttemptsRef.current >= AUTO_CONNECT_MAX_RETRIES) {
+            return undefined; // exhausted — let the form show as fallback
+        }
+
+        const attempt = autoConnectAttemptsRef.current + 1;
+        autoConnectAttemptsRef.current = attempt;
+        const delay = 1000 * 2 ** (attempt - 1); // 1s · 2s · 4s
+
+        const timer = setTimeout(() => {
+            setUrlError(undefined);
+            setButtonDisabled(false);
+            handleConnect(LocalConfig.DefaultServerUrl);
+        }, delay);
+
+        return () => clearTimeout(timer);
+        // We deliberately depend only on the surface signal (urlError flips
+        // false→string when ping fails); handleConnect/setters are stable
+        // through closures and would cause loops if listed.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [urlError, disableServerUrl]);
+
     const autoConnecting = disableServerUrl && !urlError && !displayNameError && !preauthSecretError;
     if (autoConnecting) {
         return (

@@ -621,7 +621,10 @@ export const KeyboardAwarePostDraftContainer = ({
                     styles.inputContainer,
                 ]}
             >
-                <View onLayout={onLayout}>
+                <View
+                    onLayout={onLayout}
+                    style={{paddingBottom: isTablet ? 0 : (isIOS ? Math.max(insets.bottom - 18, 6) : 8)}}
+                >
                     {children}
                 </View>
                 {showInputAccessoryView && (
